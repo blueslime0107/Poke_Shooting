@@ -7,9 +7,75 @@ import cv2
 import numpy
 
 # 게임에 핵심적인 기능만 주석을 넣었습니다 ##
+# 초기화
+pygame.mixer.pre_init(44100,-16,2,512)
+pygame.init()
+# 해상도
+WIDTH = 1080
+HEIGHT = 720
+screen = pygame.display.set_mode((WIDTH,HEIGHT))
+bgm_num = 0
+# 소리 초기설정, 불러오기
+pygame.mixer.set_num_channels(16)
 
-######보스들의 공격패턴####################################
+
 def play_game():
+    
+    global WIDTH, HEIGHT, screen
+
+    
+    # 이미지 불러오기
+    bullet_image = pygame.image.load('Image\Bullets.png').convert_alpha()
+    bg_image = pygame.image.load('Image\Bg1.png').convert()
+    bg2_image = pygame.image.load('Image\Bg2.png').convert()
+    pkmon_image = pygame.image.load('Image\pokemon.png').convert_alpha()
+    background_img = pygame.image.load('Image\\background.jpg').convert()
+    menu_img = pygame.image.load('Image\Menus.png').convert_alpha()
+    background_img = pygame.transform.scale(background_img, (WIDTH, HEIGHT))
+
+    player_slow_img = pygame.Surface((64, 64), pygame.SRCALPHA)
+    player_slow_img.blit(bullet_image, (0,0), Rect(128,128,64,64))
+    player_slow_img = pygame.transform.scale(player_slow_img, (64*2, 64*2))
+
+    sfx_volume = 0.1
+    music_volume = 0.5
+    pygame.mixer.music.load('Music\BGM\Shoot the Bullet - Tengu is Watching.wav')
+    pygame.mixer.music.set_volume(music_volume)
+
+    s_lazer1 = pygame.mixer.Sound('Music\SFX\se_lazer00.wav')
+    s_lazer1.set_volume(sfx_volume)
+    s_tan1 = pygame.mixer.Sound('Music\SFX\se_tan00.wav')
+    s_tan1.set_volume(sfx_volume)
+    s_tan2 = pygame.mixer.Sound('Music\SFX\se_tan01.wav')
+    s_tan2.set_volume(sfx_volume)
+    s_ch2 = pygame.mixer.Sound('Music\SFX\se_ch02.wav')
+    s_ch2.set_volume(sfx_volume+0.2)
+    s_ch0 = pygame.mixer.Sound('Music\SFX\se_ch00.wav')
+    s_ch0.set_volume(sfx_volume+0.2)
+    s_cat1 = pygame.mixer.Sound('Music\SFX\se_cat00.wav')
+    s_cat1.set_volume(sfx_volume+0.2)
+    s_enep1 = pygame.mixer.Sound('Music\SFX\se_enep01.wav')
+    s_enep1.set_volume(sfx_volume)
+    s_enep2 = pygame.mixer.Sound('Music\SFX\se_enep02.wav')
+    s_enep2.set_volume(sfx_volume+0.2)
+    s_slash = pygame.mixer.Sound('Music\SFX\se_slash.wav')
+    s_slash.set_volume(sfx_volume+0.2)
+    s_pldead = pygame.mixer.Sound('Music\SFX\se_pldead00.wav')
+    s_pldead.set_volume(sfx_volume)
+    s_plst0 = pygame.mixer.Sound('Music\SFX\se_plst00.wav')
+    s_plst0.set_volume(sfx_volume-0.1)
+    s_damage0 = pygame.mixer.Sound('Music\SFX\se_damage00.wav')
+    s_damage0.set_volume(sfx_volume)
+    s_damage1 = pygame.mixer.Sound('Music\SFX\se_damage01.wav')
+    s_damage1.set_volume(sfx_volume)
+    s_graze = pygame.mixer.Sound('Music\SFX\se_graze.wav')
+    s_graze.set_volume(sfx_volume)
+    s_kira0 = pygame.mixer.Sound('Music\SFX\se_kira00.wav')
+    s_kira0.set_volume(sfx_volume+0.2)
+    s_kira1 = pygame.mixer.Sound('Music\SFX\se_kira01.wav')
+    s_kira1.set_volume(sfx_volume)
+    s_boom = pygame.mixer.Sound('Music\SFX\se_enep02.wav')
+    s_boom.set_volume(sfx_volume+0.2)
 
     def shoot_pattern(count,num,list):
         global time_stop
@@ -218,6 +284,7 @@ def play_game():
                 s_kira0.play()
                 list = [0,0,0,0]
                 time_stop = False
+                magic_spr.empty()
             if when_time(count,420):           
                 count = 0
         if num == 16:
@@ -1056,71 +1123,6 @@ def play_game():
         else:
             return rand_list[randint(0,3)] 
 
-    # 해상도
-    WIDTH = 1080
-    HEIGHT = 720
-    # 초기화
-    pygame.mixer.pre_init(44100,-16,2,512)
-    pygame.init()
-
-
-
-    screen = pygame.display.set_mode((WIDTH,HEIGHT))
-
-    # 이미지 불러오기
-    bullet_image = pygame.image.load('Image\Bullets.png').convert_alpha()
-    bg_image = pygame.image.load('Image\Bg1.png').convert()
-    bg2_image = pygame.image.load('Image\Bg2.png').convert()
-    pkmon_image = pygame.image.load('Image\pokemon.png').convert_alpha()
-
-    player_slow_img = pygame.Surface((64, 64), pygame.SRCALPHA)
-    player_slow_img.blit(bullet_image, (0,0), Rect(128,128,64,64))
-    player_slow_img = pygame.transform.scale(player_slow_img, (64*2, 64*2))
-
-    # 소리 초기설정, 불러오기
-    sfx_volume = 0.1
-    pygame.mixer.set_num_channels(16)
-
-    global boss_dodon, bkgd1, boss_dodon_copy, enemy_health, bgm_num, score, time_stop
-    bgm_num = 1
-    pygame.mixer.music.load('Music\BGM\Shoot the Bullet - Tengu is Watching.wav')
-    pygame.mixer.music.set_volume(0.5)
-
-    s_lazer1 = pygame.mixer.Sound('Music\SFX\se_lazer00.wav')
-    s_lazer1.set_volume(sfx_volume)
-    s_tan1 = pygame.mixer.Sound('Music\SFX\se_tan00.wav')
-    s_tan1.set_volume(sfx_volume)
-    s_tan2 = pygame.mixer.Sound('Music\SFX\se_tan01.wav')
-    s_tan2.set_volume(sfx_volume)
-    s_ch2 = pygame.mixer.Sound('Music\SFX\se_ch02.wav')
-    s_ch2.set_volume(sfx_volume+0.2)
-    s_ch0 = pygame.mixer.Sound('Music\SFX\se_ch00.wav')
-    s_ch0.set_volume(sfx_volume+0.2)
-    s_cat1 = pygame.mixer.Sound('Music\SFX\se_cat00.wav')
-    s_cat1.set_volume(sfx_volume+0.2)
-    s_enep1 = pygame.mixer.Sound('Music\SFX\se_enep01.wav')
-    s_enep1.set_volume(sfx_volume)
-    s_enep2 = pygame.mixer.Sound('Music\SFX\se_enep02.wav')
-    s_enep2.set_volume(sfx_volume+0.2)
-    s_slash = pygame.mixer.Sound('Music\SFX\se_slash.wav')
-    s_slash.set_volume(sfx_volume+0.2)
-    s_pldead = pygame.mixer.Sound('Music\SFX\se_pldead00.wav')
-    s_pldead.set_volume(sfx_volume)
-    s_plst0 = pygame.mixer.Sound('Music\SFX\se_plst00.wav')
-    s_plst0.set_volume(sfx_volume-0.1)
-    s_damage0 = pygame.mixer.Sound('Music\SFX\se_damage00.wav')
-    s_damage0.set_volume(sfx_volume)
-    s_damage1 = pygame.mixer.Sound('Music\SFX\se_damage01.wav')
-    s_damage1.set_volume(sfx_volume)
-    s_graze = pygame.mixer.Sound('Music\SFX\se_graze.wav')
-    s_graze.set_volume(sfx_volume)
-    s_kira0 = pygame.mixer.Sound('Music\SFX\se_kira00.wav')
-    s_kira0.set_volume(sfx_volume+0.2)
-    s_kira1 = pygame.mixer.Sound('Music\SFX\se_kira01.wav')
-    s_kira1.set_volume(sfx_volume)
-    s_boom = pygame.mixer.Sound('Music\SFX\se_enep02.wav')
-    s_boom.set_volume(sfx_volume+0.2)
-
     # 이미지 나눠 저장하기
     a_list = []
     cur_list = []
@@ -1167,8 +1169,8 @@ def play_game():
     pokemons = cur_list
 
     # 개발자 전용
-    boss_fun = 18
-
+    boss_fun = 1
+    global boss_dodon, bkgd1, boss_dodon_copy, enemy_health, score, time_stop
     # 초기 설정
     enemy_health = 500
     enemy_start = (round(WIDTH - WIDTH / 4),round(HEIGHT/2))
@@ -1177,12 +1179,21 @@ def play_game():
     enemy_movebox = Rect(600,80,380,560)
     play = True
     full_on = False
+    cur_full_mod = False
     pause = False
     frame_count = 0
-    count = 0
     min_dir = 0
     time_stop = False
 
+    # 게임 시작전 메뉴 변수들
+    curser = 0
+    curser_max = 4
+    select_mod = 0
+    menu_mod = -1
+    difficulty = 0
+    character = 0
+
+    cur_screen = 0
 
     bullet_border_wide = 200
     bullet_border = Rect(0-bullet_border_wide, 0-bullet_border_wide, WIDTH + bullet_border_wide*2, HEIGHT + bullet_border_wide*2)
@@ -1212,10 +1223,9 @@ def play_game():
 
     bg_x = 0
     fps = 60
-
     #################################################
     def game_defalt_setting(fun):
-        global boss_dodon, bkgd1, boss_dodon_copy, enemy_health, bgm_num
+        global bgm_num, boss_dodon, bkgd1, boss_dodon_copy, enemy_health
         boss_dodon = pygame.Surface((64, 64), pygame.SRCALPHA)
         boss_dodon_copy = 0
         bkgd1 = pygame.Surface((640, 360))
@@ -1334,7 +1344,7 @@ def play_game():
             if bgm == 4:
                 pygame.mixer.music.load('Music\BGM\동방영야초 - 라스트 워드 테마.wav')  
             bgm_num = bgm
-            pygame.mixer.music.play(-1)
+            #pygame.mixer.music.play(-1)
 
 
     ################################################# 
@@ -1346,170 +1356,224 @@ def play_game():
 
 
     # BGM 재생
-    pygame.mixer.music.play(-1)
+    #pygame.mixer.music.play(-1)
 
 
     while play:
         # 60 프레임
         clock.tick(fps)
         # 키 이벤트
-        for ev in pygame.event.get():
-            if ev.type == pygame.QUIT: # 게임끄기
-                play = False
-            if ev.type == pygame.KEYDOWN: 
-                if ev.key == pygame.K_r or ev.key == pygame.K_t or ev.key == pygame.K_e: # 다음 스테이지 넘어가기
-                    if ev.key == pygame.K_t: # 다음 스테이지 넘어가기
-                        boss_fun += 1
-                    if ev.key == pygame.K_e: # 다음 스테이지 넘어가기
-                        boss_fun -= 1
-                    spr.empty()
-                    magic_spr.empty()
-                    player.health = 500
-                    enemy = Enemy(enemy_start[0],enemy_start[1],enemy_health,boss_fun)
-                    enemy_group = pygame.sprite.Group(enemy)
-                    play = True
-                    starting = True
-                    enemy_died = False
-                    read_end = False
-                    frame_count = 0
-                    count = 0
-                    min_dir = 0
-                    bos_xy = 0
-                    time_stop = False
-                    game_defalt_setting(boss_fun)
-                
-                
-                if ev.key == pygame.K_f :  # 전체화면 키를 눌렀을 때
-                    if full_on == True:
-                        screen = pygame.display.set_mode((WIDTH,HEIGHT))  # 전체화면으로 전환
-                        full_on = False
+        if cur_screen == 1:
+            for ev in pygame.event.get():
+                if ev.type == pygame.QUIT: # 게임끄기
+                    play = False
+                if ev.type == pygame.KEYDOWN: 
+                    if ev.key == pygame.K_r or ev.key == pygame.K_t or ev.key == pygame.K_e: # 다음 스테이지 넘어가기
+                        if ev.key == pygame.K_t: # 다음 스테이지 넘어가기
+                            boss_fun += 1
+                        if ev.key == pygame.K_e: # 다음 스테이지 넘어가기
+                            boss_fun -= 1
+                        spr.empty()
+                        magic_spr.empty()
+                        player.health = 500
+                        enemy = Enemy(enemy_start[0],enemy_start[1],enemy_health,boss_fun)
+                        enemy_group = pygame.sprite.Group(enemy)
+                        play = True
+                        starting = True
+                        enemy_died = False
+                        read_end = False
+                        frame_count = 0
+                        count = 0
+                        min_dir = 0
+                        bos_xy = 0
+                        time_stop = False
+                        game_defalt_setting(boss_fun)
+                    
+                    
+                    if ev.key == pygame.K_f:
+                        full_on = False if full_on == True else True
+                    if ev.key == pygame.K_ESCAPE:
+                        pause = False if pause == True else True
+            keys = pygame.key.get_pressed()
+            # 총 쏘기 이벤트
+            if keys[pygame.K_z] and frame_count % 4 == 0 and not player.godmod and not pause:
+                s_plst0.play(loops=1, maxtime=50)
+                beams.add(Beam(player.pos[0]+5,player.pos[1]+10,40))
+                beams.add(Beam(player.pos[0]+5,player.pos[1]-10,40))
+                if frame_count % 1 == 0:
+                    if keys[pygame.K_LSHIFT]:
+                        beams.add(Beam(player.pos[0]+5,player.pos[1]+20,30,5))
+                        beams.add(Beam(player.pos[0]+5,player.pos[1]-20,30,-5))
                     else:
-                        user32 = ctypes.windll.user32
-                        screensize = user32.GetSystemMetrics(0), user32.GetSystemMetrics(1)  # 해상도 구하기
-                        size = pygame.display.Info()
-                        screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN)
-                        full_on = True
-                if ev.key == pygame.K_ESCAPE:
-                    pause = False if pause == True else True
-        keys = pygame.key.get_pressed()
-        # 총 쏘기 이벤트
-        if keys[pygame.K_z] and frame_count % 4 == 0 and not player.godmod and not pause:
-            s_plst0.play(loops=1, maxtime=50)
-            beams.add(Beam(player.pos[0]+5,player.pos[1]+10,40))
-            beams.add(Beam(player.pos[0]+5,player.pos[1]-10,40))
-            if frame_count % 1 == 0:
-                if keys[pygame.K_LSHIFT]:
-                    beams.add(Beam(player.pos[0]+5,player.pos[1]+20,30,5))
-                    beams.add(Beam(player.pos[0]+5,player.pos[1]-20,30,-5))
-                else:
-                    beams.add(Beam(player.pos[0]+5,player.pos[1]+10,30,-10))
-                    beams.add(Beam(player.pos[0]+5,player.pos[1]-10,30,10))
-        if keys[pygame.K_x]: # 탄 소거
-            fps = 30
-        else:
-            fps = 60
-
-        # 적 체력 없을때            
-        if enemy.health <=  0 and not enemy_died:
-            enemy_died = True
-            enemy.count = 0
-            spr.empty()
-            magic_spr.empty()
-            enemy.rest = True
-            score += score_setting[2]
-
-        # 적 3초뒤 활동하기
-        if frame_count == 180 and enemy.rest:
-            enemy.rest = False
-
-        # 적이 죽었다면
-        if enemy_died and enemy.count >= 10 and not read_end:
-            s_enep1.play()
-            enemy_group.empty()
-            read_end = True
-        
-        # 탄에 박았는가
-        hit_list = pygame.sprite.spritecollide(player, spr, not player.godmod, pygame.sprite.collide_circle)
-        ehit_list = []
-        for sprite in pygame.sprite.spritecollide(enemy, beams, False, pygame.sprite.collide_rect):
-            if sprite.rect.colliderect(enemy.hit_box):
-                sprite.kill()
-                ehit_list.append(sprite)
-
-        if not pause:      
-            if not starting or read_end: enemy_group.update(ehit_list)  
-            if len(magic_spr.sprites()) != 0:magic_spr.update(screen)                  
-            spr.update(screen)
-        # 연산 업데이트
-        if not time_stop:
-            if not pause:
-                beams.update()                            
-                player_group.update(hit_list)
-                frame_count += 1
-                min_dir += 0.2
-                bg_x -= 3
-                rotated_sprite = pygame.transform.rotate(player_slow_img, math.degrees(frame_count/20))
-                rect = rotated_sprite.get_rect(center = (round(player.pos[0]), round(player.pos[1])))
-            
-            
-            
-
-        
-
-        # 그리기 시작
-        screen.fill((0,0,0))
-        #배경 스크롤
-        rel_x = bg_x % WIDTH
-        screen.blit(bkgd1, (rel_x - WIDTH,0))
-        if rel_x < WIDTH:
-            screen.blit(bkgd1,(rel_x,0))
-        #pygame.draw.rect(screen, (0,0,255), enemy_movebox)
-
-        # 게임 시작할때
-        if starting and frame_count > 60:
-            if bos_xy == 0 :s_ch2.play()
-            bos_xy = boss_dodon_copy.get_size()
-                            
-            if bos_xy[0]-frame_count/8 <= 0:
-                starting = False
-                s_cat1.play()
+                        beams.add(Beam(player.pos[0]+5,player.pos[1]+10,30,-10))
+                        beams.add(Beam(player.pos[0]+5,player.pos[1]-10,30,10))
+            if keys[pygame.K_x]: # 탄 소거
+                fps = 30
             else:
-                boss_dodon_copy = pygame.transform.scale(boss_dodon, (bos_xy[0]-round(frame_count/8), bos_xy[0]-round(frame_count/8)))
-                screen.blit(boss_dodon_copy, (round(enemy.rect.x+ 100 - bos_xy[0]/2+40),round(enemy.rect.y+ 100- bos_xy[0]/2+40)))
+                fps = 60
 
-        # 보스 처치 이벤트
-        if read_end and bos_xy[0] <= 1024:
-            bos_xy = boss_dodon_copy.get_size()       
-            screen.blit(boss_dodon_copy, (enemy.rect.x+ 64- bos_xy[0]/2+40,enemy.rect.y+ 64 - bos_xy[0]/2+40))
-            boss_dodon_copy = pygame.transform.scale(boss_dodon, (bos_xy[0]+12, bos_xy[0]+12))
+            # 적 체력 없을때            
+            if enemy.health <=  0 and not enemy_died:
+                enemy_died = True
+                enemy.count = 0
+                spr.empty()
+                magic_spr.empty()
+                enemy.rest = True
+                score += score_setting[2]
 
+            # 적 3초뒤 활동하기
+            if frame_count == 180 and enemy.rest:
+                enemy.rest = False
 
-        # 점수 표시
-        score_text = score_font.render(str(score).zfill(10), True, (255,255,255))
-        screen.blit(score_text,(WIDTH-score_text.get_rect().width,0))
-        
-        # 원형 체력바 그리기
-        if not enemy.rest and not starting and not read_end: 
-            drawArc(screen, (0, 0, 0), enemy.pos, 112, 15, 360*100)
-            drawArc(screen, health_color(enemy.health/enemy_health), enemy.pos, 110, 10, 360*enemy.health/enemy_health)
-            drawArc(screen, (0,0, 0), player.pos, 112, 15, 360*100)
-            drawArc(screen, health_color(player.health/500), player.pos, 110, 10, 360*player.health/500)
-
-        magic_spr.draw(screen)      
-        beams.draw(screen)
-        player_group.draw(screen)  
-        
-        if not starting or read_end: enemy_group.draw(screen)
-        spr.draw(screen)
-        
-
-        # SHIFT 눌렀을때 특별한 원 보이기
-        pygame.draw.circle(screen, (200,100,100), (round(player.pos[0]),round(player.pos[1])), 8)
-        pygame.draw.circle(screen, (255,255,255), (round(player.pos[0]),round(player.pos[1])), 7)  
-        if keys[pygame.K_LSHIFT]: 
+            # 적이 죽었다면
+            if enemy_died and enemy.count >= 10 and not read_end:
+                s_enep1.play()
+                enemy_group.empty()
+                read_end = True
             
-            screen.blit(rotated_sprite, rect)
-        pygame.display.flip()
+            # 탄에 박았는가
+            hit_list = pygame.sprite.spritecollide(player, spr, not player.godmod, pygame.sprite.collide_circle)
+            ehit_list = []
+            for sprite in pygame.sprite.spritecollide(enemy, beams, False, pygame.sprite.collide_rect):
+                if sprite.rect.colliderect(enemy.hit_box):
+                    sprite.kill()
+                    ehit_list.append(sprite)
+
+            if not pause:      
+                if not starting or read_end: enemy_group.update(ehit_list)  
+                if len(magic_spr.sprites()) != 0:magic_spr.update(screen)                  
+                spr.update(screen)
+            # 연산 업데이트
+            if not time_stop:
+                if not pause:
+                    beams.update()                            
+                    player_group.update(hit_list)
+                    frame_count += 1
+                    min_dir += 0.2
+                    bg_x -= 3
+                    rotated_sprite = pygame.transform.rotate(player_slow_img, math.degrees(frame_count/20))
+                    rect = rotated_sprite.get_rect(center = (round(player.pos[0]), round(player.pos[1])))
+                
+            # 그리기 시작
+            screen.fill((0,0,0))
+            #배경 스크롤
+            rel_x = bg_x % WIDTH
+            screen.blit(bkgd1, (rel_x - WIDTH,0))
+            if rel_x < WIDTH:
+                screen.blit(bkgd1,(rel_x,0))
+            #pygame.draw.rect(screen, (0,0,255), enemy_movebox)
+
+            # 게임 시작할때
+            if starting and frame_count > 60:
+                if bos_xy == 0 :s_ch2.play()
+                bos_xy = boss_dodon_copy.get_size()
+                                
+                if bos_xy[0]-frame_count/8 <= 0:
+                    starting = False
+                    s_cat1.play()
+                else:
+                    boss_dodon_copy = pygame.transform.scale(boss_dodon, (bos_xy[0]-round(frame_count/8), bos_xy[0]-round(frame_count/8)))
+                    screen.blit(boss_dodon_copy, (round(enemy.rect.x+ 100 - bos_xy[0]/2+40),round(enemy.rect.y+ 100- bos_xy[0]/2+40)))
+
+            # 보스 처치 이벤트
+            if read_end and bos_xy[0] <= 1024:
+                bos_xy = boss_dodon_copy.get_size()       
+                screen.blit(boss_dodon_copy, (enemy.rect.x+ 64- bos_xy[0]/2+40,enemy.rect.y+ 64 - bos_xy[0]/2+40))
+                boss_dodon_copy = pygame.transform.scale(boss_dodon, (bos_xy[0]+12, bos_xy[0]+12))
+
+
+            # 점수 표시
+            score_text = score_font.render(str(score).zfill(10), True, (255,255,255))
+            screen.blit(score_text,(WIDTH-score_text.get_rect().width,0))
+            
+            # 원형 체력바 그리기
+            if not enemy.rest and not starting and not read_end: 
+                drawArc(screen, (0, 0, 0), enemy.pos, 112, 15, 360*100)
+                drawArc(screen, health_color(enemy.health/enemy_health), enemy.pos, 110, 10, 360*enemy.health/enemy_health)
+                drawArc(screen, (0,0, 0), player.pos, 112, 15, 360*100)
+                drawArc(screen, health_color(player.health/500), player.pos, 110, 10, 360*player.health/500)
+
+            magic_spr.draw(screen)      
+            beams.draw(screen)
+            player_group.draw(screen)  
+            
+            if not starting or read_end: enemy_group.draw(screen)
+            spr.draw(screen)
+            
+
+            # SHIFT 눌렀을때 특별한 원 보이기
+            pygame.draw.circle(screen, (200,100,100), (round(player.pos[0]),round(player.pos[1])), 8)
+            pygame.draw.circle(screen, (255,255,255), (round(player.pos[0]),round(player.pos[1])), 7)  
+            if keys[pygame.K_LSHIFT]: 
+                
+                screen.blit(rotated_sprite, rect)
+            pygame.display.flip()
+        if cur_screen == 0:
+            for ev in pygame.event.get():
+                if ev.type == pygame.QUIT: # 게임끄기
+                    play = False
+                if ev.type == pygame.KEYDOWN: 
+                    if ev.key == pygame.K_UP:
+                        curser = curser_max if curser == 0 else curser - 1
+                    if ev.key == pygame.K_DOWN:
+                        curser = 0 if curser == curser_max else curser + 1
+                    if ev.key == pygame.K_z or ev.key == pygame.K_RETURN:
+                        if menu_mod == 3:
+                            if curser == 0:
+                                full_on = False if full_on == True else True
+                        else:
+                            if (curser == 1 or curser == 2) and select_mod == 0: break
+                            if curser == 4 and select_mod == 0: play = False
+                            select_mod += 1
+                            if menu_mod == 0:
+                                print(difficulty)
+                                cur_screen = 1 ############ rpdlatlwks
+                            menu_mod = curser
+                            curser = 0
+                    if ev.key == pygame.K_f:
+                        full_on = False if full_on == True else True
+                        
+                        
+                    if ev.key == pygame.K_x or ev.key == pygame.K_ESCAPE:
+                        if select_mod > 0: select_mod -= 1
+                        menu_mod = -1
+            screen.blit(background_img,(0,0))
+            
+            ui_x = WIDTH - 300
+            ui_y = HEIGHT - 400
+            if select_mod == 0:
+                curser_max = 4
+                screen.blit(menu_img,(0,0),(0,0,528,80))
+                for i in range(0,5):
+                    if curser == i:
+                        screen.blit(menu_img,(ui_x,ui_y+70*i),(256,80+48*i,256,48))
+                    else:
+                        screen.blit(menu_img,(ui_x,ui_y+70*i),(0,80+48*i,240,48))
+            if select_mod == 1:
+                if menu_mod == 0: # 난이도 정하기
+                    curser_max = 3
+                    for i in range(0,4):
+                        screen.blit(menu_img,(WIDTH/2-120,HEIGHT/2-60+128*i-128*curser),(0,320+64*i,288,64))
+                        difficulty = curser
+                if menu_mod == 3:
+                    curser_max = 3
+                    text_box = ["화면모드","음악","효과음","플레이어"]
+                    text_box[0] = "화면모드    창모드" if full_on == 0 else "화면모드    전체화면"
+                    text_box[1] = "음악   " + str(music_volume)
+                    text_box[2] = "효과음  " + str(sfx_volume)
+                    for i in range(0,4):
+                        text_color = (255,0,255) if i == curser else (0,0,255)
+                        text = score_font.render(text_box[i], True, text_color)
+                        screen.blit(text,(200,200+80*i))
+            pygame.display.flip()
+        
+        if full_on != cur_full_mod:
+            if full_on:
+                screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN)
+            else:
+                screen = pygame.display.set_mode((WIDTH, HEIGHT))
+            cur_full_mod = full_on
+
     pygame.quit()
     exit()
 
