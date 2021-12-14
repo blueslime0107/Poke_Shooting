@@ -14,15 +14,14 @@ pygame.init()
 WIDTH = 1080
 HEIGHT = 720
 screen = pygame.display.set_mode((WIDTH,HEIGHT))
+screen_rect = screen.get_rect()
 bgm_num = 0
 # 소리 초기설정, 불러오기
 pygame.mixer.set_num_channels(16)
 
-
 def play_game():
     
     global WIDTH, HEIGHT, screen
-
     
     # 이미지 불러오기
     bullet_image = pygame.image.load('Image\Bullets.png').convert_alpha()
@@ -76,339 +75,6 @@ def play_game():
     s_kira1.set_volume(sfx_volume)
     s_boom = pygame.mixer.Sound('Music\SFX\se_enep02.wav')
     s_boom.set_volume(sfx_volume+0.2)
-
-    def shoot_pattern(count,num,list):
-        global time_stop
-        #################################
-        if num == 1:
-            if when_time(count,0):
-                s_lazer1.play()
-            if while_time(count,1):
-                bullet(enemy.pos,look_at_point(enemy.pos,player.pos)+10,27,0,1) 
-                bullet(enemy.pos,look_at_point(enemy.pos,player.pos)-10,27,0,1)   
-            if while_time(count,30):
-                bullet(enemy.pos,look_at_point(enemy.pos,player.pos)+20,5,2,6,1) 
-                bullet((enemy.pos[0],enemy.pos[1]+5),look_at_point(enemy.pos,player.pos)-20,5,2,6,1) 
-            if while_time(count,50):
-                s_tan1.play()
-                bullet(enemy.pos,look_at_point(enemy.pos,player.pos)+11,3,4,1,1.1) 
-                bullet((enemy.pos[0],enemy.pos[1]+5),look_at_point(enemy.pos,player.pos)-11,3,4,1,1.1) 
-            if while_time(count,100) and enemy.health <= 700:
-                bullet(enemy.pos,look_at_point(enemy.pos,player.pos),5,15,1) 
-        if num == 2:
-            if when_time(count,1):
-                s_ch0.play()
-                enemy_move(randint(0,360),5,20)
-            if while_time(count,5) and count < 90:
-                bullet((enemy.pos[0]+randint(-180,180),enemy.pos[1]+randint(-180,180)),0,6,3,4,2) 
-                list[0] = look_at_point(enemy.pos,player.pos)
-            if when_time(count,90):
-                s_lazer1.play()
-            if while_time(count,1) and big_small(count,90,120):
-                bullet(enemy.pos,list[0],27,0,3,2.1)
-            if when_time(count,180):
-                s_kira0.play()
-            if when_time(count,180):
-                count = 0 
-        if num == 3:
-            if when_time(count,1):
-                list[0] = look_at_point(enemy.pos,player.pos)
-                list[1] = 0
-            play_sound(s_lazer1,count,1)
-            play_sound(s_lazer1,count,120)
-            if while_time(count,1) and count <= 120:
-                bullet(enemy.pos,list[0]+25,27,0,6,3)
-                bullet(enemy.pos,list[0]-25,27,0,6,3)
-                bullet(enemy.pos,list[0]+50,27,0,6,3)
-                bullet(enemy.pos,list[0]-50,27,0,6,3)
-            if when_time(count,120):
-                list[1] = 1
-                enemy_move(randint(0,360),5,20)
-            if when_time(count,240):
-                count = 0
-        if num == 4:
-            if when_time(count,120):
-                s_tan1.play()
-                bullet(enemy.pos,randint(100,130),7,19,1,4)
-            if when_time(count,180):
-                enemy_move(dont_go_center(),2,40)
-            if when_time(count,240):
-                s_tan1.play()
-                bullet(enemy.pos,randint(100,130)+120,7,19,1,4)
-                count = 0
-            
-            play_sound(s_tan1,count,1)
-        if num == 5:
-            if while_time(count,5):
-                s_tan1.play()
-                for i in range(0,360,45):
-                    bullet(enemy.pos,i+frame_count+min_dir,5,3,6,5)
-        if num == 6:        
-            if while_time(count,2): 
-                bullet((WIDTH,randint(10,HEIGHT-20)),180+randint(-10,10),randint(4,7),4,4,6)
-            if while_time(count,10):
-                bullet((WIDTH,randint(10,HEIGHT-20)),180+randint(-10,10),randint(4,7),4,4,6.1)
-            if while_time(count,18):
-                s_tan2.play()
-            if while_time(count,120):
-                enemy_move(dont_go_center(),4,40)
-        if num == 7:
-            if when_time(count,0):
-                list[2] = 1
-            if when_time(count,1):
-                s_lazer1.play()
-                list[2] = -list[2]
-                list[0] = look_at_point(enemy.pos,player.pos)
-                list[1] = 90
-            if count <= 300:
-                if list[1] > 10: list[1] -= 0.5
-                if while_time(count,1):
-                    bullet(enemy.pos,list[0]+list[1],27,0,2)
-                    bullet(enemy.pos,list[0]-list[1],27,0,2)
-                if while_time(count,10):
-                    s_tan1.play(loops = 1, maxtime = 200)
-                    bullet(enemy.pos,look_at_point(enemy.pos,player.pos),7,15,2)
-                if while_time(count,5):
-                    bullet(enemy.pos,list[0]+list[1]+10,14,18,2)
-                    bullet(enemy.pos,list[0]+list[1]/2+10,14,18,2)
-                    bullet(enemy.pos,list[0]-list[1]/2-10,14,18,2)
-                    bullet(enemy.pos,list[0]-list[1]-10,14,18,2)
-                if when_time(count,150):
-                    enemy_move(dont_go_center(),2,40)
-            if while_time(count,10):
-                for i in range(0,360,45):
-                    bullet(enemy.pos,(i+count+min_dir)*list[2],5,3,0)
-            
-            if when_time(count,330):
-                count = 0
-        if num == 8:
-            play_sound(s_ch0,count,1)
-            if while_time(count,5) and count <= 120:            
-                for _ in range(0,8):
-                    bullet(enemy.pos,randint(0,360),5,2,4) 
-            if when_time(count,120):
-                play_sound(s_enep2,count,120)
-                list[0] = player.pos
-                bullet(enemy.pos,look_at_point(enemy.pos,player.pos),10,19,2,8)
-            if when_time(count,240):
-                count = 0     
-        if num == 9:
-            if while_time(count,360):
-                s_boom.play()
-                magic_bullet(enemy.pos,180+randint(-10,10),2,(255,255,255),9)
-            if while_time(count,10):
-                s_tan1.play(loops=1,maxtime=240)
-                for i in range(0,360,90):               
-                    bullet(enemy.pos,-(i+min_dir),6,1,4)
-        if num == 10:
-            pos = player.pos
-            while distance(pos,player.pos) <= 100:
-                pos = (randint(30,WIDTH-30),randint(30,HEIGHT-30))
-            
-            play_sound(s_ch0,count,1)
-            if while_time(count,1) and count <= 140:
-                s_tan1.play(loops=1,maxtime=60)
-                bullet(pos,0,0,3,2,10)
-            if when_time(count,240):
-                s_kira0.play()
-                list[0] = 1
-            if while_time(count,30) and big_small(count,280,430):
-                s_boom.play()
-                bullet(enemy.pos,look_at_point(enemy.pos,player.pos),12,19,2,10.1)
-            if when_time(count,280):
-                enemy_move(dont_go_center(),2,120)
-            if when_time(count,500):
-                count =  0
-                list[0] = 0
-        if num == 11:
-            if while_time(count,80):
-                s_tan2.play(loops=1)
-                for _ in range(0,14):
-                    randnum = randint(1,7)
-                    bullet(enemy.pos,randint(0,360),5,7,randnum,11,(randnum,5))
-            if while_time(count+1,60):
-                s_kira0.play()
-        if num == 12:
-            if while_time(count,120):
-                s_ch0.play()
-                magic_bullet(enemy.pos,look_at_point(enemy.pos,player.pos),3,(0,0,100),12)
-        if num == 13:
-            if when_time(count,60):
-                s_tan1.play()
-                rand_num = randint(0,4)
-                for i in range(0,360,4):
-                    bullet(enemy.pos,i+rand_num,6,9,5)
-                for i in range(0,360,4):
-                    bullet(enemy.pos,i+rand_num,4,9,5)
-                for i in range(0,360,5):
-                    bullet(enemy.pos,i+rand_num,2,9,5)
-            if when_time(count,120):
-                time_stop = True
-                s_slash.play()
-                enemy_move(dont_go_center(),2,120)
-            if while_time(count,5) and time_stop:
-                s_tan1.play(loops=1,maxtime=80)
-                for i in range(0,360,90):
-                    ran_lis = (randint(-30,30),randint(-30,30))
-                    bullet(tuple(map(sum,zip(enemy.pos,ran_lis))),i+count,4,13,5)
-                    bullet(tuple(map(sum,zip(enemy.pos,ran_lis))),i+count,3,7,5)
-                    bullet(tuple(map(sum,zip(enemy.pos,ran_lis))),i+count,2,10,5)
-            if when_time(count,240):
-                s_kira0.play()
-                time_stop = False
-            if when_time(count,480):
-                count = 0
-        if num == 14:
-            s_tan1.play(loops=1,maxtime=17)
-            for i in range(0,360,45):            
-                bullet(enemy.pos,i+count*count/10+min_dir,5,12,2)
-        if num == 15:
-            if while_time(count, 6) and not time_stop:
-                s_tan1.play(loops=1,maxtime=95)
-                bullet(enemy.pos,count*4+min_dir,4,19,5,15)
-                bullet(enemy.pos,-count*4+min_dir,4,19,5,15)           
-                list.append(player.pos)
-                magic_bullet(player.pos,0,0,(255,100,255),15)
-            if while_time(count, 60) and not time_stop:
-                bullet(enemy.pos,look_at_point(enemy.pos,player.pos),6,19,6,15)
-                bullet(enemy.pos,look_at_point(enemy.pos,player.pos)+30,6,19,6,15)
-                bullet(enemy.pos,look_at_point(enemy.pos,player.pos)-30,6,19,6,15)          
-            if when_time(count,240):
-                s_slash.play()
-                bullet(enemy.pos,0,0,19,5,15)
-                list[0] = (0,0)
-                time_stop = True
-            if time_stop and not count-240+3 > len(list)-1 and while_time(count,5):
-                list[0] = list[count-240+3]
-            if when_time(count,360):
-                s_kira0.play()
-                list = [0,0,0,0]
-                time_stop = False
-                magic_spr.empty()
-            if when_time(count,420):           
-                count = 0
-        if num == 16:
-            enemy.move_mod = 1
-            if while_time(count,10):
-                bullet(enemy.pos,enemy.move_dir+180,3,3,1)
-                bullet(enemy.pos,enemy.move_dir+150,3,3,1)
-                bullet(enemy.pos,enemy.move_dir+210,3,3,1)
-            if while_time(count,7):
-                bullet(enemy.pos,enemy.move_dir+180,3,4,3,16)
-                bullet(enemy.pos,enemy.move_dir+150,3,4,3,16)
-                bullet(enemy.pos,enemy.move_dir+210,3,4,3,16)
-            if while_time(count,7):
-                bullet(enemy.pos,enemy.move_dir+180,3,4,5,16.1)
-                bullet(enemy.pos,enemy.move_dir+150,3,4,5,16.1)
-                bullet(enemy.pos,enemy.move_dir+210,3,4,5,16.1)
-            if while_time(count,100):
-                for i in range(0,360,10):
-                    bullet(enemy.pos,enemy.move_dir+30+i,3,16,2)
-                    if i == 300:
-                        break
-            if while_time(count+1,80):
-                for i in range(1,20):
-                    bullet(enemy.pos,enemy.move_dir+180,i,7,6,16.2)
-                    bullet(enemy.pos,enemy.move_dir+10+180,i,7,6,16.2)
-                    bullet(enemy.pos,enemy.move_dir-10+180,i,7,6,16.2)
-            if while_time(count+1,50):
-                for i in range(5,10):
-                    bullet(enemy.pos,enemy.move_dir,i,17,0)
-            if enemy.move_time < 1:
-                enemy_move(look_at_point(enemy.pos,player.pos),1,60)
-        if num == 17:
-            if when_time(count,0):
-                enemy.move_mod = 1
-                enemy_move(180,3,85)
-            if list[1] == 0:
-                if while_time(count,40):
-                    s_tan1.play(loops = 1, maxtime = micro_sec(40))
-                    for i in range(0,9):
-                        bullet((0,HEIGHT/9*i+40),0,7,3,0,17,(3,0))
-                    for i in range(0,9):
-                        bullet((WIDTH,HEIGHT/9*i+40),180,7,3,0,17,(3,0))
-                    for i in range(0,8):
-                        bullet((WIDTH/8*i+65,HEIGHT),90,5,3,0,17,(3,0))
-                    for i in range(0,8):
-                        bullet((WIDTH/8*i+65,0),-90,5,3,0,17,(3,0))
-            if list[1] == 1:
-                if while_time(count,5):
-                    s_tan1.play(loops = 1, maxtime = micro_sec(5))
-                    for i in range(0,360,45):
-                        bullet((WIDTH/2,HEIGHT/2),count*4.7+i,4,1,2,17,(1,1))
-            if list[1] == 2:
-                if while_time(count,40):
-                    s_tan1.play(loops = 1, maxtime = micro_sec(20))
-                    for i in range(0,360,6):
-                        bullet((WIDTH/2,HEIGHT/2),count*4.7+i,3,4,5,17,(4,2))
-            if list[1] == 3:
-                if while_time(count,10):
-                    s_tan1.play(loops = 1, maxtime = micro_sec(10))
-                    for i in range(0,360,72):
-                        bullet((WIDTH/2,HEIGHT/2),count*4.7+i,2,7,7,17,(7,3))
-            if while_time(count,120):
-                bullet(enemy.pos,look_at_point(enemy.pos,player.pos),2,15,3)
-            if while_time(count+1,180):
-                s_slash.play()
-                list[1] += 1
-                if list[1] == 4: list[1] = 0
-        if num == 18:
-            enemy.health -= 0.72
-            if when_time(count,0):
-                magic_bullet(enemy.pos,0,0,(0,0,0),18,1)
-                s_tan1.play()
-                s_ch0.play()
-                for i in range(0,360,45):
-                    magic_bullet(enemy.pos,i,0,(255, 255, 255),18.1,1)
-            if list[1] == 1 and list[0] == 0:
-                if list[3] == 0:
-                    c = 2
-                if list[3] == 1:
-                    c = 5
-                if list[3] == 2:
-                    c = 1
-                if list[3] == 3:
-                    c = 5
-
-                s_boom.play()
-                for i in range(0,360,12):
-                    bullet(enemy.pos,i+count,8,19,c)
-                    bullet(enemy.pos,i+count,6,19,c)
-                    bullet(enemy.pos,i+count,4,19,c)
-                for i in range(0,360,12):
-                    bullet(enemy.pos,i+count+randint(-30,30),1,16,c,18)
-                for i in range(0,360,12):
-                    bullet(enemy.pos,i+count+randint(-20,20),2,16,c,18)
-                
-                for i in range(0,360,12):
-                    bullet(enemy.pos,i+count+randint(-10,10),3,16,c,18.3)
-                
-                for i in range(0,360,20):
-                    bullet(enemy.pos,i+randint(-20,20),round(uniform(1,4), 2),randint(1,10),c,18)
-                for i in range(0,360,10):
-                    bullet(enemy.pos,i+randint(-20,20),round(uniform(1,3), 2),randint(1,10),c,18)
-                for i in range(0,360,5):
-                    bullet(enemy.pos,i+randint(-20,20),round(uniform(1,2), 2),randint(1,10),c,18)
-                count = 0
-                list[0] = 1
-                
-                
-            if list[1] == 1 and when_time(count,120):
-                magic_bullet(enemy.pos,0,0,(0,0,0),18,1)
-                s_tan1.play()
-                s_ch0.play()
-                for i in range(0,360,45):
-                    magic_bullet(enemy.pos,i,0,(255, 255, 255),18.2+0.1*list[3],1)
-                list[1] = 0
-                list[0] = 0
-                list[3] += 1
-                count += randint(0,120)
-
-
-        #################################
-        return count + 1, list
-
-    ##########################################e
 
     # 플레이어
     class Player(pygame.sprite.Sprite):
@@ -526,105 +192,46 @@ def play_game():
             self.pos = calculate_new_xy(self.pos, self.speed, -self.direction)
             self.rect.center = round(self.pos[0]), round(self.pos[1]) 
 
-    # 적(보스)
+    # 적
     class Enemy(pygame.sprite.Sprite):
-        def __init__(self, x, y, health, num):
+        def __init__(self, x, y, dir, speed, health, img, hit_cir, num):
             pygame.sprite.Sprite.__init__(self)
             self.image = pygame.Surface((256, 256), pygame.SRCALPHA)      
-            self.rect = self.image.get_rect(center = (x, y))
 
-            if num == 10:
-                pokemonimg = pokemons[7]
-            elif num == 11:
-                pokemonimg = pokemons[8]
-            elif num == 12:
-                pokemonimg = pokemons[9]
-            elif num == 13 or num == 15 or num == 17:
-                pokemonimg = pokemons[10]
-            elif num == 14 or num == 16 or num == 18:
-                pokemonimg = pokemons[11]
-            else:
-                pokemonimg = pokemons[num] # 이미지
-
-
+            pokemonimg = pokemons[img-1] # 이미지
+                        
             self.image.blit(pokemonimg,(0,0))
-            self.image2 = self.image.copy()
-            self.img_num = 0
-            self.hit_box = Rect(self.rect.x+64,self.rect.y+64,128,128)
+            self.rect = self.image.get_rect(center = (x, y))
+            self.radius = hit_cir
             self.pos = (x, y)
-            self.pos_copy = self.hit_box.center
+            pygame.draw.circle(self.image, (200,0,0), (128,128), self.radius, 3)
 
             self.count = 0
-            self.cos = 45
             self.list = [0,0,0,0]
             self.health = health
             self.num = num
 
             # 적이동을 위한 값
-            self.move_dir = 0
-            self.move_speed = 0
-            self.move_time = 0
-            self.move_mod = 0
+            self.move_dir = dir
+            self.move_speed = speed
 
-            self.rest = True # 공격 쉬기?
-            
-        def update(self,collide):
+            self.screen_apper = False
+
+        def update(self):
             global score
-            imgnum = self.img_num
-            if not enemy_died:  # 죽었다면 공격하지 않기
-                if self.rest:
-                    self.count = 0 
-                    if self.num == 18: 
-                        self.move_mod = 1
-                        enemy_move(180,4,7)
-                        if self.move_time == 1:
-                            self.pos = (WIDTH/2,HEIGHT/2)
-                            self.rect.center = self.pos
-                            self.move_time = 0
 
-                else:
-                    self.count, self.list =shoot_pattern(self.count,self.num,self.list)
-                self.cos += 1
-            
-            # 만약 빔에 맞았을때
-            if len(collide) > 0 and not self.rest:
-                if self.health/enemy_health < 0.25:
-                    s_damage1.play(loops=1, maxtime=50)  
-                else: 
-                    s_damage0.play(loops=1, maxtime=50)
-                self.health -= collide[0].damage
-                
-                score += score_setting[1]
-            
-            # 움직이기 (벽 안나가게)
-            if self.move_time > 0:
-                self.pos_copy = calculate_new_xy(self.hit_box.center,self.move_speed,-self.move_dir)
-                self.hit_box.center = (round(self.pos_copy[0]),round(self.pos_copy[1]))
-                if self.move_mod == 0:
-                    if self.hit_box.right > enemy_movebox.right:
-                        self.hit_box.x = enemy_movebox.right - self.hit_box.w
-                    if self.hit_box.left < enemy_movebox.left:
-                        self.hit_box.x = enemy_movebox.left
-                    if self.hit_box.bottom > enemy_movebox.bottom:
-                        self.hit_box.y = enemy_movebox.bottom - self.hit_box.h
-                    if self.hit_box.top < enemy_movebox.top:
-                        self.hit_box.y = enemy_movebox.top
-                self.move_time -= 1
-            
-            if imgnum != self.img_num:
-                pass
+            # 능력
+            self.pos, self.move_dir, self.move_speed = enemy_attack(self.num, self.count, self.pos, self.move_dir, self.move_speed)
 
-            # 죽었을때
-            if enemy_died and frame_count % 7 == 0 and self.count <= 10: 
+            if not screen_rect.colliderect(self.rect) and self.screen_apper: # 밖으로 나가면 사라지기
+                self.kill() 
+            if screen_rect.colliderect(self.rect) and not self.screen_apper:
+                self.screen_apper = True
+            if self.health <= 0: # 체력 다 달면 죽기
                 s_tan1.play()
-                self.pos = calculate_new_xy(self.pos,2,0)
-                self.count += 1
-                
-
-            self.rect.center = self.hit_box.center
-            self.rect.y += round(math.cos(self.cos/30)*20)
-            self.pos = self.hit_box.center
-                
+                self.kill()
+            self.count += 1
+            self.rect.center = self.pos    
     # 총알
     ############################################
     class Bullet(pygame.sprite.Sprite):
@@ -1034,14 +641,9 @@ def play_game():
                 # 화면에 없으면 없애기
             if not bullet_border.colliderect(self.rect) and self.screen_die == 0:
                 self.kill()
-
-    # 거리
-
-
-
-
-
+            
     ############################################
+
 
     def micro_sec(value):
         return round(1000/60)*value
@@ -1054,7 +656,7 @@ def play_game():
 
     def while_time(val,time):
         return val % time == 0
-            
+
     def bullet(pos,dir,speed,img,col,mode=0,num = (0,0)):
         spr.add(Bullet(pos[0],pos[1],dir,speed,img,col,mode,num))
 
@@ -1116,13 +718,6 @@ def play_game():
         else:
             return (0,255,0)
 
-    def dont_go_center():
-        rand_list = (70,-70,110,-110)
-        if distance(enemy.pos,enemy_movebox.midtop) <= 200 or distance(enemy.pos,enemy_movebox.midbottom) <= 200:
-            return look_at_point(enemy.pos, enemy_movebox.center)
-        else:
-            return rand_list[randint(0,3)] 
-
     # 이미지 나눠 저장하기
     a_list = []
     cur_list = []
@@ -1169,14 +764,11 @@ def play_game():
     pokemons = cur_list
 
     # 개발자 전용
-    boss_fun = 1
-    global boss_dodon, bkgd1, boss_dodon_copy, enemy_health, score, time_stop
+    stage_fun = 1
+    global bkgd1, time_stop
+    global stage_count
     # 초기 설정
-    enemy_health = 500
-    enemy_start = (round(WIDTH - WIDTH / 4),round(HEIGHT/2))
-    enemy = Enemy(enemy_start[0],enemy_start[1],enemy_health,boss_fun)
-    enemy_group = pygame.sprite.Group(enemy)
-    enemy_movebox = Rect(600,80,380,560)
+    enemy_group = pygame.sprite.Group()
     play = True
     full_on = False
     cur_full_mod = False
@@ -1184,6 +776,13 @@ def play_game():
     frame_count = 0
     min_dir = 0
     time_stop = False
+    stage_count = 0
+    
+    
+    global stage_line
+    stage_line = 0
+    global stage_cline
+    stage_cline = 0
 
     # 게임 시작전 메뉴 변수들
     curser = 0
@@ -1206,7 +805,6 @@ def play_game():
     beams = pygame.sprite.Group()
 
     starting = True
-    enemy_died = False
     read_end = False
 
     clock = pygame.time.Clock()
@@ -1216,120 +814,37 @@ def play_game():
     score_setting = (10,10,987650,10,0,0,0,0,0)
 
     # 보스마다 기본설정
-    boss_dodon = pygame.Surface((64, 64), pygame.SRCALPHA)
-    boss_dodon_copy = 0
-    bos_xy = 0
     bkgd1 = pygame.Surface((0, 0))
 
     bg_x = 0
     fps = 60
+
     #################################################
+
+    # 게임의 배경, 스테이지
     def game_defalt_setting(fun):
-        global bgm_num, boss_dodon, bkgd1, boss_dodon_copy, enemy_health
-        boss_dodon = pygame.Surface((64, 64), pygame.SRCALPHA)
-        boss_dodon_copy = 0
+        global bgm_num, bkgd1
         bkgd1 = pygame.Surface((640, 360))
         ##############################################
         if fun == 1:
-            enemy_health = 500
             bgm = 1
-            bg_nums = (0,0)
-            boss_dodonimg = (128,0)
+            bkgd1.blit(bg2_image,(0,0),(540,0,540,360))
         if fun == 2:
-            enemy_health = 500
             bgm = 1
-            bg_nums = (540,0)
-            boss_dodonimg = (192,0)
         if fun == 3:
-            enemy_health = 500
             bgm = 1
-            bg_nums = (0,360)
-            boss_dodonimg = (128,64)
         if fun == 4:
             enemy_health = 500
-            bg_nums = (540,360)
             bgm = 1
-            boss_dodonimg = (128,0)
         if fun == 5:
             enemy_health = 500
-            bg_nums = (0,720)
             bgm = 1
-            boss_dodonimg = (128,64)
         if fun == 6:
             enemy_health = 500
-            bg_nums = (540,720)
             bgm = 1
-            boss_dodonimg = (192,0)
-        if fun == 7:
-            enemy_health = 800
-            bgm = 2
-            bg_nums = (0,0)
-            boss_dodonimg = (192,0)
-        if fun == 8:
-            enemy_health = 800
-            bgm = 2
-            bg_nums = (540,0)
-            boss_dodonimg = (192,0)
-        if fun == 9:
-            enemy_health = 800
-            bgm = 2
-            bg_nums = (0,360)
-            boss_dodonimg = (192,0)
-        if fun == 10:
-            enemy_health = 800
-            bgm = 2
-            bg_nums = (0,0)
-            boss_dodonimg = (192,0)
-        if fun == 11:
-            enemy_health = 800
-            bgm = 2
-            bg_nums = (540,0)
-            boss_dodonimg = (192,0)
-        if fun == 12:
-            enemy_health = 800
-            bgm = 2
-            bg_nums = (0,360)
-            boss_dodonimg = (192,0)
-        if fun == 13:
-            enemy_health = 800
-            bgm = 3
-            bg_nums = (0,0)
-            boss_dodonimg = (192,64)
-        if fun == 14:
-            enemy_health = 800
-            bgm = 3
-            bg_nums = (0,0)
-            boss_dodonimg = (128,0) 
-        if fun == 15:
-            enemy_health = 800
-            bgm = 3
-            bg_nums = (0,0)
-            boss_dodonimg = (192,64)
-        if fun == 16:
-            enemy_health = 1600
-            bgm = 3
-            bg_nums = (0,0)
-            boss_dodonimg = (128,0)
-        if fun == 17:
-            enemy_health = 800
-            bgm = 3
-            bg_nums = (0,0)
-            boss_dodonimg = (192,64)
-        if fun == 18:
-            enemy_health = 1600
-            bgm = 4
-            bg_nums = (0,0)
-            boss_dodonimg = (128,0)
-        ###############################################
-        enemy.health = enemy_health
-        boss_dodon.blit(bullet_image, (0,0), Rect(boss_dodonimg,(64,64)))
-        boss_dodon = pygame.transform.scale(boss_dodon,(128*4,128*4))
-        boss_dodon_copy = boss_dodon.copy()
 
-        if fun >= 7:
-            bkgd1.blit(bg2_image,(0,0),(bg_nums,(540,360)))
-        else:
-            bkgd1.blit(bg_image,(0,0),(bg_nums,(540,360)))
+        ###############################################
+
         bkgd1 = pygame.transform.scale2x(bkgd1)
 
         if bgm != bgm_num:
@@ -1346,10 +861,68 @@ def play_game():
             bgm_num = bgm
             #pygame.mixer.music.play(-1)
 
+    # 소환하는 적 
+    def pokemon_spawn(val,x,y,time):
+        global stage_count
+        global stage_line
+        global stage_cline
+        
+        # x, y, dir, speed, health, img, hit_cir, num
+        if time == stage_count and stage_line == stage_cline:
+            if val == 1:
+                enemy_group.add(Enemy(x,y,180,8,5,11,30,1))  
+                stage_count = 0
+                stage_line += 1
+            elif val == 2:
+                enemy_group.add(Enemy(x,y,180,8,5,12,30,2))  
+                stage_count = 0
+                stage_line += 1
+            else:
+                pass
+        else:
+            pass
+        stage_cline += 1
+    
+    # 적의 공격타입
+    def enemy_attack(num,count,pos,dir,speed):
+        if num == 1:
+                pos = calculate_new_xy(pos, speed, dir)
+                if dir > 90 and count > 30: dir -= 1 
+                if speed > 5 and count > 30: speed -= 0.5
+        if num == 2:
+            pos = calculate_new_xy(pos, speed, dir)
+            if dir < 270 and count > 30: dir += 1 
+            if speed > 5 and count > 30: speed -= 0.5
+        return pos,dir,speed
+
+    # 스테이지
+    def stage_manager():
+        global stage_cline
+        if stage_fun == 1:
+            pokemon_spawn(1,1112,-30,30)
+            pokemon_spawn(1,1112,-30,30)
+            pokemon_spawn(1,1112,-30,30)
+            pokemon_spawn(2,1112,HEIGHT+30,30)
+            pokemon_spawn(2,1112,HEIGHT+30,30)
+            pokemon_spawn(2,1112,HEIGHT+30,30)
+            pokemon_spawn(1,1112,-30,30)
+            pokemon_spawn(1,1112,-30,30)
+            pokemon_spawn(1,1112,-30,30)
+            pokemon_spawn(1,1112,-30,30)
+            pokemon_spawn(2,1112,HEIGHT+30,0)
+            pokemon_spawn(1,1112,-30,30)
+            pokemon_spawn(2,1112,HEIGHT+30,0)
+            pokemon_spawn(1,1112,-30,30)
+            pokemon_spawn(2,1112,HEIGHT+30,0)
+            pokemon_spawn(2,1112,HEIGHT+30,30)
+            pokemon_spawn(2,1112,HEIGHT+30,30)
+            pokemon_spawn(2,1112,HEIGHT+30,30)
+            stage_cline = 0
+
 
     ################################################# 
 
-    game_defalt_setting(boss_fun)
+    game_defalt_setting(stage_fun)
 
     # 폰트 불러오기
     score_font = pygame.font.Font('Font\SEBANG Gothic Bold.ttf', 50)
@@ -1367,29 +940,7 @@ def play_game():
             for ev in pygame.event.get():
                 if ev.type == pygame.QUIT: # 게임끄기
                     play = False
-                if ev.type == pygame.KEYDOWN: 
-                    if ev.key == pygame.K_r or ev.key == pygame.K_t or ev.key == pygame.K_e: # 다음 스테이지 넘어가기
-                        if ev.key == pygame.K_t: # 다음 스테이지 넘어가기
-                            boss_fun += 1
-                        if ev.key == pygame.K_e: # 다음 스테이지 넘어가기
-                            boss_fun -= 1
-                        spr.empty()
-                        magic_spr.empty()
-                        player.health = 500
-                        enemy = Enemy(enemy_start[0],enemy_start[1],enemy_health,boss_fun)
-                        enemy_group = pygame.sprite.Group(enemy)
-                        play = True
-                        starting = True
-                        enemy_died = False
-                        read_end = False
-                        frame_count = 0
-                        count = 0
-                        min_dir = 0
-                        bos_xy = 0
-                        time_stop = False
-                        game_defalt_setting(boss_fun)
-                    
-                    
+                if ev.type == pygame.KEYDOWN:                    
                     if ev.key == pygame.K_f:
                         full_on = False if full_on == True else True
                     if ev.key == pygame.K_ESCAPE:
@@ -1411,35 +962,16 @@ def play_game():
                 fps = 30
             else:
                 fps = 60
-
-            # 적 체력 없을때            
-            if enemy.health <=  0 and not enemy_died:
-                enemy_died = True
-                enemy.count = 0
-                spr.empty()
-                magic_spr.empty()
-                enemy.rest = True
-                score += score_setting[2]
-
-            # 적 3초뒤 활동하기
-            if frame_count == 180 and enemy.rest:
-                enemy.rest = False
-
-            # 적이 죽었다면
-            if enemy_died and enemy.count >= 10 and not read_end:
-                s_enep1.play()
-                enemy_group.empty()
-                read_end = True
             
             # 탄에 박았는가
             hit_list = pygame.sprite.spritecollide(player, spr, not player.godmod, pygame.sprite.collide_circle)
             ehit_list = []
-            for sprite in pygame.sprite.spritecollide(enemy, beams, False, pygame.sprite.collide_rect):
-                if sprite.rect.colliderect(enemy.hit_box):
-                    sprite.kill()
-                    ehit_list.append(sprite)
+            beam_collide = pygame.sprite.groupcollide(beams, enemy_group, True, False, pygame.sprite.collide_circle)
+            if beam_collide.items():
+                for beam, enemy in beam_collide.items():
+                    enemy[0].health -= 1
 
-            if not pause:      
+            if not pause:     
                 if not starting or read_end: enemy_group.update(ehit_list)  
                 if len(magic_spr.sprites()) != 0:magic_spr.update(screen)                  
                 spr.update(screen)
@@ -1448,7 +980,10 @@ def play_game():
                 if not pause:
                     beams.update()                            
                     player_group.update(hit_list)
+                    enemy_group.update()
+                    stage_manager()
                     frame_count += 1
+                    stage_count += 1
                     min_dir += 0.2
                     bg_x -= 3
                     rotated_sprite = pygame.transform.rotate(player_slow_img, math.degrees(frame_count/20))
@@ -1461,41 +996,22 @@ def play_game():
             screen.blit(bkgd1, (rel_x - WIDTH,0))
             if rel_x < WIDTH:
                 screen.blit(bkgd1,(rel_x,0))
-            #pygame.draw.rect(screen, (0,0,255), enemy_movebox)
-
-            # 게임 시작할때
-            if starting and frame_count > 60:
-                if bos_xy == 0 :s_ch2.play()
-                bos_xy = boss_dodon_copy.get_size()
-                                
-                if bos_xy[0]-frame_count/8 <= 0:
-                    starting = False
-                    s_cat1.play()
-                else:
-                    boss_dodon_copy = pygame.transform.scale(boss_dodon, (bos_xy[0]-round(frame_count/8), bos_xy[0]-round(frame_count/8)))
-                    screen.blit(boss_dodon_copy, (round(enemy.rect.x+ 100 - bos_xy[0]/2+40),round(enemy.rect.y+ 100- bos_xy[0]/2+40)))
-
-            # 보스 처치 이벤트
-            if read_end and bos_xy[0] <= 1024:
-                bos_xy = boss_dodon_copy.get_size()       
-                screen.blit(boss_dodon_copy, (enemy.rect.x+ 64- bos_xy[0]/2+40,enemy.rect.y+ 64 - bos_xy[0]/2+40))
-                boss_dodon_copy = pygame.transform.scale(boss_dodon, (bos_xy[0]+12, bos_xy[0]+12))
-
 
             # 점수 표시
             score_text = score_font.render(str(score).zfill(10), True, (255,255,255))
             screen.blit(score_text,(WIDTH-score_text.get_rect().width,0))
             
             # 원형 체력바 그리기
-            if not enemy.rest and not starting and not read_end: 
-                drawArc(screen, (0, 0, 0), enemy.pos, 112, 15, 360*100)
-                drawArc(screen, health_color(enemy.health/enemy_health), enemy.pos, 110, 10, 360*enemy.health/enemy_health)
+            if starting and not read_end: 
+                # drawArc(screen, (0, 0, 0), enemy.pos, 112, 15, 360*100)
+                # drawArc(screen, health_color(enemy.health/enemy_health), enemy.pos, 110, 10, 360*enemy.health/enemy_health)
                 drawArc(screen, (0,0, 0), player.pos, 112, 15, 360*100)
                 drawArc(screen, health_color(player.health/500), player.pos, 110, 10, 360*player.health/500)
 
             magic_spr.draw(screen)      
             beams.draw(screen)
             player_group.draw(screen)  
+            enemy_group.draw(screen)
             
             if not starting or read_end: enemy_group.draw(screen)
             spr.draw(screen)
