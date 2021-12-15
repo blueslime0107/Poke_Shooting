@@ -783,6 +783,8 @@ def play_game():
     stage_line = 0
     global stage_cline
     stage_cline = 0
+    global stage_repeat_count
+    stage_repeat_count = 0
 
     # 게임 시작전 메뉴 변수들
     curser = 0
@@ -810,6 +812,7 @@ def play_game():
     clock = pygame.time.Clock()
 
     # 점수 코어
+    global score
     score = 0
     score_setting = (10,10,987650,10,0,0,0,0,0)
 
@@ -863,60 +866,65 @@ def play_game():
 
     # 소환하는 적 
     def pokemon_spawn(val,x,y,time):
-        global stage_count
-        global stage_line
-        global stage_cline
+        global stage_count 
+        global stage_line # 현재 조건의 라인
+        global stage_cline # 검사 중인 라인
         
         # x, y, dir, speed, health, img, hit_cir, num
         if time == stage_count and stage_line == stage_cline:
+            stage_count = 0
+            stage_line += 1
             if val == 1:
-                enemy_group.add(Enemy(x,y,180,8,5,11,30,1))  
-                stage_count = 0
-                stage_line += 1
-            elif val == 2:
-                enemy_group.add(Enemy(x,y,180,8,5,12,30,2))  
-                stage_count = 0
-                stage_line += 1
-            else:
-                pass
-        else:
-            pass
+                enemy_group.add(Enemy(x,y,180,4,5,11,30,1))  
+            if val == 2:
+                enemy_group.add(Enemy(x,y,180,4,5,12,30,2))  
+
+
         stage_cline += 1
-    
+
+    # 소환 반복 (줄에 stage_line)
+    # stage_line -= 1
+    # stage_repeat_count += 1
+    def while_poke_spawn(time,repeat):
+        global stage_cline, stage_line, stage_repeat_count, stage_count
+        return stage_count == time and stage_line == stage_cline and stage_repeat_count < repeat
+
+    def end_while_poke_spawn(line):
+        global stage_line, stage_repeat_count
+        stage_line -= line
+        stage_repeat_count += 1
     # 적의 공격타입
     def enemy_attack(num,count,pos,dir,speed):
         if num == 1:
-                pos = calculate_new_xy(pos, speed, dir)
-                if dir > 90 and count > 30: dir -= 1 
-                if speed > 5 and count > 30: speed -= 0.5
+            pos = calculate_new_xy(pos, speed, dir)
+            if dir > 90 and count > 20: dir -= 1 
+            if speed > 5 and count > 20: speed -= 0.5
+            if while_time(count,30):
+                bullet(pos,look_at_point(pos,player.pos),9,2,1)
         if num == 2:
             pos = calculate_new_xy(pos, speed, dir)
             if dir < 270 and count > 30: dir += 1 
             if speed > 5 and count > 30: speed -= 0.5
+            if while_time(count,30):
+                bullet(pos,look_at_point(pos,player.pos),9,2,3)
         return pos,dir,speed
 
     # 스테이지
     def stage_manager():
-        global stage_cline
+        global stage_cline, stage_line, stage_repeat_count, stage_count
+        
         if stage_fun == 1:
-            pokemon_spawn(1,1112,-30,30)
-            pokemon_spawn(1,1112,-30,30)
-            pokemon_spawn(1,1112,-30,30)
-            pokemon_spawn(2,1112,HEIGHT+30,30)
-            pokemon_spawn(2,1112,HEIGHT+30,30)
-            pokemon_spawn(2,1112,HEIGHT+30,30)
-            pokemon_spawn(1,1112,-30,30)
-            pokemon_spawn(1,1112,-30,30)
-            pokemon_spawn(1,1112,-30,30)
-            pokemon_spawn(1,1112,-30,30)
-            pokemon_spawn(2,1112,HEIGHT+30,0)
-            pokemon_spawn(1,1112,-30,30)
-            pokemon_spawn(2,1112,HEIGHT+30,0)
-            pokemon_spawn(1,1112,-30,30)
-            pokemon_spawn(2,1112,HEIGHT+30,0)
-            pokemon_spawn(2,1112,HEIGHT+30,30)
-            pokemon_spawn(2,1112,HEIGHT+30,30)
-            pokemon_spawn(2,1112,HEIGHT+30,30)
+
+            pokemon_spawn(1,1112,-30,40)
+            pokemon_spawn(1,1012,-30,10)
+            pokemon_spawn(1,912,-30,10)
+
+            if while_poke_spawn(10,10):
+                pokemon_spawn(1,1112,-30,0)
+                pokemon_spawn(1,1012,-30,0)
+                pokemon_spawn(1,912,-30,0)
+                end_while_poke_spawn(3)
+
             stage_cline = 0
 
 
@@ -1085,7 +1093,7 @@ def play_game():
         
         if full_on != cur_full_mod:
             if full_on:
-                screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN)
+                screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN|pygame.SCALED)
             else:
                 screen = pygame.display.set_mode((WIDTH, HEIGHT))
             cur_full_mod = full_on
