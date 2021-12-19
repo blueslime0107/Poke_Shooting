@@ -1,8 +1,6 @@
 import pygame, math
 from random import randint, uniform
-from pygame import time
 from pygame.locals import *
-import ctypes
 import cv2
 import numpy
 
@@ -22,7 +20,6 @@ pygame.mixer.set_num_channels(16)
 def play_game():
     
     global WIDTH, HEIGHT, screen
-    
     # 이미지 불러오기
     bullet_image = pygame.image.load('Image\Bullets.png').convert_alpha()
     bg_image = pygame.image.load('Image\Bg1.png').convert()
@@ -38,7 +35,6 @@ def play_game():
 
     sfx_volume = 0.1
     music_volume = 0.5
-    pygame.mixer.music.load('Music\BGM\Shoot the Bullet - Tengu is Watching.wav')
     pygame.mixer.music.set_volume(music_volume)
 
     s_lazer1 = pygame.mixer.Sound('Music\SFX\se_lazer00.wav')
@@ -172,7 +168,7 @@ def play_game():
             self.image.fill((200,200,200))
                 
             self.image_sample = self.image.copy()
-            self.rect = self.image.get_rect(center = (x, y))
+            self.rect = self.image.get_rect(center = (int(x), int(y)))
             self.pos = (x, y)
             self.speed = speed
             self.direction = dir
@@ -204,7 +200,7 @@ def play_game():
             self.rect = self.image.get_rect(center = (x, y))
             self.radius = hit_cir
             self.pos = (x, y)
-            pygame.draw.circle(self.image, (200,0,0), (128,128), self.radius, 3)
+            #pygame.draw.circle(self.image, (200,0,0), (128,128), self.radius, 3)
 
             self.count = 0
             self.list = [0,0,0,0]
@@ -221,7 +217,7 @@ def play_game():
             global score
 
             # 능력
-            self.pos, self.move_dir, self.move_speed = enemy_attack(self.num, self.count, self.pos, self.move_dir, self.move_speed)
+            self.pos, self.move_dir, self.move_speed ,self.count= enemy_attack(self.num, self.count, self.pos, self.move_dir, self.move_speed)
 
             if not screen_rect.colliderect(self.rect) and self.screen_apper: # 밖으로 나가면 사라지기
                 self.kill() 
@@ -232,7 +228,73 @@ def play_game():
                 self.kill()
             self.count += 1
             self.rect.center = self.pos    
-    # 총알
+    
+    class Boss_Enemy(pygame.sprite.Sprite):
+        def __init__(self,x,y,hit_cir,img,num):
+            pygame.sprite.Sprite.__init__(self)
+            self.image = pygame.Surface((256, 256), pygame.SRCALPHA)      
+
+            pokemonimg = pokemons[img-1] # 이미지
+                        
+            self.image.blit(pokemonimg,(0,0))
+            self.rect = self.image.get_rect(center = (x, y))
+            self.radius = hit_cir
+            self.pos = (x, y)
+            #pygame.draw.circle(self.image, (200,0,0), (128,128), self.radius, 3)
+
+            self.count = 0
+            self.list = [0,0,0,0]
+            self.health = 0
+            self.num = num
+
+            # 적이동을 위한 값
+            self.move_dir = 0
+            self.move_speed = 0
+            self.condition = 0
+            self.godmod = False
+            self.dieleft = False
+
+            global boss_f_health
+            self.health, self.spell, self.dies = boss_defalt(num)
+            boss_f_health = self.health
+
+        def update(self):
+            global score, boss_health, boss_pos
+
+            # 능력
+            if self.health > 0:
+                self.count, self.pos, self.move_dir, self.move_speed, self.condition = boss_attack(self.spell[0], self.count, self.pos, self.move_dir, self.move_speed, self.condition)
+
+            if self.health <= 0: # 체력 다 달면 죽기
+                if self.dieleft:
+                    if self.dies:
+                        self.kill()
+                    else:
+                        self.pos = (self.pos[0]+2,self.pos[1])
+                        if self.pos[0] > WIDTH:
+                            self.kill()
+                else:
+                    self.condition = 0
+                    if len(self.spell) > 1:
+                        s_cat1.play()
+                        self.move_speed = 0
+                        del self.spell[0] # 사용한 스펠 삭제
+                        spell_hp(self.spell[0])
+                        self.health = boss_f_health
+                    else:
+                        s_enep1.play()
+                        self.dieleft = True
+                        boss_health = 0
+                        boss_pos = (0,0)
+            else:
+                boss_health = self.health
+                boss_pos = self.pos
+
+            self.count += 1
+            self.rect.center = (int(self.pos[0]),int(self.pos[1])) 
+    
+    # 총알 
+
     ############################################
     class Bullet(pygame.sprite.Sprite):
         def __init__(self, x, y, direction, speed, bul, col, mod, num=(0,0)):
@@ -244,7 +306,7 @@ def play_game():
             self.add_dir = 0
             self.move_fun = False
             # 쓸 값
-            self.rect = self.image.get_rect(center = (x, y))
+            self.rect = self.image.get_rect(center = (int(x), int(y)))
             self.pos = (x, y)
             self.direction = direction
             self.speed = speed
@@ -256,7 +318,7 @@ def play_game():
             self.lotate = False if bul == 2 or bul == 3 or bul==11 or bul == 12 or bul == 15 or bul == 10 or bul == 14 or bul == 19 else True   
             if self.lotate: 
                 self.image = pygame.transform.rotate(self.image2, self.direction-90)
-                self.rect = self.image.get_rect(center = self.pos)
+                self.rect = self.image.get_rect(center = (int(self.pos[0]),int(self.pos[1])))
             
         def update(self, screen):
             global score
@@ -678,13 +740,6 @@ def play_game():
         if str(type(sec_pos)) == "<class 'int'>": sec_pos = (0,0)
         return math.hypot(f_pos[0]-sec_pos[0], f_pos[1]-sec_pos[1])
 
-    # 적 움직임
-    def enemy_move(dir, speed, time):
-        if not enemy.move_time > 0:
-            enemy.move_dir = dir
-            enemy.move_speed = speed
-            enemy.move_time = time 
-
     # 소리
     def play_sound(sound,count,time,max=0):
         if when_time(count,time):
@@ -692,14 +747,23 @@ def play_game():
 
     def move_circle(pos, angle,radius):
         return(round(pos[0]+math.cos(math.pi * (angle / 180)) * radius,2),round(pos[1]+math.sin(math.pi * (angle / 180)) * radius,2))
-
-
     # 두점 각도
     def look_at_point(fpos,secpos):
         x, y = fpos
         dx, dy = secpos
         angle = math.degrees(math.atan2(y - dy, dx - x))
         return angle 
+
+    def look_at_player(pos):
+        x, y = pos
+        dx, dy = player.pos
+        angle = math.degrees(math.atan2(y - dy, dx - x))
+        return angle      
+
+    def set_bossmove_point(pos,num):
+        global boss_point_move, boss_pos
+        if boss_point_move == (0,0) and not boss_pos == (0,0):
+            boss_point_move = ((pos[0]-boss_pos[0])/num,(pos[1]-boss_pos[1])/num)
 
     # 동그라미 게이지 (퍼옴)
     def drawArc(surf, color, center, radius, width, end_angle):
@@ -769,6 +833,7 @@ def play_game():
     global stage_count
     # 초기 설정
     enemy_group = pygame.sprite.Group()
+    boss_group = pygame.sprite.Group()
     play = True
     full_on = False
     cur_full_mod = False
@@ -779,12 +844,19 @@ def play_game():
     stage_count = 0
     
     
-    global stage_line
+    global stage_line, stage_cline, stage_repeat_count, stage_condition, stage_challenge, boss_spawned, boss_point_move
     stage_line = 0
-    global stage_cline
     stage_cline = 0
-    global stage_repeat_count
     stage_repeat_count = 0
+    stage_condition = 1
+    stage_challenge = 0
+    boss_spawned = False
+    boss_point_move = (0,0)
+
+    global boss_health, boss_pos, boss_f_health
+    boss_health = 0
+    boss_f_health = 0
+    boss_pos = (0,0)
 
     # 게임 시작전 메뉴 변수들
     curser = 0
@@ -822,6 +894,30 @@ def play_game():
     bg_x = 0
     fps = 60
 
+
+    # 소환 반복 (줄에 stage_line)
+    def while_poke_spawn(time,repeat,line):
+        global stage_cline, stage_line, stage_repeat_count, stage_count
+        if stage_line == stage_cline and stage_count == time:
+            return stage_count == time and stage_line == stage_cline and stage_repeat_count < repeat
+        else:
+            stage_cline += line 
+            return False
+
+    def end_while_poke_spawn(line,repeat):
+        global stage_line, stage_repeat_count, stage_cline  
+        stage_line -= line
+        stage_repeat_count += 1
+        if stage_repeat_count >= repeat:
+            stage_line += line
+            stage_repeat_count = 0
+
+    def next_challenge(time):
+        global stage_count, stage_line, stage_cline, stage_challenge
+        if time == stage_count and stage_line == stage_cline:
+            stage_count = 0
+            stage_line = 0
+            stage_challenge += 1
     #################################################
 
     # 게임의 배경, 스테이지
@@ -850,88 +946,338 @@ def play_game():
 
         bkgd1 = pygame.transform.scale2x(bkgd1)
 
-        if bgm != bgm_num:
-            
-            pygame.mixer.music.stop()
-            if bgm == 1:
-                pygame.mixer.music.load('Music\BGM\Shoot the Bullet - Tengu is Watching.wav')
-            if bgm == 2:
-                pygame.mixer.music.load('Music\BGM\Shoot the Bullet -  Sleepless Night of the Eastern Country.wav')
-            if bgm == 3:
-                pygame.mixer.music.load('Music\BGM\Shoot the Bullet - Retrospective Kyoto.wav') 
-            if bgm == 4:
-                pygame.mixer.music.load('Music\BGM\동방영야초 - 라스트 워드 테마.wav')  
-            bgm_num = bgm
-            #pygame.mixer.music.play(-1)
+        pygame.mixer.music.stop()
+        if fun == 1:
+            pygame.mixer.music.load('Music\\BGM\\Unforgettable, the Nostalgic Greenery.wav')
 
     # 소환하는 적 
-    def pokemon_spawn(val,x,y,time):
+    def pokemon_spawn(val,x,y,time,dir=0):
         global stage_count 
         global stage_line # 현재 조건의 라인
         global stage_cline # 검사 중인 라인
         
-        # x, y, dir, speed, health, img, hit_cir, num
+        # x, y, dir, speed, health, img, hit_cir, num = val
         if time == stage_count and stage_line == stage_cline:
             stage_count = 0
             stage_line += 1
             if val == 1:
-                enemy_group.add(Enemy(x,y,180,4,5,11,30,1))  
+                enemy_group.add(Enemy(x,y,180,4,5,11,30,val))  
             if val == 2:
-                enemy_group.add(Enemy(x,y,180,4,5,12,30,2))  
-
-
+                enemy_group.add(Enemy(x,y,180,4,5,12,30,val))  
+            if val == 3:
+                enemy_group.add(Enemy(x,y,180,3,6,14,30,val))
+            if val == 4:
+                enemy_group.add(Enemy(x,y,180,4,10,13,30,val))
+            if val == 5:
+                enemy_group.add(Enemy(x,y,135,6,5,11,30,val))
+            if val == 6:
+                enemy_group.add(Enemy(x,y,225,6,5,12,30,val))
+            if val == 7:
+                enemy_group.add(Enemy(x,y,dir,4,7,15,30,val))
         stage_cline += 1
-
-    # 소환 반복 (줄에 stage_line)
-    # stage_line -= 1
-    # stage_repeat_count += 1
-    def while_poke_spawn(time,repeat):
-        global stage_cline, stage_line, stage_repeat_count, stage_count
-        return stage_count == time and stage_line == stage_cline and stage_repeat_count < repeat
-
-    def end_while_poke_spawn(line):
-        global stage_line, stage_repeat_count
-        stage_line -= line
-        stage_repeat_count += 1
+ 
     # 적의 공격타입
     def enemy_attack(num,count,pos,dir,speed):
+        pos = calculate_new_xy(pos, speed, dir)
         if num == 1:
-            pos = calculate_new_xy(pos, speed, dir)
             if dir > 90 and count > 20: dir -= 1 
-            if speed > 5 and count > 20: speed -= 0.5
-            if while_time(count,30):
-                bullet(pos,look_at_point(pos,player.pos),9,2,1)
+            if speed > 3 and count > 20: speed -= 0.5
         if num == 2:
-            pos = calculate_new_xy(pos, speed, dir)
             if dir < 270 and count > 30: dir += 1 
-            if speed > 5 and count > 30: speed -= 0.5
-            if while_time(count,30):
-                bullet(pos,look_at_point(pos,player.pos),9,2,3)
-        return pos,dir,speed
+            if speed > 3 and count > 30: speed -= 0.5
+        if num == 4:
+            if big_small(count,70,130) and speed > 0: speed -= 0.2
+            if count > 130 and speed < 5:
+                speed += 0.2
+            if count == 100:
+                for i in range(0,360,30):
+                    bullet(pos,look_at_point(pos,player.pos)+i,5,2,2)
+        if num == 5:
+            if dir != 180: dir += 0.5
+            if count == 50:
+                bullet(pos,look_at_player(pos),3,3,3)    
+                bullet(pos,look_at_player(pos)+45,3,3,3) 
+                bullet(pos,look_at_player(pos)-45,3,3,3) 
+        if num == 6:
+            if dir != 180: dir -= 0.5
+            if count == 50:
+                bullet(pos,look_at_player(pos),3,3,3)    
+                bullet(pos,look_at_player(pos)+45,3,3,3) 
+                bullet(pos,look_at_player(pos)-45,3,3,3) 
+        if num == 7:
+            if big_small(count,30,50) and while_time(count,3):
+                bullet(pos,180,5-0.5*(count-30)/3,5,5)
+            if count > 60:
+                count = 0
+        return pos,dir,speed,count
 
+    def boss_defalt(num):
+        if num == 1: health,spell,dies = 200, [1],False
+        if num == 2: 
+            health,spell,dies = 300, [1,2,3,4,5], False
+            pygame.mixer.music.stop()
+            pygame.mixer.music.load('Music\\BGM\\The Rabbit Has Landed.wav')
+            pygame.mixer.music.play(-1)
+        return health, spell, dies
+
+    def boss_attack(num,count,pos,dir,speed,condi):
+        global boss_point_move
+        pos = calculate_new_xy(pos, speed, dir)
+        if num == 1:
+            if condi == 0:
+                set_bossmove_point((WIDTH-300,HEIGHT/2,0),120)
+                pos = (pos[0] + boss_point_move[0],pos[1] + boss_point_move[1])
+                if abs(pos[1]-HEIGHT/2) < 10:
+                    boss_point_move = (0,0)
+                    dir = 0
+                    speed = 0
+                    condi = 1
+                    count = 0
+            if condi == 1:
+                if while_time(count,20) and count < 120:
+                    for i in range(0,360,30):
+                        bullet(pos,look_at_player(pos)+i,5,4,5)
+                        bullet(pos,look_at_player(pos)+i+5,5,4,5)
+                        bullet(pos,look_at_player(pos)+i-5,5,4,5)
+                if when_time(count,60):
+                    dir , speed = 90 , 2
+                if when_time(count,120):
+                    dir , speed = 0 , 0
+                if when_time(count,180):
+                    dir , speed = 270 , 2
+                if when_time(count,240):
+                    dir , speed = 0 , 0
+                    count = 0
+        if num == 2:
+            if condi == 0:
+                set_bossmove_point((WIDTH-300,HEIGHT/2,0),120)
+                pos = (pos[0] + boss_point_move[0],pos[1] + boss_point_move[1])
+                if abs(pos[1]-HEIGHT/2) < 10:
+                    boss_point_move = (0,0)
+                    dir = 0
+                    speed = 0
+                    condi = 1
+                    count = 0
+            if condi == 1:
+                if while_time(count,120):
+                    rand = randint(0,15)
+                    for i in range(0,360,15):
+                        bullet(pos,i+rand,4,3,2)
+                if while_time(count+1,180):
+                    for i in range(1,20):
+                        bullet(pos,look_at_player(pos),i/2,5,5)             
+        if num == 3:
+            if condi == 0:
+                condi = 1
+                count = 0
+            if condi == 1:
+                if while_time(count,20) and count < 120:
+                    for i in range(0,360,30):
+                        bullet(pos,look_at_player(pos)+i,5,4,5)
+                        bullet(pos,look_at_player(pos)+i+5,5,4,5)
+                        bullet(pos,look_at_player(pos)+i-5,5,4,5)
+                        bullet(pos,look_at_player(pos)+i,3,1,5)
+                        bullet(pos,look_at_player(pos)+i+5,3,1,5)
+                        bullet(pos,look_at_player(pos)+i-5,3,1,5)
+                if when_time(count,60):
+                    dir , speed = 90 , 2
+                if when_time(count,120):
+                    dir , speed = 0 , 0
+                if when_time(count,180):
+                    dir , speed = 270 , 2
+                if when_time(count,240):
+                    dir , speed = 0 , 0
+                    count = 0
+        if num == 4:
+            if condi == 0:
+                set_bossmove_point((WIDTH-300,HEIGHT/2,0),120)
+                pos = (pos[0] + boss_point_move[0],pos[1] + boss_point_move[1])
+                if abs(pos[1]-HEIGHT/2) < 10:
+                    boss_point_move = (0,0)
+                    dir = 0
+                    speed = 0
+                    condi = 1
+                    count = 0
+            if while_time(count-60,10) and big_small(count,60,140):
+                rand = randint(0,15)
+                for i in range(0,360,15):
+                    bullet((pos[0]+randint(-60,60),pos[1]+randint(-60,60)),i+rand,5,randint(2,3),randint(1,7))
+            if when_time(count,280):
+                count = 0
+        if num == 5:
+            if condi == 0:
+                condi = 1
+                count = 0
+            if while_time(count,4):
+                bullet(pos,count,4,4,5)
+                bullet(pos,count+180,4,4,5)
+            if while_time(count,60) and count > 180:
+                dir = look_at_player(pos)
+                bullet(pos,dir,2,15,5)
+                bullet((pos[0]+30,pos[1]),dir,2,15,5)
+                bullet((pos[0]-30,pos[1]),dir,2,15,5)
+                bullet((pos[0],pos[1]+30),dir,2,15,5)
+                bullet((pos[0],pos[1]-30),dir,2,15,5)
+            
+
+
+        return count,pos,dir,speed,condi
+    
+    def spell_hp(num):
+        global boss_f_health
+        if num == 4:
+            boss_f_health = 400
     # 스테이지
+    #stage_challenge = 2
     def stage_manager():
-        global stage_cline, stage_line, stage_repeat_count, stage_count
+        global stage_cline, stage_line, stage_repeat_count, stage_count, stage_condition, stage_challenge, boss_spawned, boss_health
         
+        if stage_condition == 1:
+            game_defalt_setting(stage_fun)
+            pygame.mixer.music.play(-1)
+            stage_condition = 2
         if stage_fun == 1:
+            if stage_challenge == 0:
+                pokemon_spawn(1,1012,-30,120)
+                pokemon_spawn(1,912,-30,0)
 
-            pokemon_spawn(1,1112,-30,40)
-            pokemon_spawn(1,1012,-30,10)
-            pokemon_spawn(1,912,-30,10)
+                if while_poke_spawn(30,10,2):
+                    pokemon_spawn(1,1012,-30,30)
+                    pokemon_spawn(1,912,-30,0)
+                    end_while_poke_spawn(2,10)
 
-            if while_poke_spawn(10,10):
-                pokemon_spawn(1,1112,-30,0)
+                pokemon_spawn(2,1012,HEIGHT+30,0)
+                pokemon_spawn(2,912,HEIGHT+30,0)
+
+                if while_poke_spawn(30,10,2):
+                    pokemon_spawn(2,1012,HEIGHT+30,30)
+                    pokemon_spawn(2,912,HEIGHT+30,0)
+                    end_while_poke_spawn(2,10)
+
                 pokemon_spawn(1,1012,-30,0)
                 pokemon_spawn(1,912,-30,0)
-                end_while_poke_spawn(3)
+                pokemon_spawn(2,1012,HEIGHT+30,0)
+                pokemon_spawn(2,912,HEIGHT+30,0)
+
+                if while_poke_spawn(30,10,4):
+                    pokemon_spawn(1,1012,-30,30)
+                    pokemon_spawn(1,912,-30,0)
+                    pokemon_spawn(2,1012,HEIGHT+30,0)
+                    pokemon_spawn(2,912,HEIGHT+30,0) 
+                    end_while_poke_spawn(4,10)    
+
+                pokemon_spawn(1,1112,-30,60)
+                pokemon_spawn(2,1112,HEIGHT+30,10)
+                pokemon_spawn(1,1112,-30,10)
+                pokemon_spawn(2,1112,HEIGHT+30,10)
+
+                next_challenge(500)
+            if stage_challenge == 1:
+
+                if while_poke_spawn(40,10,2):
+                    pokemon_spawn(3,WIDTH+64,HEIGHT-stage_repeat_count*HEIGHT/10-20,40)
+                    pokemon_spawn(3,WIDTH+64,stage_repeat_count*HEIGHT/10+20,0)
+                    if while_time(stage_repeat_count,3):
+                        enemy_group.add(Enemy(WIDTH+64,HEIGHT-stage_repeat_count*HEIGHT/10-20,180,4,10,13,30,4))
+                    end_while_poke_spawn(2,10)
+
+                if while_poke_spawn(40,10,2):
+                    pokemon_spawn(3,WIDTH+64,HEIGHT-stage_repeat_count*HEIGHT/10-20,40)
+                    pokemon_spawn(3,WIDTH+64,stage_repeat_count*HEIGHT/10+20,0)
+                    if while_time(stage_repeat_count,3):
+                        enemy_group.add(Enemy(WIDTH+64,stage_repeat_count*HEIGHT/10+20,180,4,10,13,30,4))
+                    end_while_poke_spawn(2,10)
+
+                if while_poke_spawn(10,15,2):
+                    pokemon_spawn(5,WIDTH,20,10)
+                    pokemon_spawn(6,WIDTH,HEIGHT-20,0)
+                    end_while_poke_spawn(2,15)
+
+                if while_poke_spawn(40,10,2):
+                    pokemon_spawn(3,WIDTH+64,HEIGHT-stage_repeat_count*HEIGHT/10-20,40)
+                    pokemon_spawn(3,WIDTH+64,stage_repeat_count*HEIGHT/10+20,0)
+                    if while_time(stage_repeat_count,2):
+                        enemy_group.add(Enemy(WIDTH+64,HEIGHT-stage_repeat_count*HEIGHT/10-20,180,4,10,13,30,4))
+                        enemy_group.add(Enemy(WIDTH+64,stage_repeat_count*HEIGHT/10+20,180,4,10,13,30,4))
+                    end_while_poke_spawn(2,10)
+                
+                next_challenge(240)
+            if stage_challenge == 2:
+                if not boss_spawned: 
+                    boss_group.add(Boss_Enemy(WIDTH,HEIGHT,30,2,1))
+                    boss_spawned = True
+                    boss_health = 1
+                if boss_health <= 0 and boss_spawned:
+                    boss_spawned = False
+                    stage_count = 0
+                    next_challenge(0)
+            if stage_challenge == 3:
+                if while_poke_spawn(10,5,2):
+                    pokemon_spawn(5,WIDTH,20,10)
+                    pokemon_spawn(6,WIDTH,HEIGHT-20,0)
+                    end_while_poke_spawn(2,5)
+
+                pokemon_spawn(4,WIDTH,HEIGHT/2,60)
+                pokemon_spawn(4,WIDTH,HEIGHT/2+20,60)
+                pokemon_spawn(4,WIDTH,HEIGHT/2+60,60)
+                pokemon_spawn(4,WIDTH,HEIGHT/2-20,60)
+                pokemon_spawn(4,WIDTH,HEIGHT/2-60,60)
+
+                if while_poke_spawn(20,10,4):
+                    pokemon_spawn(1,1012,-30,20)
+                    pokemon_spawn(1,912,-30,0)
+                    pokemon_spawn(2,1012,HEIGHT+30,0)
+                    pokemon_spawn(2,912,HEIGHT+30,0) 
+                    end_while_poke_spawn(4,10)
+
+                if while_poke_spawn(10,5,2):
+                    pokemon_spawn(5,WIDTH,20,10)
+                    pokemon_spawn(6,WIDTH,HEIGHT-20,0)
+                    end_while_poke_spawn(2,5)
+
+                pokemon_spawn(4,WIDTH,HEIGHT/2,30)
+                pokemon_spawn(4,WIDTH,HEIGHT/2+40,30)
+                pokemon_spawn(4,WIDTH,HEIGHT/2-40,0)
+                pokemon_spawn(4,WIDTH,HEIGHT/2+80,30)
+                pokemon_spawn(4,WIDTH,HEIGHT/2,0)
+                pokemon_spawn(4,WIDTH,HEIGHT/2-80,0)
+                next_challenge(360)
+            if stage_challenge == 4:
+                pokemon_spawn(7,WIDTH-120,-30,60,90)
+                pokemon_spawn(7,WIDTH-120,-30,60,90)
+                pokemon_spawn(7,WIDTH-120,-30,60,90)
+                pokemon_spawn(7,WIDTH-120,-30,120,90)
+                pokemon_spawn(7,WIDTH-120,HEIGHT+30,60,-90)
+                pokemon_spawn(7,WIDTH-120,-30,60,90)
+                pokemon_spawn(7,WIDTH-120,HEIGHT+30,60,-90)
+                pokemon_spawn(7,WIDTH-120,-30,60,90)
+                pokemon_spawn(7,WIDTH-120,HEIGHT+30,60,-90)
+
+                if while_poke_spawn(40,10,2):
+                    pokemon_spawn(3,WIDTH+64,HEIGHT-stage_repeat_count*HEIGHT/10-20,40)
+                    pokemon_spawn(3,WIDTH+64,stage_repeat_count*HEIGHT/10+20,0)
+                    if while_time(stage_repeat_count,3):
+                        enemy_group.add(Enemy(WIDTH+64,HEIGHT-stage_repeat_count*HEIGHT/10-20,180,4,10,13,30,4))
+                    if while_time(stage_repeat_count,2):
+                        enemy_group.add(Enemy(WIDTH-120,HEIGHT+30,-90,4,7,15,30,7))
+                    end_while_poke_spawn(2,10)
+                next_challenge(360)
+            if stage_challenge == 5:
+                if not boss_spawned: 
+                    boss_group.add(Boss_Enemy(WIDTH,HEIGHT,30,2,2))
+                    boss_spawned = True
+                    boss_health = 1
+                if boss_health <= 0 and boss_spawned:
+                    boss_spawned = False
+                    stage_count = 0
+                    next_challenge(0)
+
+
 
             stage_cline = 0
 
 
     ################################################# 
-
-    game_defalt_setting(stage_fun)
-
     # 폰트 불러오기
     score_font = pygame.font.Font('Font\SEBANG Gothic Bold.ttf', 50)
 
@@ -973,15 +1319,25 @@ def play_game():
             
             # 탄에 박았는가
             hit_list = pygame.sprite.spritecollide(player, spr, not player.godmod, pygame.sprite.collide_circle)
-            ehit_list = []
             beam_collide = pygame.sprite.groupcollide(beams, enemy_group, True, False, pygame.sprite.collide_circle)
             if beam_collide.items():
                 for beam, enemy in beam_collide.items():
                     enemy[0].health -= 1
 
-            if not pause:     
-                if not starting or read_end: enemy_group.update(ehit_list)  
-                if len(magic_spr.sprites()) != 0:magic_spr.update(screen)                  
+            boss_collide = pygame.sprite.groupcollide(boss_group, beams, False,True, pygame.sprite.collide_circle)
+            if boss_collide.items():
+                for boss, beam in boss_collide.items():
+                    boss.health -= 1
+                    if boss_health/boss_f_health < 0.25:
+                        s_damage1.play(loops=1, maxtime=50)  
+                    else: 
+                        s_damage0.play(loops=1, maxtime=50)
+
+                
+
+            if not pause:      
+                if len(magic_spr.sprites()) != 0:magic_spr.update(screen)    
+                if boss_health <= 1 and boss_spawned: spr.empty()              
                 spr.update(screen)
             # 연산 업데이트
             if not time_stop:
@@ -989,6 +1345,7 @@ def play_game():
                     beams.update()                            
                     player_group.update(hit_list)
                     enemy_group.update()
+                    if boss_group: boss_group.update()
                     stage_manager()
                     frame_count += 1
                     stage_count += 1
@@ -1011,10 +1368,11 @@ def play_game():
             
             # 원형 체력바 그리기
             if starting and not read_end: 
-                # drawArc(screen, (0, 0, 0), enemy.pos, 112, 15, 360*100)
-                # drawArc(screen, health_color(enemy.health/enemy_health), enemy.pos, 110, 10, 360*enemy.health/enemy_health)
                 drawArc(screen, (0,0, 0), player.pos, 112, 15, 360*100)
                 drawArc(screen, health_color(player.health/500), player.pos, 110, 10, 360*player.health/500)
+            if boss_group and boss_health > 0:
+                drawArc(screen, (0, 0, 0), boss_pos, 112, 15, 360*100)
+                drawArc(screen, health_color(boss_health/boss_f_health), boss_pos, 110, 10, 360*boss_health/boss_f_health)
 
             magic_spr.draw(screen)      
             beams.draw(screen)
@@ -1022,6 +1380,7 @@ def play_game():
             enemy_group.draw(screen)
             
             if not starting or read_end: enemy_group.draw(screen)
+            if boss_group: boss_group.draw(screen)
             spr.draw(screen)
             
 
@@ -1029,7 +1388,6 @@ def play_game():
             pygame.draw.circle(screen, (200,100,100), (round(player.pos[0]),round(player.pos[1])), 8)
             pygame.draw.circle(screen, (255,255,255), (round(player.pos[0]),round(player.pos[1])), 7)  
             if keys[pygame.K_LSHIFT]: 
-                
                 screen.blit(rotated_sprite, rect)
             pygame.display.flip()
         if cur_screen == 0:
@@ -1050,7 +1408,6 @@ def play_game():
                             if curser == 4 and select_mod == 0: play = False
                             select_mod += 1
                             if menu_mod == 0:
-                                print(difficulty)
                                 cur_screen = 1 ############ rpdlatlwks
                             menu_mod = curser
                             curser = 0
@@ -1077,11 +1434,12 @@ def play_game():
                 if menu_mod == 0: # 난이도 정하기
                     curser_max = 3
                     for i in range(0,4):
-                        screen.blit(menu_img,(WIDTH/2-120,HEIGHT/2-60+128*i-128*curser),(0,320+64*i,288,64))
+                        screen.blit(menu_img,(int(WIDTH/2-120),int(HEIGHT/2-60+128*i-128*curser)),(0,320+64*i,288,64))
                         difficulty = curser
                 if menu_mod == 3:
                     curser_max = 3
                     text_box = ["화면모드","음악","효과음","플레이어"]
+
                     text_box[0] = "화면모드    창모드" if full_on == 0 else "화면모드    전체화면"
                     text_box[1] = "음악   " + str(music_volume)
                     text_box[2] = "효과음  " + str(sfx_volume)
@@ -1093,7 +1451,10 @@ def play_game():
         
         if full_on != cur_full_mod:
             if full_on:
-                screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN|pygame.SCALED)
+                try:
+                    screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN|pygame.SCALED)
+                except AttributeError:
+                    screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN)
             else:
                 screen = pygame.display.set_mode((WIDTH, HEIGHT))
             cur_full_mod = full_on
