@@ -294,7 +294,6 @@ def play_game():
             self.rect.center = (int(self.pos[0]),int(self.pos[1])) 
     
     # 총알 
-
     ############################################
     class Bullet(pygame.sprite.Sprite):
         def __init__(self, x, y, direction, speed, bul, col, mod, num=(0,0)):
@@ -702,10 +701,29 @@ def play_game():
             self.rect.center = round(self.pos[0]), round(self.pos[1]) 
                 # 화면에 없으면 없애기
             if not bullet_border.colliderect(self.rect) and self.screen_die == 0:
-                self.kill()
-            
+                self.kill()    
     ############################################
 
+    class Effect(pygame.sprite.Sprite):
+        def __init__(self, pos, num):
+            pygame.sprite.Sprite.__init__(self) # 초기화?
+            self.image = pygame.Surface((32, 32), pygame.SRCALPHA) # 이미지          
+            self.rect = self.image.get_rect(center = (round(pos[0]), round(pos[1])))
+            self.image2 = self.image.copy()
+            self.pos = pos
+            self.cen_pos = (0,0)
+            self.count = 0
+            self.num = num
+
+        def update(self):
+            if self.num == 1:
+                #pygame.transform.scale(self.image, (32, 32))
+                image = pygame.Surface((32, 32), pygame.SRCALPHA)
+                image.blit(bullet_image,(0,0),(0,400,32,32))
+                self.image = image
+                self.num = 0
+
+            self.count += 1
 
     def micro_sec(value):
         return round(1000/60)*value
@@ -720,6 +738,7 @@ def play_game():
         return val % time == 0
 
     def bullet(pos,dir,speed,img,col,mode=0,num = (0,0)):
+        #effect.add(Effect(pos,1))
         spr.add(Bullet(pos[0],pos[1],dir,speed,img,col,mode,num))
 
     def magic_bullet(pos,dir,speed,col,mode=0,screend=0):
@@ -829,7 +848,7 @@ def play_game():
 
     # 개발자 전용
     stage_fun = 1
-    global bkgd1, time_stop
+    global bkgd, time_stop
     global stage_count
     # 초기 설정
     enemy_group = pygame.sprite.Group()
@@ -877,6 +896,7 @@ def play_game():
     player = Player(WIDTH/4,HEIGHT/2,5,500)
     player_group = pygame.sprite.Group(player)
     beams = pygame.sprite.Group()
+    effect = pygame.sprite.Group()
 
     starting = True
     read_end = False
@@ -889,9 +909,11 @@ def play_game():
     score_setting = (10,10,987650,10,0,0,0,0,0)
 
     # 보스마다 기본설정
-    bkgd1 = pygame.Surface((0, 0))
+    bkgd = pygame.Surface((540, 360))
+    global bkgd_list
+    bkgd_list = [pygame.Surface((1080, 240)),pygame.Surface((1080, 240)),pygame.Surface((1080, 240))]
 
-    bg_x = 0
+    bg_x = [0,0,0]
     fps = 60
 
 
@@ -922,12 +944,10 @@ def play_game():
 
     # 게임의 배경, 스테이지
     def game_defalt_setting(fun):
-        global bgm_num, bkgd1
-        bkgd1 = pygame.Surface((640, 360))
+        global bgm_num, bkgd, bkgd_list
         ##############################################
         if fun == 1:
-            bgm = 1
-            bkgd1.blit(bg2_image,(0,0),(540,0,540,360))
+            bkgd.blit(bg_image,(0,0),(0,0,540,360))
         if fun == 2:
             bgm = 1
         if fun == 3:
@@ -944,7 +964,10 @@ def play_game():
 
         ###############################################
 
-        bkgd1 = pygame.transform.scale2x(bkgd1)
+        bkgd = pygame.transform.scale2x(bkgd)
+        bkgd_list[0].blit(bkgd,(0,0),(0,0,1080,240))
+        bkgd_list[1].blit(bkgd,(0,0),(0,240,1080,240))
+        bkgd_list[2].blit(bkgd,(0,0),(0,480,1080,240))
 
         pygame.mixer.music.stop()
         if fun == 1:
@@ -1128,7 +1151,6 @@ def play_game():
         if num == 4:
             boss_f_health = 400
     # 스테이지
-    #stage_challenge = 2
     def stage_manager():
         global stage_cline, stage_line, stage_repeat_count, stage_count, stage_condition, stage_challenge, boss_spawned, boss_health
         
@@ -1136,6 +1158,7 @@ def play_game():
             game_defalt_setting(stage_fun)
             pygame.mixer.music.play(-1)
             stage_condition = 2
+            #effect.add(Effect(player.pos,1))
         if stage_fun == 1:
             if stage_challenge == 0:
                 pokemon_spawn(1,1012,-30,120)
@@ -1261,6 +1284,14 @@ def play_game():
                     if while_time(stage_repeat_count,2):
                         enemy_group.add(Enemy(WIDTH-120,HEIGHT+30,-90,4,7,15,30,7))
                     end_while_poke_spawn(2,10)
+                if while_poke_spawn(40,10,2):
+                    pokemon_spawn(3,WIDTH+64,HEIGHT-stage_repeat_count*HEIGHT/10-20,40)
+                    pokemon_spawn(3,WIDTH+64,stage_repeat_count*HEIGHT/10+20,0)
+                    if while_time(stage_repeat_count,3):
+                        enemy_group.add(Enemy(WIDTH+64,stage_repeat_count*HEIGHT/10+20,180,4,10,13,30,4))
+                    if while_time(stage_repeat_count,2):
+                        enemy_group.add(Enemy(WIDTH-120,-30,90,4,7,15,30,7))
+                    end_while_poke_spawn(2,10)
                 next_challenge(360)
             if stage_challenge == 5:
                 if not boss_spawned: 
@@ -1275,22 +1306,16 @@ def play_game():
 
 
             stage_cline = 0
-
-
     ################################################# 
     # 폰트 불러오기
     score_font = pygame.font.Font('Font\SEBANG Gothic Bold.ttf', 50)
-    print("ASDF")
-
-    # BGM 재생
-    #pygame.mixer.music.play(-1)
-
 
     while play:
         # 60 프레임
         clock.tick(fps)
-        # 키 이벤트
+
         if cur_screen == 1:
+            # 키 이벤트
             for ev in pygame.event.get():
                 if ev.type == pygame.QUIT: # 게임끄기
                     play = False
@@ -1323,7 +1348,6 @@ def play_game():
             if beam_collide.items():
                 for beam, enemy in beam_collide.items():
                     enemy[0].health -= 1
-
             boss_collide = pygame.sprite.groupcollide(boss_group, beams, False,True, pygame.sprite.collide_circle)
             if boss_collide.items():
                 for boss, beam in boss_collide.items():
@@ -1332,35 +1356,38 @@ def play_game():
                         s_damage1.play(loops=1, maxtime=50)  
                     else: 
                         s_damage0.play(loops=1, maxtime=50)
-
-                
-
+            
+            # 연산 업데이트
             if not pause:      
                 if len(magic_spr.sprites()) != 0:magic_spr.update(screen)    
                 if boss_health <= 1 and boss_spawned: spr.empty()              
                 spr.update(screen)
-            # 연산 업데이트
+
             if not time_stop:
                 if not pause:
                     beams.update()                            
                     player_group.update(hit_list)
                     enemy_group.update()
                     if boss_group: boss_group.update()
+                    effect.update()
                     stage_manager()
                     frame_count += 1
                     stage_count += 1
                     min_dir += 0.2
-                    bg_x -= 3
+                    bg_x[0] -= 1
+                    bg_x[1] -= 2
+                    bg_x[2] -= 3
                     rotated_sprite = pygame.transform.rotate(player_slow_img, math.degrees(frame_count/20))
                     rect = rotated_sprite.get_rect(center = (round(player.pos[0]), round(player.pos[1])))
                 
             # 그리기 시작
             screen.fill((0,0,0))
             #배경 스크롤
-            rel_x = bg_x % WIDTH
-            screen.blit(bkgd1, (rel_x - WIDTH,0))
-            if rel_x < WIDTH:
-                screen.blit(bkgd1,(rel_x,0))
+            for image in bkgd_list:
+                rel_x = bg_x[bkgd_list.index(image)] % WIDTH
+                screen.blit(image, (rel_x - WIDTH,0+240*bkgd_list.index(image)))
+                if rel_x < WIDTH:
+                    screen.blit(image,(rel_x,0+240*bkgd_list.index(image)))
 
             # 점수 표시
             score_text = score_font.render(str(score).zfill(10), True, (255,255,255))
@@ -1378,6 +1405,7 @@ def play_game():
             beams.draw(screen)
             player_group.draw(screen)  
             enemy_group.draw(screen)
+            effect.draw(screen)
             
             if not starting or read_end: enemy_group.draw(screen)
             if boss_group: boss_group.draw(screen)
