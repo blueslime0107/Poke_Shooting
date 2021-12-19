@@ -1280,7 +1280,7 @@ def play_game():
     ################################################# 
     # 폰트 불러오기
     score_font = pygame.font.Font('Font\SEBANG Gothic Bold.ttf', 50)
-
+    print("ASDF")
 
     # BGM 재생
     #pygame.mixer.music.play(-1)
