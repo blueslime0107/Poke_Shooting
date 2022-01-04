@@ -164,16 +164,18 @@ def play_game():
     class Beam(pygame.sprite.Sprite):
         def __init__(self, x, y, speed, dir=0):
             pygame.sprite.Sprite.__init__(self)
-            self.image = pygame.Surface((20, 16), pygame.SRCALPHA)  
-            self.image.fill((200,200,200))
-                
-            self.image_sample = self.image.copy()
+            self.image = pygame.Surface((40, 32), pygame.SRCALPHA)  
+            self.image.fill((255, 0, 222))      
+
             self.rect = self.image.get_rect(center = (int(x), int(y)))
+            pygame.draw.rect(self.image, (247, 178, 238), (3,3,34,26),0)
+            self.image_sample = self.image.copy()
             self.pos = (x, y)
             self.speed = speed
             self.direction = dir
             self.image_rotate = pygame.transform.rotate(self.image_sample, self.direction)
             self.damage = 2.5
+            self.can_damage = True
 
             
 
@@ -182,6 +184,12 @@ def play_game():
             # 화면 나가면 삭제
             if self.pos[0] >= WIDTH:
                 self.kill()
+            if self.speed == 0:
+                self.kill()
+            if not self.can_damage:
+                self.image_sample.fill((255,255,255))
+                self.image_sample = pygame.transform.scale(self.image_sample, (60, 32))
+                self.speed = 0
 
             self.image_rotate = pygame.transform.rotate(self.image_sample, self.direction)
             self.image = self.image_rotate
@@ -227,8 +235,9 @@ def play_game():
                 s_tan1.play()
                 self.kill()
             self.count += 1
-            self.rect.center = self.pos    
+            self.rect.center = (int(self.pos[0]),int(self.pos[1]))    
     
+    # 보스
     class Boss_Enemy(pygame.sprite.Sprite):
         def __init__(self,x,y,hit_cir,img,num):
             pygame.sprite.Sprite.__init__(self)
@@ -972,7 +981,6 @@ def play_game():
         pygame.mixer.music.stop()
         if fun == 1:
             pygame.mixer.music.load('Music\\BGM\\Unforgettable, the Nostalgic Greenery.wav')
-
     # 소환하는 적 
     def pokemon_spawn(val,x,y,time,dir=0):
         global stage_count 
@@ -998,7 +1006,6 @@ def play_game():
             if val == 7:
                 enemy_group.add(Enemy(x,y,dir,4,7,15,30,val))
         stage_cline += 1
- 
     # 적의 공격타입
     def enemy_attack(num,count,pos,dir,speed):
         pos = calculate_new_xy(pos, speed, dir)
@@ -1344,18 +1351,24 @@ def play_game():
             
             # 탄에 박았는가
             hit_list = pygame.sprite.spritecollide(player, spr, not player.godmod, pygame.sprite.collide_circle)
-            beam_collide = pygame.sprite.groupcollide(beams, enemy_group, True, False, pygame.sprite.collide_circle)
+            beam_collide = pygame.sprite.groupcollide(beams, enemy_group, False, False, pygame.sprite.collide_circle)
             if beam_collide.items():
                 for beam, enemy in beam_collide.items():
-                    enemy[0].health -= 1
-            boss_collide = pygame.sprite.groupcollide(boss_group, beams, False,True, pygame.sprite.collide_circle)
+                    for i in range(0,len(enemy)):
+                        if beam.can_damage: 
+                            enemy[i].health -= 1
+                            beam.can_damage = False
+            boss_collide = pygame.sprite.groupcollide(boss_group, beams, False,False, pygame.sprite.collide_circle)
             if boss_collide.items():
                 for boss, beam in boss_collide.items():
-                    boss.health -= 1
-                    if boss_health/boss_f_health < 0.25:
-                        s_damage1.play(loops=1, maxtime=50)  
-                    else: 
-                        s_damage0.play(loops=1, maxtime=50)
+                    for i in range(0,len(beam)):
+                        if beam[i].can_damage:
+                            boss.health -= 1
+                            if boss_health/boss_f_health < 0.25:
+                                s_damage1.play(loops=1, maxtime=50)  
+                            else: 
+                                s_damage0.play(loops=1, maxtime=50)
+                            beam[i].can_damage = False
             
             # 연산 업데이트
             if not pause:      
