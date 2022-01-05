@@ -233,7 +233,9 @@ def play_game():
                 self.screen_apper = True
             if self.health <= 0: # 체력 다 달면 죽기
                 s_tan1.play()
+                effect.add(Effect(self.pos,1))
                 self.kill()
+
             self.count += 1
             self.rect.center = (int(self.pos[0]),int(self.pos[1]))    
     
@@ -714,24 +716,36 @@ def play_game():
     ############################################
 
     class Effect(pygame.sprite.Sprite):
-        def __init__(self, pos, num):
+        def __init__(self, pos, num, col=0):
             pygame.sprite.Sprite.__init__(self) # 초기화?
             self.image = pygame.Surface((32, 32), pygame.SRCALPHA) # 이미지          
             self.rect = self.image.get_rect(center = (round(pos[0]), round(pos[1])))
             self.image2 = self.image.copy()
             self.pos = pos
-            self.cen_pos = (0,0)
             self.count = 0
             self.num = num
+            self.col = col
 
         def update(self):
-            if self.num == 1:
-                #pygame.transform.scale(self.image, (32, 32))
-                image = pygame.Surface((32, 32), pygame.SRCALPHA)
-                image.blit(bullet_image,(0,0),(0,400,32,32))
-                self.image = image
-                self.num = 0
+            if self.count == 0:
+                if self.num == 1:
+                    image = pygame.Surface((64,64), pygame.SRCALPHA)
+                    image.blit(bullet_image,(0,0),(192,128,64,64))
+                if self.num == 2:
+                    image = bullets[21][self.col]
+                    image = pygame.transform.scale2x(image)
+                    image = pygame.transform.scale2x(image)
 
+                image = pygame.transform.scale2x(image)
+                self.image = image
+                self.rect = self.image.get_rect(center = (self.pos))
+                self.image2 = self.image.copy()
+            if self.num == 1 or self.num == 2:
+                if self.rect.width-self.count*2 <= 0: self.kill()
+                else:
+                    self.image = pygame.transform.scale(self.image2, (self.rect.width-self.count*2,self.rect.height-self.count*2))
+
+            self.rect = self.image.get_rect(center = (self.pos))
             self.count += 1
 
     def micro_sec(value):
@@ -749,6 +763,9 @@ def play_game():
     def bullet(pos,dir,speed,img,col,mode=0,num = (0,0)):
         #effect.add(Effect(pos,1))
         spr.add(Bullet(pos[0],pos[1],dir,speed,img,col,mode,num))
+
+    def add_effect(pos,num,col=0):
+        effect.add(Effect(pos,num,col))
 
     def magic_bullet(pos,dir,speed,col,mode=0,screend=0):
         magic_spr.add(MagicField(pos,dir,speed,col,mode,screend))
@@ -841,9 +858,20 @@ def play_game():
             image.blit(bullet_image, (0,0), Rect(i*64,432,64,64))
             a_list.append(image)
             a_list.append(image)
-
-    cur_list.append(a_list)
-    a_list = []
+        cur_list.append(a_list)
+        a_list = []
+        for i in range(0,176,16):
+            image = pygame.Surface((16,16), pygame.SRCALPHA)
+            image.blit(bullet_image, (0,0), Rect(i,176,16,16))
+            a_list.append(image)
+        cur_list.append(a_list)
+        a_list = []
+        for i in range(0,256,32):
+            image = pygame.Surface((32,32), pygame.SRCALPHA)
+            image.blit(bullet_image, (0,0), Rect(i,400,32,32))
+            a_list.append(image)
+        cur_list.append(a_list)
+        a_list = []
     bullets = cur_list
 
     cur_list = []
@@ -1020,22 +1048,26 @@ def play_game():
             if count > 130 and speed < 5:
                 speed += 0.2
             if count == 100:
+                add_effect(pos,2,2)
                 for i in range(0,360,30):
                     bullet(pos,look_at_point(pos,player.pos)+i,5,2,2)
         if num == 5:
             if dir != 180: dir += 0.5
             if count == 50:
+                add_effect(pos,2,3)
                 bullet(pos,look_at_player(pos),3,3,3)    
                 bullet(pos,look_at_player(pos)+45,3,3,3) 
                 bullet(pos,look_at_player(pos)-45,3,3,3) 
         if num == 6:
             if dir != 180: dir -= 0.5
             if count == 50:
+                add_effect(pos,2,3)
                 bullet(pos,look_at_player(pos),3,3,3)    
                 bullet(pos,look_at_player(pos)+45,3,3,3) 
                 bullet(pos,look_at_player(pos)-45,3,3,3) 
         if num == 7:
             if big_small(count,30,50) and while_time(count,3):
+                add_effect(pos,2,5)
                 bullet(pos,180,5-0.5*(count-30)/3,5,5)
             if count > 60:
                 count = 0
@@ -1065,6 +1097,7 @@ def play_game():
                     count = 0
             if condi == 1:
                 if while_time(count,20) and count < 120:
+                    add_effect(pos,2,5)
                     for i in range(0,360,30):
                         bullet(pos,look_at_player(pos)+i,5,4,5)
                         bullet(pos,look_at_player(pos)+i+5,5,4,5)
@@ -1091,9 +1124,11 @@ def play_game():
             if condi == 1:
                 if while_time(count,120):
                     rand = randint(0,15)
+                    add_effect(pos,2,2)
                     for i in range(0,360,15):
                         bullet(pos,i+rand,4,3,2)
                 if while_time(count+1,180):
+                    add_effect(pos,2,5)
                     for i in range(1,20):
                         bullet(pos,look_at_player(pos),i/2,5,5)             
         if num == 3:
@@ -1102,6 +1137,7 @@ def play_game():
                 count = 0
             if condi == 1:
                 if while_time(count,20) and count < 120:
+                    add_effect(pos,2,5)
                     for i in range(0,360,30):
                         bullet(pos,look_at_player(pos)+i,5,4,5)
                         bullet(pos,look_at_player(pos)+i+5,5,4,5)
@@ -1130,6 +1166,7 @@ def play_game():
                     count = 0
             if while_time(count-60,10) and big_small(count,60,140):
                 rand = randint(0,15)
+                add_effect(pos,2,0)
                 for i in range(0,360,15):
                     bullet((pos[0]+randint(-60,60),pos[1]+randint(-60,60)),i+rand,5,randint(2,3),randint(1,7))
             if when_time(count,280):
@@ -1143,6 +1180,7 @@ def play_game():
                 bullet(pos,count+180,4,4,5)
             if while_time(count,60) and count > 180:
                 dir = look_at_player(pos)
+                add_effect(pos,2,5)
                 bullet(pos,dir,2,15,5)
                 bullet((pos[0]+30,pos[1]),dir,2,15,5)
                 bullet((pos[0]-30,pos[1]),dir,2,15,5)
