@@ -27,6 +27,7 @@ def play_game():
     pkmon_image = pygame.image.load('Image\pokemon.png').convert_alpha()
     background_img = pygame.image.load('Image\\background.jpg').convert()
     menu_img = pygame.image.load('Image\Menus.png').convert_alpha()
+    item_img = pygame.image.load('Image\item.png').convert_alpha()
     background_img = pygame.transform.scale(background_img, (WIDTH, HEIGHT))
 
     player_slow_img = pygame.Surface((64, 64), pygame.SRCALPHA)
@@ -71,7 +72,10 @@ def play_game():
     s_kira1.set_volume(sfx_volume)
     s_boom = pygame.mixer.Sound('Music\SFX\se_enep02.wav')
     s_boom.set_volume(sfx_volume+0.2)
-
+    s_item0 = pygame.mixer.Sound('Music\SFX\se_item00.wav')
+    s_item0.set_volume(sfx_volume+0.1)
+    s_enedead = pygame.mixer.Sound('Music\SFX\se_enep00.wav')
+    s_enedead.set_volume(sfx_volume+0.15)
     # 플레이어
     class Player(pygame.sprite.Sprite):
         def __init__(self, x, y, speed, health):
@@ -100,9 +104,9 @@ def play_game():
 
             # 플레이어 이동 조종 SHIFT 를 누르면 느리게 움직이기
             if keys[pygame.K_LSHIFT]:
-                self.speed = 2
+                self.speed = 4
             else:
-                self.speed = 5
+                self.speed = 7
             
             if keys[pygame.K_RIGHT]:
                 dx += 0 if self.rect.centerx >= WIDTH-20 else self.speed
@@ -232,8 +236,9 @@ def play_game():
             if screen_rect.colliderect(self.rect) and not self.screen_apper:
                 self.screen_apper = True
             if self.health <= 0: # 체력 다 달면 죽기
-                s_tan1.play()
+                s_enedead.play()
                 effect.add(Effect(self.pos,1))
+                item.add(Item(self.pos,0))
                 self.kill()
 
             self.count += 1
@@ -748,6 +753,49 @@ def play_game():
             self.rect = self.image.get_rect(center = (self.pos))
             self.count += 1
 
+    class Item(pygame.sprite.Sprite):
+        def __init__(self, pos, num):
+            pygame.sprite.Sprite.__init__(self) # 초기화?
+            self.image = pygame.transform.scale2x(items[num])       # 이미지          
+            self.rect = self.image.get_rect(center = (round(pos[0]), round(pos[1])))
+            self.image2 = self.image.copy()
+            self.pos = pos
+            self.count = 0
+            self.num = num
+            self.lock = False
+
+        def update(self):
+            global score
+            
+            # 움직임
+            if not self.lock:
+                if self.count < 80:
+                    self.pos = (self.pos[0]+10-self.count/4,self.pos[1])
+                    self.image = pygame.transform.rotate(self.image2, self.count*4)
+                else:
+                    self.pos = (self.pos[0]-5,self.pos[1])
+                if self.count == 80:
+                    self.image = pygame.transform.rotate(self.image2, 0)
+
+            # 화면 넘어가면 삭제:
+            if self.pos[0] < -20:
+                self.kill()
+            # 플레이어 범위 작으면 먹기
+            if distance(self.pos,player.pos) < 70:
+                score += 100
+                s_item0.play()
+                self.kill()
+            # 좌표 600이상이면 플레이어 다라가기
+            if player.pos[0] >= 600 and not self.lock:
+                self.lock = True
+                self.image = pygame.transform.rotate(self.image2, 0)
+            if self.lock:
+                self.pos = calculate_new_xy(self.pos,13,-look_at_player(self.pos))
+
+
+            self.rect = self.image.get_rect(center = (self.pos))
+            self.count += 1
+
     def micro_sec(value):
         return round(1000/60)*value
 
@@ -873,6 +921,12 @@ def play_game():
         cur_list.append(a_list)
         a_list = []
     bullets = cur_list
+    cur_list = []
+    for i in range(0,128,16):
+        image = pygame.Surface((16,16),pygame.SRCALPHA)
+        image.blit(item_img, (0,0), Rect(i,0,16,16))
+        cur_list.append(image)
+    items = cur_list
 
     cur_list = []
     for i in range(0,10):
@@ -934,6 +988,7 @@ def play_game():
     player_group = pygame.sprite.Group(player)
     beams = pygame.sprite.Group()
     effect = pygame.sprite.Group()
+    item = pygame.sprite.Group()
 
     starting = True
     read_end = False
@@ -1049,11 +1104,13 @@ def play_game():
                 speed += 0.2
             if count == 100:
                 add_effect(pos,2,2)
+                s_tan1.play()
                 for i in range(0,360,30):
                     bullet(pos,look_at_point(pos,player.pos)+i,5,2,2)
         if num == 5:
             if dir != 180: dir += 0.5
             if count == 50:
+                s_tan1.play()
                 add_effect(pos,2,3)
                 bullet(pos,look_at_player(pos),3,3,3)    
                 bullet(pos,look_at_player(pos)+45,3,3,3) 
@@ -1061,12 +1118,14 @@ def play_game():
         if num == 6:
             if dir != 180: dir -= 0.5
             if count == 50:
+                s_tan1.play()
                 add_effect(pos,2,3)
                 bullet(pos,look_at_player(pos),3,3,3)    
                 bullet(pos,look_at_player(pos)+45,3,3,3) 
                 bullet(pos,look_at_player(pos)-45,3,3,3) 
         if num == 7:
             if big_small(count,30,50) and while_time(count,3):
+                s_tan1.play()
                 add_effect(pos,2,5)
                 bullet(pos,180,5-0.5*(count-30)/3,5,5)
             if count > 60:
@@ -1098,6 +1157,7 @@ def play_game():
             if condi == 1:
                 if while_time(count,20) and count < 120:
                     add_effect(pos,2,5)
+                    s_tan1.play()
                     for i in range(0,360,30):
                         bullet(pos,look_at_player(pos)+i,5,4,5)
                         bullet(pos,look_at_player(pos)+i+5,5,4,5)
@@ -1125,10 +1185,12 @@ def play_game():
                 if while_time(count,120):
                     rand = randint(0,15)
                     add_effect(pos,2,2)
+                    s_tan1.play()
                     for i in range(0,360,15):
                         bullet(pos,i+rand,4,3,2)
                 if while_time(count+1,180):
                     add_effect(pos,2,5)
+                    s_tan1.play()
                     for i in range(1,20):
                         bullet(pos,look_at_player(pos),i/2,5,5)             
         if num == 3:
@@ -1138,6 +1200,7 @@ def play_game():
             if condi == 1:
                 if while_time(count,20) and count < 120:
                     add_effect(pos,2,5)
+                    s_tan1.play()
                     for i in range(0,360,30):
                         bullet(pos,look_at_player(pos)+i,5,4,5)
                         bullet(pos,look_at_player(pos)+i+5,5,4,5)
@@ -1167,6 +1230,7 @@ def play_game():
             if while_time(count-60,10) and big_small(count,60,140):
                 rand = randint(0,15)
                 add_effect(pos,2,0)
+                s_tan1.play()
                 for i in range(0,360,15):
                     bullet((pos[0]+randint(-60,60),pos[1]+randint(-60,60)),i+rand,5,randint(2,3),randint(1,7))
             if when_time(count,280):
@@ -1176,10 +1240,12 @@ def play_game():
                 condi = 1
                 count = 0
             if while_time(count,4):
+                s_tan2.play()
                 bullet(pos,count,4,4,5)
                 bullet(pos,count+180,4,4,5)
             if while_time(count,60) and count > 180:
                 dir = look_at_player(pos)
+                s_tan1.play()
                 add_effect(pos,2,5)
                 bullet(pos,dir,2,15,5)
                 bullet((pos[0]+30,pos[1]),dir,2,15,5)
@@ -1419,6 +1485,7 @@ def play_game():
                     beams.update()                            
                     player_group.update(hit_list)
                     enemy_group.update()
+                    item.update()
                     if boss_group: boss_group.update()
                     effect.update()
                     stage_manager()
@@ -1452,16 +1519,17 @@ def play_game():
                 drawArc(screen, (0, 0, 0), boss_pos, 112, 15, 360*100)
                 drawArc(screen, health_color(boss_health/boss_f_health), boss_pos, 110, 10, 360*boss_health/boss_f_health)
 
+            item.draw(screen)
             magic_spr.draw(screen)      
             beams.draw(screen)
             player_group.draw(screen)  
             enemy_group.draw(screen)
-            effect.draw(screen)
             
             if not starting or read_end: enemy_group.draw(screen)
             if boss_group: boss_group.draw(screen)
+            effect.draw(screen)
             spr.draw(screen)
-            
+
 
             # SHIFT 눌렀을때 특별한 원 보이기
             pygame.draw.circle(screen, (200,100,100), (round(player.pos[0]),round(player.pos[1])), 8)
