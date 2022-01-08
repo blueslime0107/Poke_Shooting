@@ -89,6 +89,7 @@ def play_game():
             
             self.speed = speed
             self.health = health
+            self.power = 1
 
             self.count = 0
             self.radius = 4 # 원 충돌범위를 위한 반지름 값
@@ -101,37 +102,33 @@ def play_game():
             dx, dy = 0 , 0
             keys = pygame.key.get_pressed() 
             inum = self.img_num
+            self.img_num = 0
 
             # 플레이어 이동 조종 SHIFT 를 누르면 느리게 움직이기
             if keys[pygame.K_LSHIFT]:
-                self.speed = 4
+                self.speed = 2
             else:
                 self.speed = 7
             
-            if keys[pygame.K_RIGHT]:
-                dx += 0 if self.rect.centerx >= WIDTH-20 else self.speed
-            if keys[pygame.K_LEFT]:
-                dx -= 0 if self.rect.centerx <= 0 + 20 else self.speed
-            if keys[pygame.K_DOWN]:
-                dy += 0 if self.rect.centery >= 720-20 else self.speed
-            if keys[pygame.K_UP]:
-                dy -= 0 if self.rect.centery <= 0+20 else self.speed
+            # 화면 밖으로 안나감
+            if keys[pygame.K_RIGHT]:dx += 0 if self.rect.centerx >= WIDTH-20 else self.speed            
+            if keys[pygame.K_LEFT]:dx -= 0 if self.rect.centerx <= 0 + 20 else self.speed            
+            if keys[pygame.K_DOWN]:dy += 0 if self.rect.centery >= 720-20 else self.speed               
+            if keys[pygame.K_UP]:dy -= 0 if self.rect.centery <= 0+20 else self.speed
+               
+            # 총 쏘기 이벤트
+            if keys[pygame.K_z] and frame_count % 4 == 0 and not player.godmod and not pause:
+                s_plst0.play(loops=1, maxtime=50)
+                beams_group.add(Beam(get_new_pos(player.pos,5,10)))
+                beams_group.add(Beam(get_new_pos(player.pos,5,-10)))
 
-            if keys[pygame.K_RIGHT]:
-                self.img_num = 1
-            elif keys[pygame.K_LEFT]:
-                self.img_num = 2
-            else:
-                self.img_num = 0
-            
+            # 모양이 바꼈을 때만 모양 업데이트
+            self.img_num = self.img_num + keys[pygame.K_RIGHT] + keys[pygame.K_LEFT]*2
             if inum != self.img_num:
-                if self.img_num == 0:
-                    self.image = self.image2
+                if self.img_num == 0:self.image = self.image2                
                 if self.hit_speed == 0:
-                    if self.img_num == 1:
-                        self.image = pygame.transform.rotate(self.image2, -10)
-                    if self.img_num == 2:
-                        self.image = pygame.transform.rotate(self.image2, 10)
+                    if self.img_num == 1:self.image = pygame.transform.rotate(self.image2, -10)
+                    if self.img_num == 2:self.image = pygame.transform.rotate(self.image2, 10)                      
                 self.rect = self.image.get_rect(center = (round(self.pos[0]),round(self.pos[1])))
 
             # 탄에 닿았을때
@@ -164,23 +161,66 @@ def play_game():
             self.rect.center = round(self.pos[0]), round(self.pos[1]) 
             self.count += 1
 
+    class Player_sub():
+        def __init__(self,num):
+            self.num = num
+            self.ball = pygame.Surface((32, 32), pygame.SRCALPHA)
+            pygame.draw.circle(self.ball, (255, 0, 222), (16,16), 16)
+            pygame.draw.circle(self.ball, (247, 178, 238), (16,16), 13)
+            self.ballxy = [(0,0),(0,0),(0,0),(0,0)]
+            self.adddir = 0
+            self.radi = 80
+            self.count = 0
+        
+        def update(self):
+            keys = pygame.key.get_pressed()
+            if keys[pygame.K_z] and while_time(self.count,6):
+                for i in range(0,4):
+                    beams_group.add(Beam(get_new_pos(self.ballxy[i],16,16),1))
+            if keys[pygame.K_LSHIFT] and self.adddir <= 30:
+                self.adddir += 2
+            elif self.adddir > 0 and not keys[pygame.K_LSHIFT]:
+                self.adddir -= 2
+
+            self.ballxy[0] = move_circle(get_new_pos(player.pos,-16,-16),45-self.adddir,self.radi)
+            self.ballxy[1] = move_circle(get_new_pos(player.pos,-16,-16),-45+self.adddir,self.radi)
+            self.ballxy[2] = move_circle(get_new_pos(player.pos,-16,-16),105-self.adddir*2,self.radi)
+            self.ballxy[3] = move_circle(get_new_pos(player.pos,-16,-16),-105+self.adddir*2,self.radi)
+            self.count += 1
+
+        def draw(self):
+            screen.blit(self.ball,get_new_pos(self.ballxy[0]))
+            screen.blit(self.ball,get_new_pos(self.ballxy[1]))
+            screen.blit(self.ball,get_new_pos(self.ballxy[2]))
+            screen.blit(self.ball,get_new_pos(self.ballxy[3]))
+
+
     # 플레이어 총
     class Beam(pygame.sprite.Sprite):
-        def __init__(self, x, y, speed, dir=0):
+        def __init__(self, pos, num=0, dir=0):
             pygame.sprite.Sprite.__init__(self)
-            self.image = pygame.Surface((40, 32), pygame.SRCALPHA)  
-            self.image.fill((255, 0, 222))      
-
-            self.rect = self.image.get_rect(center = (int(x), int(y)))
-            pygame.draw.rect(self.image, (247, 178, 238), (3,3,34,26),0)
-            self.image_sample = self.image.copy()
-            self.pos = (x, y)
-            self.speed = speed
-            self.direction = dir
-            self.image_rotate = pygame.transform.rotate(self.image_sample, self.direction)
-            self.damage = 2.5
+            self.image = pygame.Surface((40, 32), pygame.SRCALPHA)                   
+            self.rect = self.image.get_rect(center = get_new_pos(pos))            
+            self.pos = get_new_pos(pos)
+            self.num = num
+            self.speed = 0
+            self.direction = dir           
+            self.damage = 0
             self.can_damage = True
 
+            if self.num == 0:
+                self.image.fill((255, 0, 222))
+                pygame.draw.rect(self.image, (247, 178, 238), (3,3,34,26),0)
+                self.speed = 40
+                self.damage = 2.5
+            if self.num == 1:
+                pygame.draw.rect(self.image, (247, 178, 238), (3,3,34,26),0)
+                self.speed = 20
+                self.damage = 0.5
+                if enemy_group: self.direction = look_at_point(self.pos,enemy_group.sprites()[0].pos)
+                if boss_group: self.direction = look_at_point(self.pos,boss_group.sprites()[0].pos)
+            self.image_sample = self.image.copy()
+            self.image_rotate = pygame.transform.rotate(self.image_sample, self.direction)
             
 
         def update(self):
@@ -194,6 +234,8 @@ def play_game():
                 self.image_sample.fill((255,255,255))
                 self.image_sample = pygame.transform.scale(self.image_sample, (60, 32))
                 self.speed = 0
+    
+                
 
             self.image_rotate = pygame.transform.rotate(self.image_sample, self.direction)
             self.image = self.image_rotate
@@ -237,8 +279,8 @@ def play_game():
                 self.screen_apper = True
             if self.health <= 0: # 체력 다 달면 죽기
                 s_enedead.play()
-                effect.add(Effect(self.pos,1))
-                item.add(Item(self.pos,0))
+                effect_group.add(Effect(self.pos,1))
+                item_group.add(Item(self.pos,0))
                 self.kill()
 
             self.count += 1
@@ -658,58 +700,6 @@ def play_game():
                         bullet(self.pos,i+self.count+20,8,1,4,12,noreturn_xy(self.speed,-self.direction))
                         bullet(self.pos,i+self.count-20,8,1,4,12,noreturn_xy(self.speed,-self.direction))
                 self.count += 1
-            if mod == 18:
-                self.count2  += 1
-                self.count += 1
-                if self.count2 >= 325: 
-                    self.count2 -= 650
-                    enemy.list[1] = 2
-                if sub == 0:
-                    self.pos = move_circle(enemy.pos,enemy.count*3+self.direction,self.count2*2)
-                    if while_time(self.count,4) and not distance(self.pos,enemy.pos) <= 200:
-                        s_tan1.play(loops=1,maxtime=micro_sec(4))
-                    if self.count2 < 0 and while_time(self.count,4):
-                        s_kira0.play(loops=1,maxtime=micro_sec(4))
-
-                    if self.count2 < 0 and distance(self.pos,enemy.pos) <= 50:
-                        enemy.list[1] = 1
-                        self.kill() 
-                if sub == 1:        
-                    self.pos = move_circle(enemy.pos,enemy.count*3+self.direction,self.count2*2)                
-                    if self.count2 < 0 and distance(self.pos,enemy.pos) <= 50:
-                        self.kill()
-                    if while_time(self.count,4) and not distance(self.pos,enemy.pos) <= 200:
-                        if self.count2 >= 0 and distance(self.pos,player.pos) > 30:
-                            bullet(self.pos,look_at_point(subxy,self.pos)+180,0,3,randint(1,3),18)
-                    if while_time(self.count,4) and self.count2 < 0:
-                        bullet(self.pos,look_at_point(self.pos,enemy.pos),6,1,randint(1,3),0.1)
-                if sub == 2:        
-                    self.pos = move_circle(enemy.pos,-(enemy.count*3+self.direction),self.count2*2)                
-                    if self.count2 < 0 and distance(self.pos,enemy.pos) <= 50:
-                        self.kill()
-                    if while_time(self.count,2) and not distance(self.pos,enemy.pos) <= 200 and self.count <= 24:
-                        if self.count2 >= 0 and distance(self.pos,player.pos) > 30:
-                            bullet(self.pos,look_at_point(self.pos,enemy.pos),0,4,randint(5,7),18.1)
-                    if self.count == 36:
-                        self.count = 0
-                    if while_time(self.count,5) and self.count2 < 0 and not distance(self.pos,player.pos) <= 50:
-                        bullet(self.pos,look_at_point(self.pos,enemy.pos)+180,2,6,randint(5,7))
-                    # if while_time(self.count,4) and self.count2 < 0:
-                    #     bullet(self.pos,look_at_point(self.pos,enemy.pos),6,1,randint(1,3),0.1)
-                if sub == 3:
-                    li = (1,6,7)
-                    self.pos = move_circle(enemy.pos,enemy.count*3+self.direction,self.count2*2)                
-                    if self.count2 < 0 and distance(self.pos,enemy.pos) <= 50:
-                        self.kill()
-                    if while_time(self.count,2) and not distance(self.pos,enemy.pos) <= 200:
-                        if self.count2 >= 0 and distance(self.pos,player.pos) > 30:
-                            bullet(self.pos,look_at_point(self.pos,enemy.pos),7,9,li[randint(0,2)],18.2)
-                    if while_time(self.count,2) and self.count2 < 0 and distance(self.pos,player.pos) > 30:
-                        bullet(self.pos,look_at_point(self.pos,enemy.pos)+90,0,6,li[randint(0,2)],18.1)
-                    if while_time(self.count,10) and self.count2 < 0 and distance(self.pos,player.pos) > 30:
-                        bullet(self.pos,look_at_point(self.pos,enemy.pos),2,6,li[randint(0,2)],0.1)
-                        bullet(self.pos,look_at_point(self.pos,enemy.pos)+20,2,6,li[randint(0,2)],0.1)
-                        bullet(self.pos,look_at_point(self.pos,enemy.pos)-20,2,6,li[randint(0,2)],0.1)
 
 
             # 각도 계산후 위치 업데이트
@@ -796,8 +786,8 @@ def play_game():
             self.rect = self.image.get_rect(center = (self.pos))
             self.count += 1
 
-    def micro_sec(value):
-        return round(1000/60)*value
+    def get_new_pos(pos,x=0,y=0):
+        return (round(pos[0] + x), round(pos[1] + y))
 
     def big_small(val,min,max):
         return min < val and val < max
@@ -813,7 +803,7 @@ def play_game():
         spr.add(Bullet(pos[0],pos[1],dir,speed,img,col,mode,num))
 
     def add_effect(pos,num,col=0):
-        effect.add(Effect(pos,num,col))
+        effect_group.add(Effect(pos,num,col))
 
     def magic_bullet(pos,dir,speed,col,mode=0,screend=0):
         magic_spr.add(MagicField(pos,dir,speed,col,mode,screend))
@@ -839,7 +829,7 @@ def play_game():
             sound.play(loops=0, maxtime=max)
 
     def move_circle(pos, angle,radius):
-        return(round(pos[0]+math.cos(math.pi * (angle / 180)) * radius,2),round(pos[1]+math.sin(math.pi * (angle / 180)) * radius,2))
+        return (round(pos[0]+math.cos(math.pi * (angle / 180)) * radius,2),round(pos[1]+math.sin(math.pi * (angle / 180)) * radius,2))
     # 두점 각도
     def look_at_point(fpos,secpos):
         x, y = fpos
@@ -986,9 +976,11 @@ def play_game():
     magic_spr = pygame.sprite.Group()
     player = Player(WIDTH/4,HEIGHT/2,5,500)
     player_group = pygame.sprite.Group(player)
-    beams = pygame.sprite.Group()
-    effect = pygame.sprite.Group()
-    item = pygame.sprite.Group()
+    player_sub = Player_sub(1)
+    beams_group = pygame.sprite.Group()
+    effect_group = pygame.sprite.Group()
+    item_group = pygame.sprite.Group()
+    
 
     starting = True
     read_end = False
@@ -1434,35 +1426,17 @@ def play_game():
                     if ev.key == pygame.K_f:
                         full_on = False if full_on == True else True
                     if ev.key == pygame.K_ESCAPE:
-                        pause = False if pause == True else True
-            keys = pygame.key.get_pressed()
-            # 총 쏘기 이벤트
-            if keys[pygame.K_z] and frame_count % 4 == 0 and not player.godmod and not pause:
-                s_plst0.play(loops=1, maxtime=50)
-                beams.add(Beam(player.pos[0]+5,player.pos[1]+10,40))
-                beams.add(Beam(player.pos[0]+5,player.pos[1]-10,40))
-                if frame_count % 1 == 0:
-                    if keys[pygame.K_LSHIFT]:
-                        beams.add(Beam(player.pos[0]+5,player.pos[1]+20,30,5))
-                        beams.add(Beam(player.pos[0]+5,player.pos[1]-20,30,-5))
-                    else:
-                        beams.add(Beam(player.pos[0]+5,player.pos[1]+10,30,-10))
-                        beams.add(Beam(player.pos[0]+5,player.pos[1]-10,30,10))
-            if keys[pygame.K_x]: # 탄 소거
-                fps = 30
-            else:
-                fps = 60
-            
+                        pause = False if pause == True else True      
             # 탄에 박았는가
             hit_list = pygame.sprite.spritecollide(player, spr, not player.godmod, pygame.sprite.collide_circle)
-            beam_collide = pygame.sprite.groupcollide(beams, enemy_group, False, False, pygame.sprite.collide_circle)
+            beam_collide = pygame.sprite.groupcollide(beams_group, enemy_group, False, False, pygame.sprite.collide_circle)
             if beam_collide.items():
                 for beam, enemy in beam_collide.items():
                     for i in range(0,len(enemy)):
                         if beam.can_damage: 
                             enemy[i].health -= 1
                             beam.can_damage = False
-            boss_collide = pygame.sprite.groupcollide(boss_group, beams, False,False, pygame.sprite.collide_circle)
+            boss_collide = pygame.sprite.groupcollide(boss_group, beams_group, False,False, pygame.sprite.collide_circle)
             if boss_collide.items():
                 for boss, beam in boss_collide.items():
                     for i in range(0,len(beam)):
@@ -1479,15 +1453,14 @@ def play_game():
                 if len(magic_spr.sprites()) != 0:magic_spr.update(screen)    
                 if boss_health <= 1 and boss_spawned: spr.empty()              
                 spr.update(screen)
-
-            if not time_stop:
-                if not pause:
-                    beams.update()                            
+                if not time_stop:
+                    beams_group.update()                            
                     player_group.update(hit_list)
                     enemy_group.update()
-                    item.update()
+                    item_group.update()
                     if boss_group: boss_group.update()
-                    effect.update()
+                    effect_group.update()
+                    player_sub.update()
                     stage_manager()
                     frame_count += 1
                     stage_count += 1
@@ -1519,23 +1492,22 @@ def play_game():
                 drawArc(screen, (0, 0, 0), boss_pos, 112, 15, 360*100)
                 drawArc(screen, health_color(boss_health/boss_f_health), boss_pos, 110, 10, 360*boss_health/boss_f_health)
 
-            item.draw(screen)
+            item_group.draw(screen)
             magic_spr.draw(screen)      
-            beams.draw(screen)
-            player_group.draw(screen)  
+            beams_group.draw(screen)
+            player_group.draw(screen) 
+            player_sub.draw()
             enemy_group.draw(screen)
             
             if not starting or read_end: enemy_group.draw(screen)
             if boss_group: boss_group.draw(screen)
-            effect.draw(screen)
+            effect_group.draw(screen)
             spr.draw(screen)
 
+            # 피격점 표시
+            pygame.draw.circle(screen, (200,100,100), get_new_pos(player.pos), 8)
+            pygame.draw.circle(screen, (255,255,255), get_new_pos(player.pos), 7)  
 
-            # SHIFT 눌렀을때 특별한 원 보이기
-            pygame.draw.circle(screen, (200,100,100), (round(player.pos[0]),round(player.pos[1])), 8)
-            pygame.draw.circle(screen, (255,255,255), (round(player.pos[0]),round(player.pos[1])), 7)  
-            if keys[pygame.K_LSHIFT]: 
-                screen.blit(rotated_sprite, rect)
             pygame.display.flip()
         if cur_screen == 0:
             for ev in pygame.event.get():
