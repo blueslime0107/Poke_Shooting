@@ -227,11 +227,11 @@ def play_game():
                 s_cat1.play()
                 if self.num == 1:
                     image = pygame.Surface((64,64), pygame.SRCALPHA)
-                    pygame.draw.circle(image, (255,0,255), (32,32), 32)
+                    pygame.draw.circle(image, (255,0,255,90), (32,32), 32)
 
                 image = pygame.transform.scale2x(image)
                 self.image = image
-                self.rect = self.image.get_rect(center = (self.pos))
+                self.rect = self.image.get_rect(center = get_new_pos(self.pos))
                 self.image2 = self.image.copy()
 
             if self.num == 1:
@@ -245,9 +245,10 @@ def play_game():
 
                 self.radius = self.image.get_rect().width/2
                 if self.count >= 240:
-                    self.kill()
+                    self.image = pygame.transform.scale(self.image2, (self.rect.width-35,self.rect.width-35))
+                    if self.count >= 295: self.kill()
 
-            self.rect = self.image.get_rect(center = (self.pos))
+            self.rect = self.image.get_rect(center = get_new_pos(self.pos))
             self.count += 1
     class Tittle():
         def __init__(self,value):
@@ -264,14 +265,14 @@ def play_game():
                         self.save = self.save * 1.1
                         x_move -= self.save
                     
-                    pygame.draw.rect(screen, (255,0,0), (WIDTH/2-186-x_move,HEIGHT/2-26,130,-45))
-                    pygame.draw.rect(screen, (255,0,0), (WIDTH/2-60-x_move,HEIGHT/2-1,200,-45))
+                    pygame.draw.rect(screen, (255,0,0), (get_new_pos((WIDTH/2-186-x_move,HEIGHT/2-26)),(130,-45)))
+                    pygame.draw.rect(screen, (255,0,0), (get_new_pos((WIDTH/2-60-x_move,HEIGHT/2-1)),(200,-45)))
                     title_text = score_font.render(self.text, True, (255,255,255))
                     screen.blit(title_text,get_new_pos((WIDTH/2-250+10-x_move,HEIGHT/2-100+10)))
                     title_text = score_font.render(self.name, True, (0,0,0))
                     screen.blit(title_text,get_new_pos((WIDTH/2-250+200-x_move,HEIGHT/2-60)))
                 if self.count < 64:
-                    pygame.draw.rect(screen, (255,255,255), (WIDTH/2-250,HEIGHT/2-1,500,-abs(math.sin(self.count/20)*100)))
+                    pygame.draw.rect(screen, (255,255,255), (get_new_pos((WIDTH/2-250,HEIGHT/2-1)),(500,round(-abs(math.sin(self.count/20)*100)))))
                 self.count += 1
         def title_start(self,val,name):
             self.count = 0
@@ -809,10 +810,13 @@ def play_game():
                 if self.num == 1:
                     image = pygame.Surface((64,64), pygame.SRCALPHA)
                     image.blit(bullet_image,(0,0),(192,128,64,64))
+                    effect_group.add(Effect(self.pos,3))
                 if self.num == 2:
                     image = bullets[21][self.col]
                     image = pygame.transform.scale2x(image)
                     image = pygame.transform.scale2x(image)
+                if self.num == 3:
+                    image = pygame.Surface((64,64), pygame.SRCALPHA)
 
                 image = pygame.transform.scale2x(image)
                 self.image = image
@@ -820,10 +824,14 @@ def play_game():
                 self.image2 = self.image.copy()
             if self.num == 1 or self.num == 2:
                 if self.rect.width-self.count*2 <= 0: self.kill()
-                else:
-                    self.image = pygame.transform.scale(self.image2, (self.rect.width-self.count*2,self.rect.height-self.count*2))
-            if self.num == 1:
-                pygame.draw.circle(screen, (255,255,255), (0,0), 100, 100)
+                else: self.image = pygame.transform.scale(self.image2, (self.rect.width-self.count*2,self.rect.height-self.count*2))
+            if self.num == 3:
+                if self.rect.width+self.count*4 >= 512: self.kill()
+                else: 
+                    self.image = pygame.transform.scale(self.image2, (self.rect.width+self.count*4,self.rect.height+self.count*4))
+                    self.image.fill((0,0,0,0))
+                    pygame.draw.circle(self.image, (255,255,255,80), (round((self.rect.width+self.count*4)/2),round((self.rect.width+self.count*4)/2)), round((self.rect.width+self.count*4)/2), 1)
+
 
             self.rect = self.image.get_rect(center = get_new_pos((self.pos)))
             self.count += 1
