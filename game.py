@@ -386,44 +386,50 @@ def play_game():
 
             self.count = 0
             self.list = [0,0,0,0]
+            self.max_health = 0
             self.health = 0
             self.num = num
 
             # 적이동을 위한 값
             self.move_dir = 0
             self.move_speed = 0
-            self.condition = 0
+            self.ready = False
+            self.move_ready = False # 스펠 시작시 움직이는중?
             self.godmod = False
             self.dieleft = False
 
-            global boss_f_health
-            self.health, self.spell, self.dies = boss_defalt(num)
-            boss_f_health = self.health
+            self.spell, self.dies = boss_defalt(num)
 
         def update(self):
             global score, boss_health, boss_pos
+            if not self.ready:
+                spell_hp(self.spell[0])
+                self.health = boss_f_health
+                self.godmod = True    
+            if self.count >= 120 and self.move_ready and not self.ready:
+                self.count = 0
+                self.ready = True     
 
-            # 능력
+            # 능력 살아있으면
             if self.health > 0:
-                self.count, self.pos, self.move_dir, self.move_speed, self.condition = boss_attack(self.spell[0], self.count, self.pos, self.move_dir, self.move_speed, self.condition)
+                self.count, self.pos, self.move_dir, self.move_speed, self.ready = boss_attack(self.spell[0], self.count, self.pos, self.move_dir, self.move_speed, self.ready)
 
             if self.health <= 0: # 체력 다 달면 죽기
+                # 만약 self.dies 라면 죽지않고 퇴장
                 if self.dieleft:
                     if self.dies:
                         self.kill()
                     else:
+                        #퇴장
                         self.pos = (self.pos[0]+2,self.pos[1])
                         if self.pos[0] > WIDTH:
                             self.kill()
                 else:
-                    self.condition = 0
-                    if len(self.spell) > 1:
-                        s_cat1.play()
-                        self.move_speed = 0
+                    # 다음스펠 준비중
+                    self.ready = False
+                    if len(self.spell) > 1: # 스펠카드가 남아있다면 안죽기
                         del self.spell[0] # 사용한 스펠 삭제
-                        spell_hp(self.spell[0])
-                        self.health = boss_f_health
-                    else:
+                    else:#퇴장
                         s_enep1.play()
                         self.dieleft = True
                         boss_health = 0
@@ -435,6 +441,13 @@ def play_game():
             self.count += 1
             self.rect.center = (int(self.pos[0]),int(self.pos[1])) 
     
+    class Spell():
+        def __init__(self,health,start_pos,spellcard,number):
+            self.health = health
+            self.start_pos = start_pos
+            self.spellcard = spellcard
+            self.num = number
+        
     # 총알 
     ############################################
     class Bullet(pygame.sprite.Sprite):
@@ -958,11 +971,21 @@ def play_game():
         angle = math.degrees(math.atan2(y - dy, dx - x))
         return angle      
 
-    def set_bossmove_point(pos,num):
-        global boss_point_move, boss_pos
-        if boss_point_move == (0,0) and not boss_pos == (0,0):
-            boss_point_move = ((pos[0]-boss_pos[0])/num,(pos[1]-boss_pos[1])/num)
-
+    def set_bossmove_point(pos,speed,miss):
+        global boss_point_move, boss_pos, boss_group
+        try:
+            if not boss_group.sprites()[0].move_ready:
+                if boss_point_move == (0,0) and not boss_pos == (0,0):
+                    boss_point_move = ((pos[0]-boss_pos[0])/speed,(pos[1]-boss_pos[1])/speed)  
+                boss_group.sprites()[0].pos = (boss_group.sprites()[0].pos[0] + boss_point_move[0],boss_group.sprites()[0].pos[1] + boss_point_move[1])                 
+                if distance(pos,boss_pos) < miss and boss_point_move != (0,0):
+                    boss_point_move = (0,0)
+                    boss_group.sprites()[0].move_ready = True
+                    boss_group.sprites()[0].move_dir = 0
+                    boss_group.sprites()[0].move_speed = 0
+        except IndexError as e:
+            pass      
+        return (boss_group.sprites()[0].pos)
     # 동그라미 게이지 (퍼옴)
     def drawArc(surf, color, center, radius, width, end_angle):
         circle_image = numpy.zeros((radius*2+4, radius*2+4, 4), dtype = numpy.uint8)
@@ -1045,7 +1068,7 @@ def play_game():
     # 개발자 전용
     stage_fun = 1
     global bkgd, time_stop
-    global stage_count
+    global stage_count, boss_group 
     # 초기 설정
     enemy_group = pygame.sprite.Group()
     boss_group = pygame.sprite.Group()
@@ -1145,6 +1168,7 @@ def play_game():
             stage_count = 0
             stage_line = 0
             stage_challenge += 1
+
     #################################################
     def title_spawn(val,time,dir=0):
         global stage_count 
@@ -1257,28 +1281,20 @@ def play_game():
         return pos,dir,speed,count
 
     def boss_defalt(num):
-        if num == 1: health,spell,dies = 1000, [1],False
+        if num == 1: spell,dies = 1000, [1], False
         if num == 2: 
-            health,spell,dies = 1000, [1,2,3,4,5], False
+            spell,dies = [1,2,3,4,5], False
             pygame.mixer.music.stop()
             pygame.mixer.music.load('Music\\BGM\\The Rabbit Has Landed.wav')
             pygame.mixer.music.play(-1)
-        return health, spell, dies
+        return spell, dies
 
-    def boss_attack(num,count,pos,dir,speed,condi):
+    def boss_attack(num,count,pos,dir,speed,ready):
         global boss_point_move
         pos = calculate_new_xy(pos, speed, dir)
         if num == 1:
-            if condi == 0:
-                set_bossmove_point((WIDTH-300,HEIGHT/2,0),120)
-                pos = (pos[0] + boss_point_move[0],pos[1] + boss_point_move[1])
-                if abs(pos[1]-HEIGHT/2) < 10:
-                    boss_point_move = (0,0)
-                    dir = 0
-                    speed = 0
-                    condi = 1
-                    count = 0
-            if condi == 1:
+            pos = set_bossmove_point((WIDTH-300,HEIGHT/2,0),130,50)
+            if ready == 1:
                 if while_time(count,20) and count < 120:
                     add_effect(pos,2,5)
                     s_tan1.play()
@@ -1296,16 +1312,16 @@ def play_game():
                     dir , speed = 0 , 0
                     count = 0
         if num == 2:
-            if condi == 0:
+            if ready == 0:
                 set_bossmove_point((WIDTH-300,HEIGHT/2,0),120)
                 pos = (pos[0] + boss_point_move[0],pos[1] + boss_point_move[1])
                 if abs(pos[1]-HEIGHT/2) < 10:
                     boss_point_move = (0,0)
                     dir = 0
                     speed = 0
-                    condi = 1
+                    ready = 1
                     count = 0
-            if condi == 1:
+            if ready == 1:
                 if while_time(count,120):
                     rand = randint(0,15)
                     add_effect(pos,2,2)
@@ -1318,10 +1334,10 @@ def play_game():
                     for i in range(1,20):
                         bullet(pos,look_at_player(pos),i/2,5,5)             
         if num == 3:
-            if condi == 0:
-                condi = 1
+            if ready == 0:
+                ready = 1
                 count = 0
-            if condi == 1:
+            if ready == 1:
                 if while_time(count,20) and count < 120:
                     add_effect(pos,2,5)
                     s_tan1.play()
@@ -1342,14 +1358,14 @@ def play_game():
                     dir , speed = 0 , 0
                     count = 0
         if num == 4:
-            if condi == 0:
+            if ready == 0:
                 set_bossmove_point((WIDTH-300,HEIGHT/2,0),120)
                 pos = (pos[0] + boss_point_move[0],pos[1] + boss_point_move[1])
                 if abs(pos[1]-HEIGHT/2) < 10:
                     boss_point_move = (0,0)
                     dir = 0
                     speed = 0
-                    condi = 1
+                    ready = 1
                     count = 0
             if while_time(count-60,10) and big_small(count,60,140):
                 rand = randint(0,15)
@@ -1360,8 +1376,8 @@ def play_game():
             if when_time(count,280):
                 count = 0
         if num == 5:
-            if condi == 0:
-                condi = 1
+            if ready == 0:
+                ready = 1
                 count = 0
             if while_time(count,4):
                 s_tan2.play()
@@ -1379,13 +1395,16 @@ def play_game():
             
 
 
-        return count,pos,dir,speed,condi
+        return count,pos,dir,speed,ready
     
     def spell_hp(num):
         global boss_f_health
+        if num == 1:
+            boss_f_health = 1000
         if num == 4:
             boss_f_health = 1300
     # 스테이지
+    stage_challenge = 5
     def stage_manager():
         global stage_cline, stage_line, stage_repeat_count, stage_count, stage_condition, stage_challenge, boss_spawned, boss_health
         
@@ -1571,17 +1590,19 @@ def play_game():
                         if beam.can_damage: 
                             enemy[i].health -= beam.damage
                             beam.can_damage = False
-            boss_collide = pygame.sprite.groupcollide(boss_group, beams_group, False,False, pygame.sprite.collide_circle)
-            if boss_collide.items():
-                for boss, beam in boss_collide.items():
-                    for i in range(0,len(beam)):
-                        if beam[i].can_damage:
-                            boss.health -= beam[i].damage
-                            if boss_health/boss_f_health < 0.25:
-                                s_damage1.play(loops=1, maxtime=50)  
-                            else: 
-                                s_damage0.play(loops=1, maxtime=50)
-                            beam[i].can_damage = False
+
+            if boss_group and boss_group.sprites()[0].godmod:            
+                boss_collide = pygame.sprite.groupcollide(boss_group, beams_group, False,False, pygame.sprite.collide_circle)
+                if boss_collide.items():
+                    for boss, beam in boss_collide.items():
+                        for i in range(0,len(beam)):
+                            if beam[i].can_damage:
+                                boss.health -= beam[i].damage
+                                if boss_health/boss_f_health < 0.25:
+                                    s_damage1.play(loops=1, maxtime=50)  
+                                else: 
+                                    s_damage0.play(loops=1, maxtime=50)
+                                beam[i].can_damage = False
           
             if bomb_activated:
                 beam_collide = pygame.sprite.groupcollide(bomb_group, enemy_group, False, False, pygame.sprite.collide_circle)
@@ -1648,9 +1669,16 @@ def play_game():
             if starting and not read_end: 
                 drawArc(screen, (0,0, 0), player.pos, 112, 15, 360*100)
                 drawArc(screen, health_color(player.health/500), player.pos, 110, 10, 360*player.health/500)
+
             if boss_group and boss_health > 0:
-                drawArc(screen, (0, 0, 0), boss_pos, 112, 15, 360*100)
-                drawArc(screen, health_color(boss_health/boss_f_health), boss_pos, 110, 10, 360*boss_health/boss_f_health)
+                try:
+                    drawArc(screen, (0, 0, 0), boss_pos, 112, 15, 360*100)
+                    drawArc(screen, health_color(boss_health/boss_f_health), boss_pos, 110, 10, 360*boss_health/boss_f_health)
+                except:
+                    drawArc(screen, (0, 0, 0), boss_pos, 112, 15, 360*100)
+                    drawArc(screen, (0,0,0), boss_pos, 110, 10, 1)                   
+
+
 
             item_group.draw(screen)
             magic_spr.draw(screen)      
