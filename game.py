@@ -34,8 +34,12 @@ def play_game():
     player_slow_img.blit(bullet_image, (0,0), Rect(128,128,64,64))
     player_slow_img = pygame.transform.scale(player_slow_img, (64*2, 64*2))
 
-    sfx_volume = 0.1
-    music_volume = 0.5
+    msfx_volume = 100
+    mmusic_volume = 0
+    try:sfx_volume = msfx_volume / 1000
+    except:sfx_volume = 0
+    try:music_volume = mmusic_volume / 200
+    except:music_volume = 0
     pygame.mixer.music.set_volume(music_volume)
 
     s_lazer1 = pygame.mixer.Sound('Music\SFX\se_lazer00.wav')
@@ -221,6 +225,8 @@ def play_game():
             self.num = num
             self.col = col
             self.radius = 0
+            self.damage = 1
+            self.can_damage = True
 
         def update(self):
             if self.count == 0:
@@ -291,24 +297,23 @@ def play_game():
             self.direction = dir           
             self.damage = 0
             self.can_damage = True
-
+            self.radius = 20
             if self.num == 0:
                 self.image.fill((255, 0, 222))
                 pygame.draw.rect(self.image, (247, 178, 238), (3,3,34,26),0)
                 self.speed = 40
-                self.damage = 33
+                self.damage = 3
             if self.num == 1:
                 pygame.draw.rect(self.image, (247, 178, 238), (3,3,34,26),0)
                 self.speed = 20
                 self.damage = 1
                 if enemy_group: self.direction = look_at_point(self.pos,enemy_group.sprites()[0].pos)
-                if boss_group: self.direction = look_at_point(self.pos,boss_group.sprites()[0].pos)
+                if boss.appear: self.direction = look_at_point(self.pos,boss_group.sprites()[0].pos)
             self.image_sample = self.image.copy()
             self.image_rotate = pygame.transform.rotate(self.image_sample, self.direction)
             
 
         def update(self):
-            
             # 화면 나가면 삭제
             if self.pos[0] >= WIDTH:
                 self.kill()
@@ -330,11 +335,8 @@ def play_game():
     class Enemy(pygame.sprite.Sprite):
         def __init__(self, x, y, dir, speed, health, img, hit_cir, num):
             pygame.sprite.Sprite.__init__(self)
-            self.image = pygame.Surface((256, 256), pygame.SRCALPHA)      
-
-            pokemonimg = pokemons[img-1] # 이미지
-                        
-            self.image.blit(pokemonimg,(0,0))
+            self.image = pygame.Surface((256, 256), pygame.SRCALPHA)
+            self.image.blit(pokemons[img-1],(0,0))      
             self.rect = self.image.get_rect(center = get_new_pos((x, y)))
             self.radius = hit_cir
             self.pos = (x, y)
@@ -372,79 +374,80 @@ def play_game():
     
     # 보스
     class Boss_Enemy(pygame.sprite.Sprite):
-        def __init__(self,x,y,hit_cir,img,num):
+        def __init__(self,x,y):
             pygame.sprite.Sprite.__init__(self)
             self.image = pygame.Surface((256, 256), pygame.SRCALPHA)      
-
-            pokemonimg = pokemons[img-1] # 이미지
-                        
-            self.image.blit(pokemonimg,(0,0))
             self.rect = self.image.get_rect(center = (x, y))
-            self.radius = hit_cir
+            self.radius = 0
             self.pos = (x, y)
-            #pygame.draw.circle(self.image, (200,0,0), (128,128), self.radius, 3)
+            
 
             self.count = 0
             self.list = [0,0,0,0]
             self.max_health = 0
             self.health = 1
-            self.num = num
+            self.num = 0
 
             # 적이동을 위한 값
             self.move_dir = 0
             self.move_speed = 0
+            self.move_point = (0,0)
             self.ready = False
             self.move_ready = False # 스펠 시작시 움직이는중?
             self.godmod = False
             self.dieleft = False
+            self.spell = []
+            self.dies = False
 
-            self.spell, self.dies = boss_defalt(num)
+            self.appear = False
 
-        def update(self):
-            global score, boss_health, boss_f_health, boss_pos, boss_point_move    
-            if not self.ready:
-                boss_f_health = self.spell[0].health
-                self.health = boss_f_health
-                self.godmod = True 
-            # 능력 살아있으면
-            if self.health > 0 and not self.dieleft:
-                if self.count >= 120 and self.move_ready and not self.ready:
-                    self.count = 1
-                    self.ready = True
-                self.count, self.pos, self.move_dir, self.move_speed, self.ready = boss_attack(self.spell[0].num, self.count, self.pos, self.move_dir, self.move_speed, self.ready)
+        def update(self, collide):
+            global score
+            if self.appear: # 보스가 등장했을때 실행
+                pygame.draw.circle(self.image, (200,0,0), (128,128), self.radius, 3)
+                if self.dieleft: # 죽었다면 삭제
+                    self.pos = (-128,-128) 
+                if not self.ready:
+                    self.max_health = self.spell[0].health
+                    self.health = self.max_health
+                    self.godmod = True 
+                # 능력 살아있으면
 
-            if self.health <= 0 and not self.dieleft and self.ready: # 체력다 닳음 죽은적이없고 스펠시전 중이였을때 실행
-                self.count = 0
-                self.move_speed = 0
-                self.move_ready = False
-                self.ready = False
-                if len(self.spell) > 1: # 스펠카드가 남아있다면 안죽기
-                    del self.spell[0] # 사용한 스펠 삭제
-                    if self.spell[0].spellcard:
-                        s_cat1.play()
-                    else:
-                        s_tan1.play()
-                else:#퇴장
-                    s_enep1.play()
-                    self.dieleft = True
-                    boss_health = 0
-                    boss_f_health = 0
-                    boss_point_move = (0,0)
-                    boss_pos = (0,1)
-            else:
-                boss_health = self.health
-                boss_pos = self.pos
+                if self.health > 0 and not self.dieleft:
+                    if self.count >= 120 and self.move_ready and not self.ready:
+                        self.count = 1
+                        self.ready = True
+                        self.godmod = False
+                    self.count, self.pos, self.move_dir, self.move_speed, self.ready = boss_attack(self.spell[0].num, self.count, self.pos, self.move_dir, self.move_speed, self.ready)
 
-            if self.dieleft:
-                if self.dies:
-                    if self.count > 60: self.kill()
-                else:
-                    #퇴장
-                    self.pos = (self.pos[0]+2,self.pos[1])
-                    if self.pos[0] > WIDTH:
-                        self.kill()
+                # 빔에 맞았을때
+                if len(collide) > 0 and not self.godmod:
+                    for beam in collide:
+                        if beam.can_damage:
+                            self.health -= beam.damage
+                            if self.health/self.max_health < 0.25:
+                                s_damage1.play(loops=1, maxtime=50)  
+                            else: 
+                                s_damage0.play(loops=1, maxtime=50)
+                            beam.can_damage = False
 
-            self.count += 1
+                if self.health <= 0 and not self.dieleft and self.ready: # 체력다 닳음 죽은적이없고 스펠시전 중이였을때 실행
+                    self.count = 0
+                    self.move_speed = 0
+                    self.move_ready = False
+                    self.ready = False
+                    if len(self.spell) > 1: # 스펠카드가 남아있다면 안죽기
+                        del self.spell[0] # 사용한 스펠 삭제
+                        if self.spell[0].spellcard:
+                            s_cat1.play()
+                        else:
+                            s_tan1.play()
+                    else:#퇴장
+                        s_enep1.play()
+                        self.dieleft = True
+                        self.move_point = (0,0)
+                        self.appear = False
+                self.count += 1
             self.rect.center = (int(self.pos[0]),int(self.pos[1])) 
     
     class Spell():
@@ -918,6 +921,40 @@ def play_game():
             screen.blit(text,self.power_xy) 
             text = ui_font.render("MP " + str(player.mp)+"/ 8", True, (255,255,255))
             screen.blit(text,self.skill_xy)
+    
+    class TextBox():
+        def __init__(self):
+            self.image1 =  0
+            self.image2 =  0
+            self.stat = 0
+            self.text = 0
+            self.text2 = 0
+            self.turn = 0
+            self.started = True
+            self.count = 0
+            self.font = pygame.font.Font('Font\SEBANG Gothic Bold.ttf', 40)
+        
+        def update(self):
+            if self.started:
+                self.stat += 1
+                if self.stat == 1:
+                    self.turn = 0
+                    self.text = self.font.render("음... 여기는?", True, (255,255,255))
+                    self.text2 = self.font.render("음... 여기는?", True, (255,255,255))
+                if self.stat == 2:
+                    self.turn = 1
+                    self.text = self.font.render("정신이 드나?", True, (255,255,255))
+                    self.text2 = self.font.render("여긴 병원일세", True, (255,255,255))
+                if self.stat == 3:
+                    self.started = False
+        def draw(self):
+            if self.started:
+                pygame.draw.rect(screen, (0,0,0,100), (50,HEIGHT-250,980,200))
+                x = 100 if self.turn == 1 else 350
+                if self.stat > 0: 
+                    screen.blit(self.text,(x,HEIGHT-230))
+                    screen.blit(self.text2,(x,HEIGHT-180))
+
 
     def get_new_pos(pos,x=0,y=0):
         return (round(pos[0] + x), round(pos[1] + y))
@@ -977,24 +1014,22 @@ def play_game():
         return angle      
 
     def set_bossmove_point(pos,speed,miss):
-        global boss_point_move, boss_pos, boss_group
         try:
-            if not boss_group.sprites()[0].move_ready:
-                print(pos,boss_point_move,boss_pos)
-                if boss_point_move == (0,0) and not boss_pos == (0,0):
-                    boss_point_move = ((pos[0]-boss_pos[0])/speed,(pos[1]-boss_pos[1])/speed) 
-                    if boss_point_move == (0,0):
-                        boss_point_move = (0.1,0.1)
-                boss_group.sprites()[0].pos = (boss_group.sprites()[0].pos[0] + boss_point_move[0],boss_group.sprites()[0].pos[1] + boss_point_move[1])                 
-                if distance(pos,boss_pos) < miss and boss_point_move != (0,0):
-                    boss_point_move = (0,0)
-                    boss_group.sprites()[0].pos = (pos[0],pos[1])
-                    boss_group.sprites()[0].move_ready = True
-                    boss_group.sprites()[0].move_dir = 0
-                    boss_group.sprites()[0].move_speed = 0
+            if not boss.move_ready:
+                if boss.move_point == (0,0):
+                    boss.move_point = ((pos[0]-boss.pos[0])/speed,(pos[1]-boss.pos[1])/speed) 
+                    if boss.move_point == (0,0):
+                        boss.move_point = (0.1,0.1)
+                boss.pos = (boss.pos[0] + boss.move_point[0],boss.pos[1] + boss.move_point[1])                 
+                if distance(pos,boss.pos) < miss and boss.move_point != (0,0):
+                    boss.move_point = (0,0)
+                    boss.pos = (pos[0],pos[1])
+                    boss.move_ready = True
+                    boss.move_dir = 0
+                    boss.move_speed = 0
         except IndexError as e:
             pass      
-        return (boss_group.sprites()[0].pos)
+        return (boss.pos)
     # 동그라미 게이지 (퍼옴)
     def drawArc(surf, color, center, radius, width, end_angle):
         circle_image = numpy.zeros((radius*2+4, radius*2+4, 4), dtype = numpy.uint8)
@@ -1080,7 +1115,8 @@ def play_game():
     global stage_count, boss_group 
     # 초기 설정
     enemy_group = pygame.sprite.Group()
-    boss_group = pygame.sprite.Group()
+    boss = Boss_Enemy(-99,-99)
+    boss_group = pygame.sprite.Group(boss)
     play = True
     full_on = False
     cur_full_mod = False
@@ -1091,19 +1127,12 @@ def play_game():
     stage_count = 0
     
     
-    global stage_line, stage_cline, stage_repeat_count, stage_condition, stage_challenge, boss_spawned, boss_point_move
+    global stage_line, stage_cline, stage_repeat_count, stage_condition, stage_challenge
     stage_line = 0
     stage_cline = 0
     stage_repeat_count = 0
     stage_condition = 1
     stage_challenge = 0
-    boss_spawned = False
-    boss_point_move = (0,0)
-
-    global boss_health, boss_pos, boss_f_health
-    boss_health = 0
-    boss_f_health = 0
-    boss_pos = (0,0)
 
     # 게임 시작전 메뉴 변수들
     curser = 0
@@ -1128,6 +1157,7 @@ def play_game():
     bomb_activated = False
     title = Tittle(1)
     ui = UI(1)
+    text = TextBox()
     beams_group = pygame.sprite.Group()
     effect_group = pygame.sprite.Group()
     item_group = pygame.sprite.Group()
@@ -1294,18 +1324,40 @@ def play_game():
                 count = 0
         return pos,dir,speed,count
 
-    def boss_defalt(num):
+    def boss_spawn(num):
         global boss_background
-        if num == 1: spell,dies = [spells[0]], False
+        
+        # 적이동을 위한 값
+        boss.move_dir = 0
+        boss.move_speed = 0
+        boss.move_point = (0,0)
+        boss.ready = False
+        boss.move_ready = False # 스펠 시작시 움직이는중?
+        boss.godmod = False
+        boss.dieleft = False
+
+        if num == 1: 
+            boss.pos = (WIDTH,HEIGHT)
+            boss.radius = 40
+            boss.image.blit(pokemons[1],(0,0))         
+            boss.num = 1
+            boss.spell = [spells[0]]
+            boss.dies = False
         if num == 2: 
+            boss.pos = (WIDTH,HEIGHT)
+            boss.radius = 40
+            boss.image.blit(pokemons[1],(0,0))         
+            boss.num = 1
+            boss.spell = [spells[0],spells[1],spells[2],spells[3],spells[4]]
+            boss.dies = True
             boss_background.blit(bg_image,(0,0),(540,0,540,360))
             boss_background = pygame.transform.scale2x(boss_background)
-            spell,dies = [spells[0],spells[1],spells[2],spells[3],spells[4]], True
             pygame.mixer.music.stop()
             pygame.mixer.music.load('Music\\BGM\\The Rabbit Has Landed.wav')
             pygame.mixer.music.play(-1)
-        return spell, dies
-
+        boss.rect = boss.image.get_rect(center = (boss.pos))
+        boss.appear = True
+        
     def boss_attack(num,count,pos,dir,speed,ready):
         if num == 1:
             pos = set_bossmove_point((WIDTH-300,HEIGHT/2),130,10)
@@ -1392,9 +1444,8 @@ def play_game():
         pos = calculate_new_xy(pos, speed, dir)
         return count,pos,dir,speed,ready
     # 스테이지
-    stage_challenge = 2
     def stage_manager():
-        global stage_cline, stage_line, stage_repeat_count, stage_count, stage_condition, stage_challenge, boss_spawned, boss_health
+        global stage_cline, stage_line, stage_repeat_count, stage_count, stage_condition, stage_challenge
         
         if stage_condition == 1:
             game_defalt_setting(stage_fun)
@@ -1469,13 +1520,11 @@ def play_game():
                 
                 next_challenge(240)
             if stage_challenge == 2:
-                if not boss_spawned: 
-                    boss_group.add(Boss_Enemy(WIDTH,HEIGHT,30,2,1))
-                    boss_spawned = True
-                    boss_health = 1
-                if boss_health <= 0 and boss_spawned:
-                    boss_spawned = False
+                if not boss.appear: 
+                    boss_spawn(1)
+                if boss.health <= 0 and boss.appear:
                     stage_count = 0
+                    boss.appear = False
                     next_challenge(0)
             if stage_challenge == 3:
                 if while_poke_spawn(10,5,2):
@@ -1537,12 +1586,9 @@ def play_game():
                     end_while_poke_spawn(2,10)
                 next_challenge(360)
             if stage_challenge == 5:
-                if not boss_spawned: 
-                    boss_group.add(Boss_Enemy(WIDTH,HEIGHT,30,2,2))
-                    boss_spawned = True
-                    boss_health = 1
-                if boss_health <= 0 and boss_spawned:
-                    boss_spawned = False
+                if not boss.appear: 
+                    boss_spawn(2)
+                if boss.health <= 0 and boss.appear:
                     stage_count = 0
                     next_challenge(0)
 
@@ -1554,7 +1600,6 @@ def play_game():
     while play:
         # 60 프레임
         clock.tick(fps)
-
         if cur_screen == 1:
             # 키 이벤트
             for ev in pygame.event.get():
@@ -1565,6 +1610,8 @@ def play_game():
                         full_on = False if full_on == True else True
                     if ev.key == pygame.K_ESCAPE:
                         pause = False if pause == True else True
+                    if ev.key == pygame.K_z and text.started:
+                        text.update()
                     if ev.key == pygame.K_x and player.mp > 0 and not bomb_activated:
                         bomb_group.add(Bomb(player.pos,1))
                         player.mp -= 1      
@@ -1578,38 +1625,15 @@ def play_game():
                         if beam.can_damage: 
                             enemy[i].health -= beam.damage
                             beam.can_damage = False
-
-            if boss_group and boss_group.sprites()[0].godmod:            
-                boss_collide = pygame.sprite.groupcollide(boss_group, beams_group, False,False, pygame.sprite.collide_circle)
-                if boss_collide.items():
-                    for boss, beam in boss_collide.items():
-                        for i in range(0,len(beam)):
-                            if beam[i].can_damage:
-                                boss.health -= beam[i].damage
-                                if boss_health/boss_f_health < 0.25:
-                                    s_damage1.play(loops=1, maxtime=50)  
-                                else: 
-                                    s_damage0.play(loops=1, maxtime=50)
-                                beam[i].can_damage = False
-          
+            if boss.appear: boss_collide = pygame.sprite.spritecollide(boss, beams_group, False, pygame.sprite.collide_circle)
+        
             if bomb_activated:
                 beam_collide = pygame.sprite.groupcollide(bomb_group, enemy_group, False, False, pygame.sprite.collide_circle)
                 if beam_collide.items():
                     for beam, enemy in beam_collide.items():
                         for i in range(0,len(enemy)): 
                             enemy[i].health -= 1
-                boss_collide = pygame.sprite.groupcollide(boss_group, bomb_group, False,False, pygame.sprite.collide_circle)
-                if boss_collide.items():
-                    for boss, beam in boss_collide.items():
-                        for i in range(0,len(beam)):
-                            boss.health -= 1
-                            try:
-                                if boss_health/boss_f_health < 0.25:
-                                    s_damage1.play(loops=1, maxtime=50)  
-                                else: 
-                                    s_damage0.play(loops=1, maxtime=50)    
-                            except:
-                                pass     
+                if boss.appear: boss_collide = pygame.sprite.spritecollide(boss, bomb_group, False, pygame.sprite.collide_circle)
                 beam_collide = pygame.sprite.groupcollide(bomb_group, spr, False, False, pygame.sprite.collide_circle)
                 if beam_collide.items():
                     for beam, enemy in beam_collide.items():
@@ -1621,14 +1645,14 @@ def play_game():
             # 연산 업데이트
             if not pause:      
                 if len(magic_spr.sprites()) != 0:magic_spr.update(screen)    
-                if boss_group and boss_group.sprites()[0].health <= 0: spr.empty()              
+                if boss.appear and boss.health <= 0: spr.empty()              
                 spr.update(screen)
                 if not time_stop:
                     beams_group.update()                            
                     player_group.update(hit_list)
                     enemy_group.update()
                     item_group.update()
-                    if boss_group: boss_group.update()
+                    if boss.appear: boss_group.update(boss_collide)
                     effect_group.update()
                     player_sub.update()
                     bomb_group.update()
@@ -1651,7 +1675,7 @@ def play_game():
                 screen.blit(image, (rel_x - WIDTH,0+240*bkgd_list.index(image)))
                 if rel_x < WIDTH:
                     screen.blit(image,(rel_x,0+240*bkgd_list.index(image)))
-            if boss_group and boss_group.sprites()[0].spell[0].spellcard:
+            if boss.appear and boss.spell[0].spellcard:
                 rel_x = bg_x[3] % WIDTH
                 screen.blit(boss_background, (rel_x - WIDTH,0))
                 if rel_x < WIDTH:
@@ -1665,14 +1689,13 @@ def play_game():
             if starting and not read_end: 
                 drawArc(screen, (0,0, 0), player.pos, 112, 15, 360*100)
                 drawArc(screen, health_color(player.health/500), player.pos, 110, 10, 360*player.health/500)
-
-            if boss_group and boss_health > 0:
+            if boss.appear and boss.health > 0:
                 try:
-                    drawArc(screen, (0, 0, 0), boss_pos, 112, 15, 360*100)
-                    drawArc(screen, health_color(boss_health/boss_f_health), boss_pos, 110, 10, 360*boss_health/boss_f_health)
+                    drawArc(screen, (0, 0, 0), boss.pos, 112, 15, 360*100)
+                    drawArc(screen, health_color(boss.health/boss.max_health), boss.pos, 110, 10, 360*boss.health/boss.max_health)
                 except:
-                    drawArc(screen, (0, 0, 0), boss_pos, 112, 15, 360*100)
-                    drawArc(screen, (0,0,0), boss_pos, 110, 10, 1)                   
+                    drawArc(screen, (0, 0, 0), boss.pos, 112, 15, 360*100)
+                    drawArc(screen, (0,0,0), boss.pos, 110, 10, 1)                   
 
 
 
@@ -1685,7 +1708,7 @@ def play_game():
             enemy_group.draw(screen)
             
             if not starting or read_end: enemy_group.draw(screen)
-            if boss_group: boss_group.draw(screen)
+            if boss.appear: boss_group.draw(screen)
             effect_group.draw(screen)
             spr.draw(screen)
 
@@ -1694,6 +1717,7 @@ def play_game():
             pygame.draw.circle(screen, (255,255,255), get_new_pos(player.pos), 7)
 
             title.draw()
+            text.draw()
             ui.draw()
             pygame.display.flip()
         if cur_screen == 0:
@@ -1747,8 +1771,8 @@ def play_game():
                     text_box = ["화면모드","음악","효과음","플레이어"]
 
                     text_box[0] = "화면모드    창모드" if full_on == 0 else "화면모드    전체화면"
-                    text_box[1] = "음악   " + str(music_volume)
-                    text_box[2] = "효과음  " + str(sfx_volume)
+                    text_box[1] = "음악   " + str(mmusic_volume)
+                    text_box[2] = "효과음  " + str(msfx_volume)
                     for i in range(0,4):
                         text_color = (255,0,255) if i == curser else (0,0,255)
                         text = score_font.render(text_box[i], True, text_color)
