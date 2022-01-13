@@ -1,3 +1,4 @@
+from sys import float_repr_style
 import pygame, math
 from random import randint, uniform
 from pygame.locals import *
@@ -15,7 +16,7 @@ screen = pygame.display.set_mode((WIDTH,HEIGHT))
 screen_rect = screen.get_rect()
 bgm_num = 0
 # 소리 초기설정, 불러오기
-pygame.mixer.set_num_channels(16)
+pygame.mixer.set_num_channels(32)
 
 def play_game():
     
@@ -35,7 +36,7 @@ def play_game():
     player_slow_img = pygame.transform.scale(player_slow_img, (64*2, 64*2))
 
     msfx_volume = 100
-    mmusic_volume = 0
+    mmusic_volume = 100
     try:sfx_volume = msfx_volume / 1000
     except:sfx_volume = 0
     try:music_volume = mmusic_volume / 200
@@ -400,54 +401,67 @@ def play_game():
             self.dies = False
 
             self.appear = False
+            self.real_appear = False
+            self.attack_start = False
 
         def update(self, collide):
             global score
-            if self.appear: # 보스가 등장했을때 실행
-                pygame.draw.circle(self.image, (200,0,0), (128,128), self.radius, 3)
-                if self.dieleft: # 죽었다면 삭제
-                    self.pos = (-128,-128) 
-                if not self.ready:
-                    self.max_health = self.spell[0].health
-                    self.health = self.max_health
-                    self.godmod = True 
-                # 능력 살아있으면
+            if self.appear:
 
-                if self.health > 0 and not self.dieleft:
-                    if self.count >= 120 and self.move_ready and not self.ready:
-                        self.count = 1
-                        self.ready = True
-                        self.godmod = False
-                    self.count, self.pos, self.move_dir, self.move_speed, self.ready = boss_attack(self.spell[0].num, self.count, self.pos, self.move_dir, self.move_speed, self.ready)
+                if self.attack_start:
+                    # 보스가 등장했을때 실행
+                    if self.dieleft: # 죽었다면 삭제
+                        self.pos = (-128,-128) 
+                    if not self.ready:
+                        self.max_health = self.spell[0].health
+                        self.health = self.max_health
+                        self.godmod = True 
+                    # 능력 살아있으면
 
-                # 빔에 맞았을때
-                if len(collide) > 0 and not self.godmod:
-                    for beam in collide:
-                        if beam.can_damage:
-                            self.health -= beam.damage
-                            if self.health/self.max_health < 0.25:
-                                s_damage1.play(loops=1, maxtime=50)  
-                            else: 
-                                s_damage0.play(loops=1, maxtime=50)
-                            beam.can_damage = False
+                    if self.health > 0 and not self.dieleft:
+                        if self.count >= 120 and self.move_ready and not self.ready:
+                            self.count = 1
+                            self.ready = True
+                            self.godmod = False
+                        self.count, self.pos, self.move_dir, self.move_speed, self.ready = boss_attack(self.spell[0].num, self.count, self.pos, self.move_dir, self.move_speed, self.ready)
 
-                if self.health <= 0 and not self.dieleft and self.ready: # 체력다 닳음 죽은적이없고 스펠시전 중이였을때 실행
-                    self.count = 0
-                    self.move_speed = 0
-                    self.move_ready = False
-                    self.ready = False
-                    if len(self.spell) > 1: # 스펠카드가 남아있다면 안죽기
-                        del self.spell[0] # 사용한 스펠 삭제
-                        if self.spell[0].spellcard:
-                            s_cat1.play()
-                        else:
-                            s_tan1.play()
-                    else:#퇴장
-                        s_enep1.play()
-                        self.dieleft = True
+                    # 빔에 맞았을때
+                    if len(collide) > 0 and not self.godmod:
+                        for beam in collide:
+                            if beam.can_damage:
+                                self.health -= beam.damage
+                                if self.health/self.max_health < 0.25:
+                                    s_damage1.play(loops=1, maxtime=50)  
+                                else: 
+                                    s_damage0.play(loops=1, maxtime=50)
+                                beam.can_damage = False
+
+                    if self.health <= 0 and not self.dieleft and self.ready: # 체력다 닳음 죽은적이없고 스펠시전 중이였을때 실행
+                        self.count = 0
+                        self.move_speed = 0
+                        self.move_ready = False
+                        self.ready = False
+                        if len(self.spell) > 1: # 스펠카드가 남아있다면 안죽기
+                            del self.spell[0] # 사용한 스펠 삭제
+                            if self.spell[0].spellcard:
+                                s_cat1.play()
+                            else:
+                                s_tan1.play()
+                        else:#퇴장
+                            s_enep1.play()
+                            self.dieleft = True
+                            self.move_point = (0,0)
+                            self.appear = False
+                    self.count += 1
+                if self.real_appear and not self.attack_start:
+                    if distance(self.pos,(780,360)) <= 5:
+                        self.pos = (WIDTH-300,HEIGHT/2)
                         self.move_point = (0,0)
-                        self.appear = False
-                self.count += 1
+                    elif self.move_point == (0,0):
+                        self.move_point = ((780-self.pos[0])/60,(360-self.pos[1])/60)
+                        print(self.move_point) 
+                    self.pos = (self.pos[0]+self.move_point[0],self.pos[1] + self.move_point[1])
+
             self.rect.center = (int(self.pos[0]),int(self.pos[1])) 
     
     class Spell():
@@ -929,31 +943,51 @@ def play_game():
             self.stat = 0
             self.text = 0
             self.text2 = 0
-            self.turn = 0
-            self.started = True
+            self.started = False
             self.count = 0
             self.font = pygame.font.Font('Font\SEBANG Gothic Bold.ttf', 40)
+            self.textbox = pygame.Surface((980,200), pygame.SRCALPHA)
+            self.textbox.fill((0,0,0,150))
+            self.alpha = 0
         
-        def update(self):
+        def next_text(self):
+            self.count = 50
+            text = ""
             if self.started:
                 self.stat += 1
                 if self.stat == 1:
-                    self.turn = 0
-                    self.text = self.font.render("음... 여기는?", True, (255,255,255))
-                    self.text2 = self.font.render("음... 여기는?", True, (255,255,255))
+                    text = "test1_test2"
                 if self.stat == 2:
-                    self.turn = 1
-                    self.text = self.font.render("정신이 드나?", True, (255,255,255))
-                    self.text2 = self.font.render("여긴 병원일세", True, (255,255,255))
+                    boss.real_appear = True
+                    text = "boss_appear"
                 if self.stat == 3:
+                    pygame.mixer.music.stop()
+                    pygame.mixer.music.load('Music\\BGM\\The Rabbit Has Landed.wav')
+                    pygame.mixer.music.play(-1)
+                    text = "boss_sound_play"
+                if self.stat == 4:
                     self.started = False
+                    boss.attack_start = True
+                    self.stat = 0
+
+                if self.stat > 0:
+                    textlist = text.split('_')
+                    self.text = self.font.render(textlist[0], True, (255,255,255))
+                    if len(textlist) == 2: self.text2 = self.font.render(textlist[1], True, (255,255,255))     
+                    else: self.text2 = self.font.render("", True, (255,255,255))
+
+        def update(self):
+            self.count += 1
+            if self.count <= 50:
+                self.textbox = pygame.transform.scale(self.textbox, (980, self.count*4))
+            if self.count == 50:
+                self.next_text()
         def draw(self):
             if self.started:
-                pygame.draw.rect(screen, (0,0,0,100), (50,HEIGHT-250,980,200))
-                x = 100 if self.turn == 1 else 350
+                screen.blit(self.textbox,(50,HEIGHT-250))
                 if self.stat > 0: 
-                    screen.blit(self.text,(x,HEIGHT-230))
-                    screen.blit(self.text2,(x,HEIGHT-180))
+                    screen.blit(self.text,(100,HEIGHT-230))
+                    screen.blit(self.text2,(100,HEIGHT-180))
 
 
     def get_new_pos(pos,x=0,y=0):
@@ -1335,7 +1369,8 @@ def play_game():
         boss.move_ready = False # 스펠 시작시 움직이는중?
         boss.godmod = False
         boss.dieleft = False
-
+        boss.attack_start = False
+        boss.real_appear = False
         if num == 1: 
             boss.pos = (WIDTH,HEIGHT)
             boss.radius = 40
@@ -1343,8 +1378,10 @@ def play_game():
             boss.num = 1
             boss.spell = [spells[0]]
             boss.dies = False
+            boss.attack_start = True
+            
         if num == 2: 
-            boss.pos = (WIDTH,HEIGHT)
+            boss.pos = (WIDTH+64,HEIGHT+64)
             boss.radius = 40
             boss.image.blit(pokemons[1],(0,0))         
             boss.num = 1
@@ -1352,11 +1389,11 @@ def play_game():
             boss.dies = True
             boss_background.blit(bg_image,(0,0),(540,0,540,360))
             boss_background = pygame.transform.scale2x(boss_background)
-            pygame.mixer.music.stop()
-            pygame.mixer.music.load('Music\\BGM\\The Rabbit Has Landed.wav')
-            pygame.mixer.music.play(-1)
-        boss.rect = boss.image.get_rect(center = (boss.pos))
+            text.started = True
+        #boss.appear = True
         boss.appear = True
+        boss.rect = boss.image.get_rect(center = (boss.pos))
+        
         
     def boss_attack(num,count,pos,dir,speed,ready):
         if num == 1:
@@ -1610,8 +1647,8 @@ def play_game():
                         full_on = False if full_on == True else True
                     if ev.key == pygame.K_ESCAPE:
                         pause = False if pause == True else True
-                    if ev.key == pygame.K_z and text.started:
-                        text.update()
+                    if ev.key == pygame.K_z and text.started and text.count > 50:
+                        text.next_text()
                     if ev.key == pygame.K_x and player.mp > 0 and not bomb_activated:
                         bomb_group.add(Bomb(player.pos,1))
                         player.mp -= 1      
@@ -1656,6 +1693,7 @@ def play_game():
                     effect_group.update()
                     player_sub.update()
                     bomb_group.update()
+                    if text.started: text.update()
                     stage_manager()
                     frame_count += 1
                     stage_count += 1
@@ -1689,7 +1727,7 @@ def play_game():
             if starting and not read_end: 
                 drawArc(screen, (0,0, 0), player.pos, 112, 15, 360*100)
                 drawArc(screen, health_color(player.health/500), player.pos, 110, 10, 360*player.health/500)
-            if boss.appear and boss.health > 0:
+            if boss.attack_start and boss.health > 0:
                 try:
                     drawArc(screen, (0, 0, 0), boss.pos, 112, 15, 360*100)
                     drawArc(screen, health_color(boss.health/boss.max_health), boss.pos, 110, 10, 360*boss.health/boss.max_health)
