@@ -36,7 +36,7 @@ def play_game():
     player_slow_img = pygame.transform.scale(player_slow_img, (64*2, 64*2))
 
     msfx_volume = 100
-    mmusic_volume = 0
+    mmusic_volume = 100
     try:sfx_volume = msfx_volume / 1000
     except:sfx_volume = 0
     try:music_volume = mmusic_volume / 200
@@ -81,6 +81,9 @@ def play_game():
     s_item0.set_volume(sfx_volume+0.1)
     s_enedead = pygame.mixer.Sound('resources\Music\SFX\se_enep00.wav')
     s_enedead.set_volume(sfx_volume+0.15)
+    FONT_1 = 'resources\Font\SEBANG Gothic Bold.ttf' 
+    FIELD_1 = 'resources\Music\\BGM\\Unforgettable, the Nostalgic Greenery.wav'
+    BOSS_BGM1 = 'resources\Music\\BGM\\The Rabbit Has Landed.wav'
     # 플레이어
     class Player(pygame.sprite.Sprite):
         def __init__(self, x, y, speed, health):
@@ -409,11 +412,8 @@ def play_game():
             if self.appear:
                 if self.attack_start:
                     if self.count == 0:
-                        print("did")
                         effect_group.add(Effect(self.pos,4))
                     # 보스가 등장했을때 실행
-                    if self.dieleft: # 죽었다면 삭제
-                        self.pos = (-128,-128) 
                     if not self.ready:
                         self.max_health = self.spell[0].health
                         self.health = self.max_health
@@ -443,6 +443,7 @@ def play_game():
                         self.move_speed = 0
                         self.move_ready = False
                         self.ready = False
+                        add_effect(self.pos,5)
                         if len(self.spell) > 1: # 스펠카드가 남아있다면 안죽기
                             del self.spell[0] # 사용한 스펠 삭제
                             if self.spell[0].spellcard:
@@ -450,27 +451,44 @@ def play_game():
                             else:
                                 s_tan1.play()
                         else:#퇴장
+                            del self.spell[0]
                             s_enep1.play()
                             self.dieleft = True
                             self.move_point = (0,0)
                             self.appear = False
                     self.count += 1
+
                 if self.real_appear and not self.attack_start:
                     if distance(self.pos,(780,360)) <= 5:
                         self.pos = (WIDTH-300,HEIGHT/2)
                         self.move_point = (0,0)
                     elif self.move_point == (0,0):
                         self.move_point = ((780-self.pos[0])/60,(360-self.pos[1])/60)
-                        print(self.move_point) 
                     self.pos = (self.pos[0]+self.move_point[0],self.pos[1] + self.move_point[1])
-
+            
+            if self.dieleft: # 죽었다면 삭제
+                remove_allbullet()
+                self.pos = (-128,-128) 
+                if self.num == 2:
+                    text.pause = False
+                self.dieleft = False
             self.rect.center = (int(self.pos[0]),int(self.pos[1])) 
     
     class Spell():
-        def __init__(self,number,health,spellcard):
+        def __init__(self,number,health,spellcard,name=""):
             self.health = health
             self.spellcard = spellcard
             self.num = number
+            self.name = name
+            self.count = 0
+            self.image = pygame.Surface((400,80), pygame.SRCALPHA)
+            self.image.fill((0,0,0))
+        def draw(self):
+            if self.count < 60: screen.blit(self.image,(WIDTH-400,0))
+            if big_small(self.count,60,85): 
+                screen.blit(self.image,(WIDTH-400,(self.count-60)**2))
+            if self.count > 85: screen.blit(self.image,(WIDTH-400,640))
+            self.count += 1
         
     # 총알 
     ############################################
@@ -854,38 +872,36 @@ def play_game():
                     image = pygame.transform.scale2x(image)
                 if self.num == 3:
                     image = pygame.Surface((128,128), pygame.SRCALPHA)
-                if self.num == 4:
-                    image = pygame.Surface((256,256), pygame.SRCALPHA)
-                if self.num == 5:
-                    image = pygame.Surface((256,256), pygame.SRCALPHA)
-                    image.blit(bullet_image,(0,0),(0,496,256,256))
-                    image = pygame.transform.scale(image,(180,180)) 
-                    effect_group.add(Effect(boss.pos,6))
-                if self.num == 6:
-                    image = pygame.Surface((256,256), pygame.SRCALPHA)
-                    image.blit(bullet_image,(0,0),(0,496,256,256))
-                    image = pygame.transform.scale(image,(128,128))                  
-                image = pygame.transform.scale2x(image)
-                self.image = image   
-                self.rect = self.image.get_rect(center = (get_new_pos((self.pos))))
-                self.image2 = self.image.copy()
+                try:               
+                    if image: 
+                        image = pygame.transform.scale2x(image)
+                        self.image = image   
+                        self.rect = self.image.get_rect(center = (get_new_pos((self.pos))))
+                        self.image2 = self.image.copy()
+                except:pass
 
             if self.num == 1 or self.num == 2:
-                self.image_size(-2,True)
-                
+                self.image_size(-2,True)               
             if self.num == 3:
                 self.selfkill(10)
                 self.image = pygame.transform.scale(self.image2, (self.rect.width+self.count*4,self.rect.height+self.count*4))
+                self.rect = self.image.get_rect(center = (get_new_pos((self.pos))))
                 pygame.draw.circle(self.image, (255,255,255,200-self.count*8), rect_center(self.rect), round(self.rect.width/2), 1)
-                
-                self.image = pygame.transform.scale2x(self.image2)
             if self.num == 4:
                 self.pos = boss.pos
-                if self.count == 360:
-                    self.count = 0
+                if self.count == 360:self.count = 0
                 self.image = boss_circle[self.count]
-
-
+                if not boss.appear:self.kill()
+            if self.num == 5:
+                self.count += 1
+                try:self.image = white_circle[self.count]
+                except: self.kill()
+            if self.num == 6:
+                self.pos = boss.pos
+                self.count += 1
+                try:self.image = white_circle[len(white_circle)-1-self.count]
+                except: self.kill()               
+                
 
             self.rect = self.image.get_rect(center = get_new_pos((self.pos)))
             self.count += 1
@@ -971,43 +987,70 @@ def play_game():
     
     class TextBox():
         def __init__(self):
-            self.image1 =  0
-            self.image2 =  0
+            self.image1 =  pygame.Surface((200,400), pygame.SRCALPHA)
+            self.image2 =  pygame.Surface((200,400), pygame.SRCALPHA)
+            self.image1.fill((255,255,255))
+            self.image2.fill((255,255,255))
             self.stat = 0
-            self.text = 0
-            self.text2 = 0
+            self.text = ""
+            self.text2 = ""
             self.started = False
+            self.pause = False
             self.count = 0
-            self.font = pygame.font.Font('resources\Font\SEBANG Gothic Bold.ttf', 40)
+            self.font = pygame.font.Font(FONT_1, 40)
             self.textbox = pygame.Surface((980,200), pygame.SRCALPHA)
             self.textbox.fill((0,0,0,150))
-            self.alpha = 0
+            self.turn = 0
+            self.char_move = [-80,-80]
         
         def next_text(self):
             self.count = 50
             text = ""
-            if self.started:
+            if self.started and not self.pause:
                 self.stat += 1
                 if self.stat == 1:
-                    text = "test1_test2"
+                    self.turn = 0
+                    text = "요즘 따라 좀 덥네"
+                    self.turn
                 if self.stat == 2:
-                    boss.real_appear = True
-                    text = "boss_appear"
+                    self.turn = 0
+                    text = "이럴땐 호수에서 자는게 제일인데~"
                 if self.stat == 3:
-                    pygame.mixer.music.stop()
-                    pygame.mixer.music.load('resources\Music\\BGM\\The Rabbit Has Landed.wav')
-                    pygame.mixer.music.play(-1)
-                    text = "boss_sound_play"
+                    self.turn = 1
+                    boss.real_appear = True
+                    text = "더위를 피할거라면"
                 if self.stat == 4:
-                    self.started = False
+                    self.turn = 1
+                    text = "큰 나무 밑에 있어봐 꽤 시원하다구"
+                if self.stat == 5:
+                    self.turn = 0
+                    text = "말만 그렇지 '엄청' 시원하지 않다고"
+                if self.stat == 6:
+                    self.turn = 1
+                    pygame.mixer.music.stop()
+                    pygame.mixer.music.load(BOSS_BGM1)
+                    pygame.mixer.music.play(-1)
+                    text = "그럼 내가 엄청 시원하게 해줄게!"
+                if self.stat == 7:
+                    # 보스전 시작
+                    self.pause = True
                     boss.attack_start = True
-                    self.stat = 0
+                    self.char_move = [-80,-80]
                     boss.count = 0
+                    self.count = 0
+                if self.stat == 8:
+                    self.turn = 0
+                    text = "확실히 시원하긴 하네~"
+                    boss.count = 0
+                if self.stat == 9:
+                    # 대화 끝
+                    self.started = False
+                    self.count = 0
 
                 if self.stat > 0:
                     textlist = text.split('_')
-                    self.text = self.font.render(textlist[0], True, (255,255,255))
-                    if len(textlist) == 2: self.text2 = self.font.render(textlist[1], True, (255,255,255))     
+                    self.text = self.font.render(textlist[0], True, (255,255,255) if self.turn == 0 else (255, 87, 84))
+                    if len(textlist) == 2: self.text2 = self.font.render(textlist[1], True, (255,255,255) if self.turn == 0 else (255, 87, 84))     
                     else: self.text2 = self.font.render("", True, (255,255,255))
 
         def update(self):
@@ -1016,18 +1059,51 @@ def play_game():
                 self.textbox = pygame.transform.scale(self.textbox, (980, self.count*4))
             if self.count == 50:
                 self.next_text()
-        def draw(self):
-            if self.started:
-                screen.blit(self.textbox,(50,HEIGHT-250))
-                if self.stat > 0: 
-                    screen.blit(self.text,(100,HEIGHT-230))
-                    screen.blit(self.text2,(100,HEIGHT-180))
+            if self.count > 50:
+                if self.turn == 0:
+                    if self.char_move[0] < 10: self.char_move [0] += 2
+                    if self.char_move[0] < 0: self.char_move [0] += 4
+                    if self.char_move[1] > 0: self.char_move [1] -= 2
+                    if self.char_move[1] < 0: self.char_move [1] += 4
+                else:
+                    if self.char_move[1] < 10: self.char_move [1] += 2
+                    if self.char_move[1] < 0: self.char_move [1] += 4
+                    if self.char_move[0] > 0: self.char_move [0] -= 2
+                    if self.char_move[0] < 0: self.char_move [0] += 4
 
-    def no_zero(value,set):
-        if value <= set:
-            return set
-        else:
-            return value
+        def draw(self):
+            if self.started and not self.pause:
+                try:                    
+                    if self.stat > 0: 
+                        if self.count >= 50: # 대화
+
+
+                                
+
+                            screen.blit(self.image1,(0+self.char_move[0],HEIGHT-400-self.char_move[0]))
+                            if boss.real_appear: screen.blit(self.image2,(WIDTH-200-self.char_move[1],HEIGHT-400-self.char_move[1]))
+                                
+
+                        screen.blit(self.textbox,(50,HEIGHT-250))
+                        screen.blit(self.text,(100,HEIGHT-230))
+                        screen.blit(self.text2,(100,HEIGHT-180))
+                    else:
+                        screen.blit(self.textbox,(50,HEIGHT-250)) # 텍스트 박스 등장시간
+                except:
+                    pass
+
+        def re_start(self,stat):
+            self.image1 =  pygame.Surface((200,400), pygame.SRCALPHA)
+            self.image2 =  pygame.Surface((200,400), pygame.SRCALPHA)
+            self.image1.fill((255,255,255))
+            self.image2.fill((255,255,255))
+            self.stat = stat-1
+            self.text = ""
+            self.text2 = ""
+            self.started = True
+            self.count = 0
+            self.textbox = pygame.Surface((980,200), pygame.SRCALPHA)
+            self.textbox.fill((0,0,0,150))
 
     def rect_center(rect,rounded=True):
         if rounded:
@@ -1037,6 +1113,11 @@ def play_game():
 
     def get_new_pos(pos,x=0,y=0):
         return (round(pos[0] + x), round(pos[1] + y))
+
+    def remove_allbullet():
+        for i in range(0,len(spr.sprites())):
+            item_group.add(Item(spr.sprites()[i].pos,0))
+        spr.empty()
 
     def big_small(val,min,max):
         return min < val and val < max
@@ -1110,10 +1191,10 @@ def play_game():
             pass      
         return (boss.pos)
     # 동그라미 게이지 (퍼옴)
-    def drawArc(surf, color, center, radius, width, end_angle):
+    def drawArc(surf, color, center, radius, width, end_angle,alpha=255):
         circle_image = numpy.zeros((radius*2+4, radius*2+4, 4), dtype = numpy.uint8)
         circle_image = cv2.ellipse(circle_image, (radius+2, radius+2),
-        (radius-width//2, radius-width//2), -90, 0, end_angle, (*color, 255), width, lineType=cv2.LINE_AA) 
+        (radius-width//2, radius-width//2), -90, 0, end_angle, (*color, alpha), width, lineType=cv2.LINE_AA) 
         circle_surface = pygame.image.frombuffer(circle_image.flatten(), (radius*2+4, radius*2+4), 'RGBA')
         circle_surface = pygame.transform.flip(circle_surface, True,False)
         surf.blit(circle_surface, circle_surface.get_rect(center = (round(center[0]),round(center[1]))))
@@ -1188,6 +1269,7 @@ def play_game():
             cur_list.append(image)
     pokemons = cur_list
 
+    # 이펙트 미리 그려놓기
     cur_list = []
     for i in range(0,360):
         image = pygame.Surface((256,256), pygame.SRCALPHA)
@@ -1195,6 +1277,13 @@ def play_game():
         image = pygame.transform.rotate(image, i)
         cur_list.append(image)
     boss_circle = cur_list
+    cur_list = []
+    for i in range(1,256):
+        image = pygame.Surface((2*i,2*i), pygame.SRCALPHA)
+        pygame.draw.circle(image, (255,255,255,256-i), (2*i//2,2*i//2), 2*i//2)
+        image = pygame.transform.scale2x(image)
+        cur_list.append(image)
+    white_circle = cur_list
 
     # 개발자 전용
     stage_fun = 1
@@ -1266,16 +1355,15 @@ def play_game():
     bkgd_list = [pygame.Surface((1080, 240)),pygame.Surface((1080, 240)),pygame.Surface((1080, 240))]
     boss_background = pygame.Surface((540,360))
     # 폰트 불러오기
-    score_font = pygame.font.Font('resources\Font\SEBANG Gothic Bold.ttf', 50)
-    ui_font = pygame.font.Font('resources\Font\SEBANG Gothic Bold.ttf', 20)
+    score_font = pygame.font.Font(FONT_1, 50)
+    ui_font = pygame.font.Font(FONT_1, 20)
     bg_x = [0,0,0,0]
     fps = 60
 
-    spells = [Spell(1,1000,False),
-    Spell(2,1000,True),
-    Spell(3,1000,False),
-    Spell(4,1300,True),
-    Spell(5,1300,True)]
+    magic_spells = [Spell(2,1000,True,"기다라라 정글"),Spell(4,1300,True,"무지개 아이스크름"),Spell(5,1300,True,"최고의 네잎클로버")]
+    # 스펠카드 모음
+    spells = [Spell(1,1000,False,"통상1"),magic_spells[0],Spell(3,1000,False),magic_spells[1],magic_spells[2]]
+
     # 소환 반복 (줄에 stage_line)
     def while_poke_spawn(time,repeat,line):
         global stage_cline, stage_line, stage_repeat_count, stage_count
@@ -1314,7 +1402,7 @@ def play_game():
                 title.title_start("Stage 1","드넓은 초원")
         stage_cline += 1
     # 게임의 배경, 스테이지
-    def game_defalt_setting(fun):
+    def game_defalt_setting(fun): # 게임 스테이지 배경 정하기
         global bgm_num, bkgd, bkgd_list
         ##############################################
         if fun == 1:
@@ -1342,7 +1430,7 @@ def play_game():
 
         pygame.mixer.music.stop()
         if fun == 1:
-            pygame.mixer.music.load('resources\Music\\BGM\\Unforgettable, the Nostalgic Greenery.wav')
+            pygame.mixer.music.load(FIELD_1)
     # 소환하는 적 
     def pokemon_spawn(val,x,y,time,dir=0):
         global stage_count 
@@ -1411,7 +1499,7 @@ def play_game():
                 count = 0
         return pos,dir,speed,count
 
-    def boss_spawn(num):
+    def boss_spawn(num): # 보스 시작, 배경
         global boss_background
         
         # 적이동을 위한 값
@@ -1440,7 +1528,7 @@ def play_game():
             boss.num = 2
             boss.spell = [spells[0],spells[1],spells[2],spells[3],spells[4]]
             boss.dies = True
-            boss_background.blit(bg_image,(0,0),(540,0,540,360))
+            boss_background.blit(bg2_image,(0,0),(0,0,540,360))
             boss_background = pygame.transform.scale2x(boss_background)
             text.started = True
 
@@ -1452,7 +1540,6 @@ def play_game():
         if num == 1:
             pos = set_bossmove_point((WIDTH-300,HEIGHT/2),130,10)
             if ready:
-
                 if while_time(count,20) and count < 120:
                     add_effect(pos,2,5)
                     s_tan1.play()
@@ -1702,7 +1789,7 @@ def play_game():
                         full_on = False if full_on == True else True
                     if ev.key == pygame.K_ESCAPE:
                         pause = False if pause == True else True
-                    if ev.key == pygame.K_z and text.started and text.count > 50:
+                    if ev.key == pygame.K_z and text.started and text.count > 50 and not text.pause:
                         text.next_text()
                     if ev.key == pygame.K_x and player.mp > 0 and not bomb_activated:
                         bomb_group.add(Bomb(player.pos,1))
@@ -1737,7 +1824,7 @@ def play_game():
             # 연산 업데이트
             if not pause:      
                 if len(magic_spr.sprites()) != 0:magic_spr.update(screen)    
-                if boss.appear and boss.health <= 0: spr.empty()              
+                if boss.appear and boss.health <= 0: remove_allbullet()          
                 spr.update(screen)
                 if not time_stop:
                     beams_group.update()                            
@@ -1748,7 +1835,7 @@ def play_game():
                     effect_group.update()
                     player_sub.update()
                     bomb_group.update()
-                    if text.started: text.update()
+                    if text.started and not text.pause: text.update()
                     stage_manager()
                     frame_count += 1
                     stage_count += 1
@@ -1791,15 +1878,15 @@ def play_game():
             effect_group.draw(screen)
 
             if starting and not read_end: # 원형 체력바 그리기
-                drawArc(screen, (0,0, 0), player.pos, 112, 15, 360*100)
-                drawArc(screen, health_color(player.health/500), player.pos, 110, 10, 360*player.health/500)
+                drawArc(screen, (0,0,0), player.pos, 112, 15, 360*100,120 if not player.godmod else 255)
+                drawArc(screen, health_color(player.health/500), player.pos, 110, 10, 360*player.health/500,120 if not player.godmod else 255)
             if boss.attack_start and boss.health > 0:
                 try:
-                    drawArc(screen, (0, 0, 0), boss.pos, 112, 15, 360*100)
-                    drawArc(screen, health_color(boss.health/boss.max_health), boss.pos, 110, 10, 360*boss.health/boss.max_health)
+                    drawArc(screen, (0, 0, 0), boss.pos, 112, 15, 360*100,200)
+                    drawArc(screen, health_color(boss.health/boss.max_health), boss.pos, 110, 10, 360*boss.health/boss.max_health,200)
                 except:
-                    drawArc(screen, (0, 0, 0), boss.pos, 112, 15, 360*100)
-                    drawArc(screen, (0,0,0), boss.pos, 110, 10, 1)   
+                    drawArc(screen, (0, 0, 0), boss.pos, 112, 15, 360*100,200)
+                    drawArc(screen, (0,0,0), boss.pos, 110, 10, 1,200)   
             if boss.appear: boss_group.draw(screen)           
             spr.draw(screen)
 
@@ -1808,8 +1895,11 @@ def play_game():
             pygame.draw.circle(screen, (255,255,255), get_new_pos(player.pos), 7)
 
             title.draw()
-            text.draw()
+            if text.started:text.draw()
             ui.draw()
+            if boss.appear and boss.spell[0].spellcard:
+                boss.spell[0].draw()
+
             pygame.display.flip()
         if cur_screen == 0:
             for ev in pygame.event.get():
