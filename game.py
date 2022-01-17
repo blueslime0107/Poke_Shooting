@@ -23,13 +23,16 @@ def play_game():
     global WIDTH, HEIGHT, screen
     # 이미지 불러오기
     bullet_image = pygame.image.load('resources\Image\Bullets.png').convert_alpha()
-    bg_image = pygame.image.load('resources\Image\Bg1.png').convert()
-    bg2_image = pygame.image.load('resources\Image\Bg2.png').convert()
+    bg_image = pygame.image.load('resources\Image\Bg1.png').convert_alpha()
+    bg2_image = pygame.image.load('resources\Image\Bg2.png').convert_alpha()
     pkmon_image = pygame.image.load('resources\Image\pokemon.png').convert_alpha()
     background_img = pygame.image.load('resources\Image\\background.jpg').convert()
     menu_img = pygame.image.load('resources\Image\Menus.png').convert_alpha()
     item_img = pygame.image.load('resources\Image\item.png').convert_alpha()
+    skill_img = pygame.image.load('resources\Image\skill.png').convert_alpha()
     background_img = pygame.transform.scale(background_img, (WIDTH, HEIGHT))
+    bg_image = pygame.transform.scale2x(bg_image)
+    bg2_image = pygame.transform.scale2x(bg2_image)
 
     player_slow_img = pygame.Surface((64, 64), pygame.SRCALPHA)
     player_slow_img.blit(bullet_image, (0,0), Rect(128,128,64,64))
@@ -334,7 +337,6 @@ def play_game():
             self.image = self.image_rotate
             self.pos = calculate_new_xy(self.pos, self.speed, -self.direction)
             self.rect.center = round(self.pos[0]), round(self.pos[1]) 
-
     # 적
     class Enemy(pygame.sprite.Sprite):
         def __init__(self, x, y, dir, speed, health, img, hit_cir, num):
@@ -450,6 +452,10 @@ def play_game():
                                 s_cat1.play()
                             else:
                                 s_tan1.play()
+                                for _ in range(0,20):
+                                    item_group.add(Item(get_new_pos(self.pos,randint(-100,100),randint(-100,100)),0))
+                                for _ in range(0,40):
+                                    item_group.add(Item(get_new_pos(self.pos,randint(-200,200),randint(-200,200)),1))
                         else:#퇴장
                             del self.spell[0]
                             s_enep1.play()
@@ -482,14 +488,18 @@ def play_game():
             self.name = name
             self.count = 0
             self.image = pygame.Surface((400,80), pygame.SRCALPHA)
-            self.image.fill((0,0,0))
+            if self.spellcard:
+                skillnum = 0
+                if self.num == 2: skillnum = 0
+                if self.num == 4: skillnum = 1
+                if self.num == 5: skillnum = 2
+                self.image.blit(skill_img,(0,0),(0,0+80*skillnum,400,80))
         def draw(self):
             if self.count < 60: screen.blit(self.image,(WIDTH-400,0))
             if big_small(self.count,60,85): 
                 screen.blit(self.image,(WIDTH-400,(self.count-60)**2))
             if self.count > 85: screen.blit(self.image,(WIDTH-400,640))
             self.count += 1
-        
     # 총알 
     ############################################
     class Bullet(pygame.sprite.Sprite):
@@ -631,7 +641,7 @@ def play_game():
                                     bullet(self.rect.center,i+self.count,5,15,4)
                             if while_time(self.count,10):
                                 for i in range(0,360,45):
-                                    bullet(self.rect.center,i+self.count+min_dir,5,18,4)
+                                    bullet(self.rect.center,i+self.count+0,5,18,4)
                             if while_time(self.count,30):
                                 s_tan1.play()
                                 for i in range(0,360,45):
@@ -940,17 +950,23 @@ def play_game():
                     self.pos = (self.pos[0]+10-self.count/4,self.pos[1])
                     self.image = pygame.transform.rotate(self.image2, self.count*4)
                 else:
+                    if self.num == 1: self.lock = True
                     self.pos = (self.pos[0]-5,self.pos[1])
                 if self.count == 80:
                     self.image = pygame.transform.rotate(self.image2, 0)
 
             # 화면 넘어가면 삭제:
-            if self.pos[0] < -20:
-                self.kill()
+            if self.pos[0] < -10:
+                if self.num == 0: 
+                    if player.power > 100: player.power -= 1
+                self.kill() 
             # 플레이어 범위 작으면 먹기
             if distance(self.pos,player.pos) < 70:
-                score += 100
-                if player.power < 400: player.power += 1
+                if self.num == 0: 
+                    if player.power < 450: player.power += 1 # 먹으면 파워업
+                    score += 2000
+                if self.num == 1:
+                    score += 1000
                 s_item0.play()
                 self.kill()
             # 좌표 600이상이면 플레이어 다라가기
@@ -1105,6 +1121,20 @@ def play_game():
             self.textbox = pygame.Surface((980,200), pygame.SRCALPHA)
             self.textbox.fill((0,0,0,150))
 
+    class Back_Ground():
+        def __init__(self, img, rect, speed, num, y=0,not_appear=False):
+            image = pygame.Surface((rect[2],rect[3]), pygame.SRCALPHA)
+            image.blit(img, (0,0), rect)
+            self.image = image
+            self.speed = speed
+            self.num = num
+            self.x = 0
+            self.y = y
+            self.appear = not_appear
+        def update(self):
+            self.x -= self.speed
+
+
     def rect_center(rect,rounded=True):
         if rounded:
             return (round(rect.width/2),round(rect.height/2))
@@ -1116,7 +1146,7 @@ def play_game():
 
     def remove_allbullet():
         for i in range(0,len(spr.sprites())):
-            item_group.add(Item(spr.sprites()[i].pos,0))
+            item_group.add(Item(spr.sprites()[i].pos,1))
         spr.empty()
 
     def big_small(val,min,max):
@@ -1206,6 +1236,23 @@ def play_game():
             return (255,255,0)
         else:
             return (0,255,0)
+
+    def background_scroll():
+        if boss.appear and boss.spell[0].spellcard:
+            rel_x = 3*-frame_count % WIDTH
+            screen.blit(boss_background, (rel_x - WIDTH,0))
+            if rel_x < WIDTH:
+                screen.blit(boss_background,(rel_x,0))
+        else:
+            if bkgd_list:
+                for image in bkgd_list:
+                    rel_x = image.x % WIDTH
+                    if not image.appear:
+                        screen.blit(image.image, (rel_x - WIDTH,image.y))
+                    if rel_x < WIDTH:
+                        screen.blit(image.image,(rel_x,image.y))
+                    if image.appear and rel_x == 0: 
+                        bkgd_list[bkgd_list.index(image)].appear = False
 
     # 이미지 나눠 저장하기
     a_list = []
@@ -1298,7 +1345,6 @@ def play_game():
     cur_full_mod = False
     pause = False
     frame_count = 0
-    min_dir = 0
     time_stop = False
     stage_count = 0
     
@@ -1338,7 +1384,6 @@ def play_game():
     effect_group = pygame.sprite.Group()
     item_group = pygame.sprite.Group()
     
-
     starting = True
     read_end = False
 
@@ -1350,19 +1395,16 @@ def play_game():
     score_setting = (10,10,987650,10,0,0,0,0,0)
 
     # 보스마다 기본설정
-    bkgd = pygame.Surface((540, 360))
     global bkgd_list,boss_background
-    bkgd_list = [pygame.Surface((1080, 240)),pygame.Surface((1080, 240)),pygame.Surface((1080, 240))]
-    boss_background = pygame.Surface((540,360))
+    bkgd_list = []
+    boss_background = pygame.Surface((1080,720))
+    boss_bgx = [0,3]
     # 폰트 불러오기
     score_font = pygame.font.Font(FONT_1, 50)
     ui_font = pygame.font.Font(FONT_1, 20)
-    bg_x = [0,0,0,0]
     fps = 60
-
-    magic_spells = [Spell(2,1000,True,"기다라라 정글"),Spell(4,1300,True,"무지개 아이스크름"),Spell(5,1300,True,"최고의 네잎클로버")]
     # 스펠카드 모음
-    spells = [Spell(1,1000,False,"통상1"),magic_spells[0],Spell(3,1000,False),magic_spells[1],magic_spells[2]]
+    spells = [Spell(1,1000,False,"통상1"),Spell(2,1000,True,"기다라라 정글"),Spell(3,1000,False),Spell(4,1300,True,"무지개 아이스크름"),Spell(5,1300,True,"최고의 네잎클로버")]
 
     # 소환 반복 (줄에 stage_line)
     def while_poke_spawn(time,repeat,line):
@@ -1381,15 +1423,15 @@ def play_game():
             stage_line += line
             stage_repeat_count = 0
 
+    # 다음 챌린지 넘어가기
     def next_challenge(time):
         global stage_count, stage_line, stage_cline, stage_challenge
         if time == stage_count and stage_line == stage_cline:
             stage_count = 0
             stage_line = 0
             stage_challenge += 1
-
-    #################################################
-    def title_spawn(val,time,dir=0):
+    # 스테이지 이름
+    def title_spawn(val,time):
         global stage_count 
         global stage_line # 현재 조건의 라인
         global stage_cline # 검사 중인 라인
@@ -1401,12 +1443,28 @@ def play_game():
             if val == 1:
                 title.title_start("Stage 1","드넓은 초원")
         stage_cline += 1
+    # 뒷배경 소환
+    def bground_spawn(val,time):
+        global stage_count 
+        global stage_line # 현재 조건의 라인
+        global stage_cline # 검사 중인 라인
+        
+        # x, y, dir, speed, health, img, hit_cir, num = val
+        if time == stage_count and stage_line == stage_cline:
+            stage_count = 0
+            stage_line += 1
+            if val == 1:bkgd_list.append(Back_Ground(bg_image,(1080,0,1080,240),1,0,0,True))
+            if val == 2:bkgd_list.append(Back_Ground(bg_image,(1080,480,1080,240),3,0,480,True))
+            if val == 3:bkgd_list.append(Back_Ground(bg_image,(2160,0,1080,580),2,0,0,True)) 
+        stage_cline += 1
     # 게임의 배경, 스테이지
     def game_defalt_setting(fun): # 게임 스테이지 배경 정하기
         global bgm_num, bkgd, bkgd_list
         ##############################################
         if fun == 1:
-            bkgd.blit(bg_image,(0,0),(0,0,540,360))
+            bkgd_list.append(Back_Ground(bg_image,(0,0,1080,240),1,0,0))
+            bkgd_list.append(Back_Ground(bg_image,(0,240,1080,240),2,0,240))
+            bkgd_list.append(Back_Ground(bg_image,(0,480,1080,240),3,0,480))
         if fun == 2:
             bgm = 1
         if fun == 3:
@@ -1422,16 +1480,12 @@ def play_game():
             bgm = 1
 
         ###############################################
-
-        bkgd = pygame.transform.scale2x(bkgd)
-        bkgd_list[0].blit(bkgd,(0,0),(0,0,1080,240))
-        bkgd_list[1].blit(bkgd,(0,0),(0,240,1080,240))
-        bkgd_list[2].blit(bkgd,(0,0),(0,480,1080,240))
-
         pygame.mixer.music.stop()
         if fun == 1:
             pygame.mixer.music.load(FIELD_1)
     # 소환하는 적 
+
+    #################################################
     def pokemon_spawn(val,x,y,time,dir=0):
         global stage_count 
         global stage_line # 현재 조건의 라인
@@ -1528,8 +1582,7 @@ def play_game():
             boss.num = 2
             boss.spell = [spells[0],spells[1],spells[2],spells[3],spells[4]]
             boss.dies = True
-            boss_background.blit(bg2_image,(0,0),(0,0,540,360))
-            boss_background = pygame.transform.scale2x(boss_background)
+            boss_background.blit(bg2_image,(0,0),(0,0,1080,720))
             text.started = True
 
         boss.appear = True
@@ -1622,7 +1675,7 @@ def play_game():
         pos = calculate_new_xy(pos, speed, dir)
         return count,pos,dir,speed,ready
     # 스테이지
-    stage_challenge = 5
+    stage_challenge = 0
     def stage_manager():
         global stage_cline, stage_line, stage_repeat_count, stage_count, stage_condition, stage_challenge
         
@@ -1669,7 +1722,7 @@ def play_game():
 
                 next_challenge(260)
             if stage_challenge == 1:
-
+                bground_spawn(1,1)
                 if while_poke_spawn(40,10,2):
                     pokemon_spawn(3,WIDTH+64,HEIGHT-stage_repeat_count*HEIGHT/10-20,40)
                     pokemon_spawn(3,WIDTH+64,stage_repeat_count*HEIGHT/10+20,0)
@@ -1706,6 +1759,7 @@ def play_game():
                     boss.appear = False
                     next_challenge(0)
             if stage_challenge == 3:
+                bground_spawn(2,1)
                 if while_poke_spawn(10,5,2):
                     pokemon_spawn(5,WIDTH,20,10)
                     pokemon_spawn(6,WIDTH,HEIGHT-20,0)
@@ -1737,6 +1791,7 @@ def play_game():
                 pokemon_spawn(4,WIDTH,HEIGHT/2-80,0)
                 next_challenge(360)
             if stage_challenge == 4:
+                bground_spawn(3,1)
                 pokemon_spawn(7,WIDTH-120,-30,60,90)
                 pokemon_spawn(7,WIDTH-120,-30,60,90)
                 pokemon_spawn(7,WIDTH-120,-30,60,90)
@@ -1814,10 +1869,10 @@ def play_game():
                             enemy[i].health -= 1
                 if boss.appear: boss_collide = pygame.sprite.spritecollide(boss, bomb_group, False, pygame.sprite.collide_circle)
                 beam_collide = pygame.sprite.groupcollide(bomb_group, spr, False, False, pygame.sprite.collide_circle)
-                if beam_collide.items():
+                if beam_collide.items(): # 봄이 탄에 맞았을때 작은점수
                     for beam, enemy in beam_collide.items():
                         for i in range(0,len(enemy)): 
-                            item_group.add(Item(enemy[i].pos,0))
+                            item_group.add(Item(enemy[i].pos,1))
                             enemy[i].kill()
                 if not bomb_group:
                     bomb_activated = False
@@ -1839,27 +1894,15 @@ def play_game():
                     stage_manager()
                     frame_count += 1
                     stage_count += 1
-                    min_dir += 0.2
-                    bg_x[0] -= 1
-                    bg_x[1] -= 2
-                    bg_x[2] -= 3
-                    bg_x[3] -= 3
+                    for i in bkgd_list:
+                        i.update()
                     rotated_sprite = pygame.transform.rotate(player_slow_img, math.degrees(frame_count/20))
                     rect = rotated_sprite.get_rect(center = (round(player.pos[0]), round(player.pos[1])))
                 
             # 그리기 시작
             screen.fill((0,0,0))
             #배경 스크롤
-            for image in bkgd_list:
-                rel_x = bg_x[bkgd_list.index(image)] % WIDTH
-                screen.blit(image, (rel_x - WIDTH,0+240*bkgd_list.index(image)))
-                if rel_x < WIDTH:
-                    screen.blit(image,(rel_x,0+240*bkgd_list.index(image)))
-            if boss.appear and boss.spell[0].spellcard:
-                rel_x = bg_x[3] % WIDTH
-                screen.blit(boss_background, (rel_x - WIDTH,0))
-                if rel_x < WIDTH:
-                    screen.blit(boss_background,(rel_x,0))
+            background_scroll()
             # 점수 표시
             bomb_group.draw(screen)
             score_text = score_font.render(str(score).zfill(10), True, (255,255,255))
