@@ -1,3 +1,4 @@
+from audioop import add
 from sys import float_repr_style
 import pygame, math
 from random import randint, uniform
@@ -30,6 +31,7 @@ def play_game():
     menu_img = pygame.image.load('resources\Image\Menus.png').convert_alpha()
     item_img = pygame.image.load('resources\Image\item.png').convert_alpha()
     skill_img = pygame.image.load('resources\Image\skill.png').convert_alpha()
+    ui_img = pygame.image.load('resources\Image\player_ui.png').convert_alpha()
     background_img = pygame.transform.scale(background_img, (WIDTH, HEIGHT))
     bg_image = pygame.transform.scale2x(bg_image)
     bg2_image = pygame.transform.scale2x(bg2_image)
@@ -86,6 +88,7 @@ def play_game():
     s_enedead.set_volume(sfx_volume+0.15)
     FONT_1 = 'resources\Font\SEBANG Gothic Bold.ttf' 
     FIELD_1 = 'resources\Music\\BGM\\Unforgettable, the Nostalgic Greenery.wav'
+    FIELD_2 = 'resources\Music\\BGM\\【東方Arrange】The Lake Reflects the Cleansed Moonlight【chair ちぇあ】.wav'
     BOSS_BGM1 = 'resources\Music\\BGM\\The Rabbit Has Landed.wav'
     # 플레이어
     class Player(pygame.sprite.Sprite):
@@ -100,7 +103,7 @@ def play_game():
             
             self.speed = speed
             self.health = health
-            self.power = 0
+            self.power = 400
             self.mp = 8
 
             self.count = 0
@@ -127,6 +130,9 @@ def play_game():
             if keys[pygame.K_LEFT]:dx -= 0 if self.rect.centerx <= 0 + 20 else self.speed            
             if keys[pygame.K_DOWN]:dy += 0 if self.rect.centery >= 720-20 else self.speed               
             if keys[pygame.K_UP]:dy -= 0 if self.rect.centery <= 0+20 else self.speed
+            if self.rect.centerx <= -100: 
+                dx = 0
+                dy = 0
             
             # 총 쏘기 이벤트
             if keys[pygame.K_z] and frame_count % 4 == 0 and not player.godmod and not pause:
@@ -196,8 +202,6 @@ def play_game():
                 self.adddir -= 2
                 self.radi += 1.2
 
-
-
             if int(player.power/100) == 1:
                 self.ballxy[0] = move_circle(get_new_pos(player.pos,-16,-16),0,self.radi)
             if int(player.power/100) == 2:
@@ -216,10 +220,10 @@ def play_game():
             self.count += 1
 
         def draw(self):
-            screen.blit(self.ball,get_new_pos(self.ballxy[0]))
-            screen.blit(self.ball,get_new_pos(self.ballxy[1]))
-            screen.blit(self.ball,get_new_pos(self.ballxy[2]))
-            screen.blit(self.ball,get_new_pos(self.ballxy[3]))
+            if player.power >= 100:screen.blit(self.ball,get_new_pos(self.ballxy[0]))
+            if player.power >= 200:screen.blit(self.ball,get_new_pos(self.ballxy[1]))
+            if player.power >= 300:screen.blit(self.ball,get_new_pos(self.ballxy[2]))
+            if player.power >= 400:screen.blit(self.ball,get_new_pos(self.ballxy[3]))
 
     class Bomb(pygame.sprite.Sprite):
         def __init__(self, pos, num, col=0):
@@ -315,7 +319,7 @@ def play_game():
                 self.speed = 20
                 self.damage = 1
                 if enemy_group: self.direction = look_at_point(self.pos,enemy_group.sprites()[0].pos)
-                if boss.appear: self.direction = look_at_point(self.pos,boss_group.sprites()[0].pos)
+                if boss.attack_start: self.direction = look_at_point(self.pos,boss_group.sprites()[0].pos)
             self.image_sample = self.image.copy()
             self.image_rotate = pygame.transform.rotate(self.image_sample, self.direction)
             
@@ -392,6 +396,8 @@ def play_game():
             self.list = [0,0,0,0]
             self.max_health = 0
             self.health = 1
+            self.real_max_health = 0
+            self.real_health = 0
             self.num = 0
 
             # 적이동을 위한 값
@@ -404,7 +410,7 @@ def play_game():
             self.dieleft = False
             self.spell = []
             self.dies = False
-
+            self.died_next_stage = False
             self.appear = False
             self.real_appear = False
             self.attack_start = False
@@ -438,6 +444,7 @@ def play_game():
                                     s_damage1.play(loops=1, maxtime=50)  
                                 else: 
                                     s_damage0.play(loops=1, maxtime=50)
+                                self.real_health -= beam.damage
                                 beam.can_damage = False
 
                     if self.health <= 0 and not self.dieleft and self.ready: # 체력다 닳음 죽은적이없고 스펠시전 중이였을때 실행
@@ -456,14 +463,17 @@ def play_game():
                                     item_group.add(Item(get_new_pos(self.pos,randint(-100,100),randint(-100,100)),0))
                                 for _ in range(0,40):
                                     item_group.add(Item(get_new_pos(self.pos,randint(-200,200),randint(-200,200)),1))
-                        else:#퇴장
+                        else:#퇴장(다음 스테이지로, 공격멈추기)
                             del self.spell[0]
                             s_enep1.play()
                             self.dieleft = True
                             self.move_point = (0,0)
-                            self.appear = False
+                            self.attack_start = False
+                            self.died_next_stage = True
+                            self.count = 0
                     self.count += 1
 
+                # 처음등장시 중앙으로 오기
                 if self.real_appear and not self.attack_start:
                     if distance(self.pos,(780,360)) <= 5:
                         self.pos = (WIDTH-300,HEIGHT/2)
@@ -472,12 +482,26 @@ def play_game():
                         self.move_point = ((780-self.pos[0])/60,(360-self.pos[1])/60)
                     self.pos = (self.pos[0]+self.move_point[0],self.pos[1] + self.move_point[1])
             
-            if self.dieleft: # 죽었다면 삭제
+            
+            if self.dieleft: # 죽었을때 이벤트
                 remove_allbullet()
-                self.pos = (-128,-128) 
+                if self.dies: 
+                    self.pos = (-128,-128) 
+                    self.dieleft = False
+                    self.real_appear = False
+                    self.appear = False
+                else:
+                    self.count += 1
+                    if self.count > 60:
+                        self.pos = get_new_pos(self.pos,5,5)
+                        if self.pos[0] > WIDTH+50:
+                            self.dieleft = False
+                            self.real_appear = False
+                            self.appear = False 
+                            self.count = 0                          
                 if self.num == 2:
                     text.pause = False
-                self.dieleft = False
+                
             self.rect.center = (int(self.pos[0]),int(self.pos[1])) 
     
     class Spell():
@@ -910,7 +934,11 @@ def play_game():
                 self.pos = boss.pos
                 self.count += 1
                 try:self.image = white_circle[len(white_circle)-1-self.count]
-                except: self.kill()               
+                except: self.kill()
+            if self.num == 99:
+                self.count += 1
+                try:self.image = black_screen[self.count-1]   
+                except:self.kill()            
                 
 
             self.rect = self.image.get_rect(center = get_new_pos((self.pos)))
@@ -983,24 +1011,31 @@ def play_game():
     class UI():
         def __init__(self,val):
             self.val = val
+            self.ui_font = pygame.font.Font(FONT_1, 30)
+            self.ui_font2 = pygame.font.Font(FONT_1, 28)
             self.power= pygame.Surface((100, 20), pygame.SRCALPHA)
-            self.power_xy = (20,20)
-            self.skill_xy = (0,0)
+            self.power_xy = (60,58)
+            self.skill_xy = (230,13)
+            self.ui_img = pygame.Surface((400,80), pygame.SRCALPHA)
+            self.ui_img.blit(ui_img,(0,0),(0,0,400,80))
 
         def draw(self):
-            if player.power < 100:pygame.draw.rect(screen, (255,10,0), ((self.power_xy),(player.power*2,20)))
-            else:pygame.draw.rect(screen, (255,10,0), ((self.power_xy),(200,20)))
-            if player.power < 200:pygame.draw.rect(screen, (0,255,0), ((self.power_xy),(player.power*2-100*2,20)))
-            else:pygame.draw.rect(screen, (0,255,0), ((self.power_xy),(200,20)))
-            if player.power < 300:pygame.draw.rect(screen, (0,0,255), ((self.power_xy),(player.power*2-200*2,20)))
-            else:pygame.draw.rect(screen, (0,0,255), ((self.power_xy),(200,20)))
-            if player.power < 400:pygame.draw.rect(screen, (0,0,0), ((self.power_xy),(player.power*2-300*2,20)))
-            else:pygame.draw.rect(screen, (0,0,0), ((self.power_xy),(200,20)))
-            text = ui_font.render(str(player.power), True, (255,255,255))
-            screen.blit(text,self.power_xy) 
-            text = ui_font.render("MP " + str(player.mp)+"/ 8", True, (255,255,255))
+
+            if player.power < 100:pygame.draw.rect(screen, (0, 59, 117), ((self.power_xy),(player.power*2.8,18)))
+            else:pygame.draw.rect(screen, (0, 59, 117), ((self.power_xy),(280,18)))
+            if player.power < 200:pygame.draw.rect(screen, (19, 97, 173), ((self.power_xy),(player.power*2.8-100*2.8,18)))
+            else:pygame.draw.rect(screen, (19, 97, 173), ((self.power_xy),(280,18)))
+            if player.power < 300:pygame.draw.rect(screen, (41, 129, 214), ((self.power_xy),(player.power*2.8-200*2.8,18)))
+            else:pygame.draw.rect(screen, (41, 129, 214), ((self.power_xy),(280,18)))
+            if player.power < 400:pygame.draw.rect(screen, (74, 162, 247), ((self.power_xy),(player.power*2.8-300*2.8,18)))
+            else:pygame.draw.rect(screen, (74, 162, 247), ((self.power_xy),(280,18)))   
+            screen.blit(self.ui_img,(0,0))
+            text = self.ui_font2.render(str(player.power), True, (255,255,255))
+            screen.blit(text,get_new_pos(self.power_xy,285,-15)) 
+            text = self.ui_font.render("MP " + str(player.mp)+"/ 8", True, (255,255,255))
             screen.blit(text,self.skill_xy)
-    
+            score_text = score_font.render(str(score).zfill(10), True, (255,255,255))
+            screen.blit(score_text,(WIDTH-score_text.get_rect().width,0))            
     class TextBox():
         def __init__(self):
             self.image1 =  pygame.Surface((200,400), pygame.SRCALPHA)
@@ -1014,7 +1049,7 @@ def play_game():
             self.pause = False
             self.count = 0
             self.font = pygame.font.Font(FONT_1, 40)
-            self.textbox = pygame.Surface((980,200), pygame.SRCALPHA)
+            self.textbox = pygame.Surface((980,1), pygame.SRCALPHA)
             self.textbox.fill((0,0,0,150))
             self.turn = 0
             self.char_move = [-80,-80]
@@ -1091,15 +1126,9 @@ def play_game():
             if self.started and not self.pause:
                 try:                    
                     if self.stat > 0: 
-                        if self.count >= 50: # 대화
-
-
-                                
-
+                        if self.count >= 50: # 대화              
                             screen.blit(self.image1,(0+self.char_move[0],HEIGHT-400-self.char_move[0]))
                             if boss.real_appear: screen.blit(self.image2,(WIDTH-200-self.char_move[1],HEIGHT-400-self.char_move[1]))
-                                
-
                         screen.blit(self.textbox,(50,HEIGHT-250))
                         screen.blit(self.text,(100,HEIGHT-230))
                         screen.blit(self.text2,(100,HEIGHT-180))
@@ -1108,18 +1137,22 @@ def play_game():
                 except:
                     pass
 
-        def re_start(self,stat):
+        def re_start(self):
             self.image1 =  pygame.Surface((200,400), pygame.SRCALPHA)
             self.image2 =  pygame.Surface((200,400), pygame.SRCALPHA)
             self.image1.fill((255,255,255))
             self.image2.fill((255,255,255))
-            self.stat = stat-1
+            self.stat = 0
             self.text = ""
             self.text2 = ""
-            self.started = True
+            self.started = False
+            self.pause = False
             self.count = 0
-            self.textbox = pygame.Surface((980,200), pygame.SRCALPHA)
+            self.font = pygame.font.Font(FONT_1, 40)
+            self.textbox = pygame.Surface((980,1), pygame.SRCALPHA)
             self.textbox.fill((0,0,0,150))
+            self.turn = 0
+            self.char_move = [-80,-80]
 
     class Back_Ground():
         def __init__(self, img, rect, speed, num, y=0,not_appear=False):
@@ -1238,7 +1271,7 @@ def play_game():
             return (0,255,0)
 
     def background_scroll():
-        if boss.appear and boss.spell[0].spellcard:
+        if boss.spell and boss.appear and boss.spell[0].spellcard :
             rel_x = 3*-frame_count % WIDTH
             screen.blit(boss_background, (rel_x - WIDTH,0))
             if rel_x < WIDTH:
@@ -1253,6 +1286,13 @@ def play_game():
                         screen.blit(image.image,(rel_x,image.y))
                     if image.appear and rel_x == 0: 
                         bkgd_list[bkgd_list.index(image)].appear = False
+                        if image.num == 4:delete_background(2)
+                        if image.num == 5:delete_background(1)
+
+    def delete_background(num):
+        for img in bkgd_list:
+            if img.num == num:
+                del bkgd_list[bkgd_list.index(img)]
 
     # 이미지 나눠 저장하기
     a_list = []
@@ -1331,9 +1371,22 @@ def play_game():
         image = pygame.transform.scale2x(image)
         cur_list.append(image)
     white_circle = cur_list
-
+    cur_list = []
+    for i in range(0,60):
+        image = pygame.Surface((WIDTH,HEIGHT), pygame.SRCALPHA)
+        image.fill((0,0,0,0+i*4))
+        cur_list.append(image)
+    for i in range(0,60):
+        image = pygame.Surface((WIDTH,HEIGHT), pygame.SRCALPHA)
+        image.fill((0,0,0))
+        cur_list.append(image)
+    for i in range(0,60):
+        image = pygame.Surface((WIDTH,HEIGHT), pygame.SRCALPHA)
+        image.fill((0,0,0,255-i*4))
+        cur_list.append(image)
+    black_screen = cur_list
     # 개발자 전용
-    stage_fun = 1
+    
     global bkgd, time_stop
     global stage_count, boss_group 
     # 초기 설정
@@ -1349,7 +1402,8 @@ def play_game():
     stage_count = 0
     
     
-    global stage_line, stage_cline, stage_repeat_count, stage_condition, stage_challenge
+    global stage_line, stage_cline, stage_repeat_count, stage_condition, stage_challenge, stage_fun
+    stage_fun = 0
     stage_line = 0
     stage_cline = 0
     stage_repeat_count = 0
@@ -1372,7 +1426,7 @@ def play_game():
     bullet_size = (10,6,8,8,6,6,6,9,6,7,7,4,5,15,15,20,10,10,10,20)
     spr = pygame.sprite.Group()
     magic_spr = pygame.sprite.Group()
-    player = Player(WIDTH/4,HEIGHT/2,5,500)
+    player = Player(-125,-125,5,500)
     player_group = pygame.sprite.Group(player)
     player_sub = Player_sub(1)
     bomb_group = pygame.sprite.Group()
@@ -1398,10 +1452,8 @@ def play_game():
     global bkgd_list,boss_background
     bkgd_list = []
     boss_background = pygame.Surface((1080,720))
-    boss_bgx = [0,3]
     # 폰트 불러오기
     score_font = pygame.font.Font(FONT_1, 50)
-    ui_font = pygame.font.Font(FONT_1, 20)
     fps = 60
     # 스펠카드 모음
     spells = [Spell(1,1000,False,"통상1"),Spell(2,1000,True,"기다라라 정글"),Spell(3,1000,False),Spell(4,1300,True,"무지개 아이스크름"),Spell(5,1300,True,"최고의 네잎클로버")]
@@ -1453,18 +1505,18 @@ def play_game():
         if time == stage_count and stage_line == stage_cline:
             stage_count = 0
             stage_line += 1
-            if val == 1:bkgd_list.append(Back_Ground(bg_image,(1080,0,1080,240),1,0,0,True))
-            if val == 2:bkgd_list.append(Back_Ground(bg_image,(1080,480,1080,240),3,0,480,True))
-            if val == 3:bkgd_list.append(Back_Ground(bg_image,(2160,0,1080,580),2,0,0,True)) 
+            if val == 1:bkgd_list.append(Back_Ground(bg_image,(1080,0,1080,240),1,3,0,True))
+            if val == 2:bkgd_list.append(Back_Ground(bg_image,(1080,480,1080,240),3,4,480,True))
+            if val == 3:bkgd_list.append(Back_Ground(bg_image,(2160,0,1080,580),2,5,0,True)) 
         stage_cline += 1
     # 게임의 배경, 스테이지
     def game_defalt_setting(fun): # 게임 스테이지 배경 정하기
-        global bgm_num, bkgd, bkgd_list
+        global bgm_num, bkgd_list
         ##############################################
         if fun == 1:
             bkgd_list.append(Back_Ground(bg_image,(0,0,1080,240),1,0,0))
-            bkgd_list.append(Back_Ground(bg_image,(0,240,1080,240),2,0,240))
-            bkgd_list.append(Back_Ground(bg_image,(0,480,1080,240),3,0,480))
+            bkgd_list.append(Back_Ground(bg_image,(0,240,1080,240),2,1,240))
+            bkgd_list.append(Back_Ground(bg_image,(0,480,1080,240),3,2,480))
         if fun == 2:
             bgm = 1
         if fun == 3:
@@ -1483,6 +1535,8 @@ def play_game():
         pygame.mixer.music.stop()
         if fun == 1:
             pygame.mixer.music.load(FIELD_1)
+        if fun == 2:
+            pygame.mixer.music.load(FIELD_2)
     # 소환하는 적 
 
     #################################################
@@ -1566,6 +1620,7 @@ def play_game():
         boss.dieleft = False
         boss.attack_start = False
         boss.real_appear = False
+        boss.died_next_stage = False
         if num == 1: 
             boss.pos = (WIDTH,HEIGHT)
             boss.radius = 40
@@ -1584,6 +1639,10 @@ def play_game():
             boss.dies = True
             boss_background.blit(bg2_image,(0,0),(0,0,1080,720))
             text.started = True
+        boss.real_max_health = 0
+        for i in boss.spell:
+            boss.real_max_health += i.health
+        boss.real_health = boss.real_max_health
 
         boss.appear = True
         boss.rect = boss.image.get_rect(center = (boss.pos))
@@ -1677,158 +1736,325 @@ def play_game():
     # 스테이지
     stage_challenge = 0
     def stage_manager():
-        global stage_cline, stage_line, stage_repeat_count, stage_count, stage_condition, stage_challenge
+        global stage_cline, stage_line, stage_repeat_count, stage_count, stage_condition, stage_challenge,stage_fun
         
-        if stage_condition == 1:
-            game_defalt_setting(stage_fun)
-            pygame.mixer.music.play(-1)
-            stage_condition = 2
-            #effect.add(Effect(player.pos,1))
-        if stage_fun == 1:
-            if stage_challenge == 0:
-                pokemon_spawn(1,1012,-30,120)
-                pokemon_spawn(1,912,-30,0)
-
-                if while_poke_spawn(30,10,2):
-                    pokemon_spawn(1,1012,-30,30)
+        if True:
+            if stage_condition == 1:
+                add_effect((540,360),99)
+                stage_fun += 1
+                stage_count = 0
+                stage_condition += 1
+            if stage_condition == 2:
+                stage_count += 1
+                if stage_count >= 60:
+                    stage_condition += 1
+            if stage_condition == 3:
+                game_defalt_setting(stage_fun)
+                player.pos = (WIDTH/4,HEIGHT/2)
+                stage_condition += 1
+            if stage_condition == 4:
+                stage_count += 1
+                if stage_count >= 180:
+                    stage_condition += 1
+            if stage_condition == 5:
+                pygame.mixer.music.play(-1)
+                stage_condition += 1
+                stage_count = 0
+        if stage_condition == 6:
+            if stage_fun == 1:
+                if stage_challenge == 0:
+                    pokemon_spawn(1,1012,-30,120)
                     pokemon_spawn(1,912,-30,0)
-                    end_while_poke_spawn(2,10)
 
-                pokemon_spawn(2,1012,HEIGHT+30,0)
-                pokemon_spawn(2,912,HEIGHT+30,0)
+                    if while_poke_spawn(30,10,2):
+                        pokemon_spawn(1,1012,-30,30)
+                        pokemon_spawn(1,912,-30,0)
+                        end_while_poke_spawn(2,10)
 
-                if while_poke_spawn(30,10,2):
-                    pokemon_spawn(2,1012,HEIGHT+30,30)
+                    pokemon_spawn(2,1012,HEIGHT+30,0)
                     pokemon_spawn(2,912,HEIGHT+30,0)
-                    end_while_poke_spawn(2,10)
 
-                pokemon_spawn(1,1012,-30,0)
-                pokemon_spawn(1,912,-30,0)
-                pokemon_spawn(2,1012,HEIGHT+30,0)
-                pokemon_spawn(2,912,HEIGHT+30,0)
+                    if while_poke_spawn(30,10,2):
+                        pokemon_spawn(2,1012,HEIGHT+30,30)
+                        pokemon_spawn(2,912,HEIGHT+30,0)
+                        end_while_poke_spawn(2,10)
 
-                if while_poke_spawn(30,10,4):
-                    pokemon_spawn(1,1012,-30,30)
+                    pokemon_spawn(1,1012,-30,0)
                     pokemon_spawn(1,912,-30,0)
                     pokemon_spawn(2,1012,HEIGHT+30,0)
-                    pokemon_spawn(2,912,HEIGHT+30,0) 
-                    end_while_poke_spawn(4,10)    
+                    pokemon_spawn(2,912,HEIGHT+30,0)
 
-                pokemon_spawn(1,1112,-30,60)
-                pokemon_spawn(2,1112,HEIGHT+30,10)
-                pokemon_spawn(1,1112,-30,10)
-                pokemon_spawn(2,1112,HEIGHT+30,10)
-                title_spawn(1,240)
+                    if while_poke_spawn(30,10,4):
+                        pokemon_spawn(1,1012,-30,30)
+                        pokemon_spawn(1,912,-30,0)
+                        pokemon_spawn(2,1012,HEIGHT+30,0)
+                        pokemon_spawn(2,912,HEIGHT+30,0) 
+                        end_while_poke_spawn(4,10)    
 
-                next_challenge(260)
-            if stage_challenge == 1:
-                bground_spawn(1,1)
-                if while_poke_spawn(40,10,2):
-                    pokemon_spawn(3,WIDTH+64,HEIGHT-stage_repeat_count*HEIGHT/10-20,40)
-                    pokemon_spawn(3,WIDTH+64,stage_repeat_count*HEIGHT/10+20,0)
-                    if while_time(stage_repeat_count,3):
-                        enemy_group.add(Enemy(WIDTH+64,HEIGHT-stage_repeat_count*HEIGHT/10-20,180,4,10,13,30,4))
-                    end_while_poke_spawn(2,10)
+                    pokemon_spawn(1,1112,-30,60)
+                    pokemon_spawn(2,1112,HEIGHT+30,10)
+                    pokemon_spawn(1,1112,-30,10)
+                    pokemon_spawn(2,1112,HEIGHT+30,10)
+                    title_spawn(1,240)
 
-                if while_poke_spawn(40,10,2):
-                    pokemon_spawn(3,WIDTH+64,HEIGHT-stage_repeat_count*HEIGHT/10-20,40)
-                    pokemon_spawn(3,WIDTH+64,stage_repeat_count*HEIGHT/10+20,0)
-                    if while_time(stage_repeat_count,3):
-                        enemy_group.add(Enemy(WIDTH+64,stage_repeat_count*HEIGHT/10+20,180,4,10,13,30,4))
-                    end_while_poke_spawn(2,10)
+                    next_challenge(260)
+                if stage_challenge == 1:
+                    bground_spawn(1,1)
+                    if while_poke_spawn(40,10,2):
+                        pokemon_spawn(3,WIDTH+64,HEIGHT-stage_repeat_count*HEIGHT/10-20,40)
+                        pokemon_spawn(3,WIDTH+64,stage_repeat_count*HEIGHT/10+20,0)
+                        if while_time(stage_repeat_count,3):
+                            enemy_group.add(Enemy(WIDTH+64,HEIGHT-stage_repeat_count*HEIGHT/10-20,180,4,10,13,30,4))
+                        end_while_poke_spawn(2,10)
 
-                if while_poke_spawn(10,15,2):
-                    pokemon_spawn(5,WIDTH,20,10)
-                    pokemon_spawn(6,WIDTH,HEIGHT-20,0)
-                    end_while_poke_spawn(2,15)
+                    if while_poke_spawn(40,10,2):
+                        pokemon_spawn(3,WIDTH+64,HEIGHT-stage_repeat_count*HEIGHT/10-20,40)
+                        pokemon_spawn(3,WIDTH+64,stage_repeat_count*HEIGHT/10+20,0)
+                        if while_time(stage_repeat_count,3):
+                            enemy_group.add(Enemy(WIDTH+64,stage_repeat_count*HEIGHT/10+20,180,4,10,13,30,4))
+                        end_while_poke_spawn(2,10)
 
-                if while_poke_spawn(40,10,2):
-                    pokemon_spawn(3,WIDTH+64,HEIGHT-stage_repeat_count*HEIGHT/10-20,40)
-                    pokemon_spawn(3,WIDTH+64,stage_repeat_count*HEIGHT/10+20,0)
-                    if while_time(stage_repeat_count,2):
-                        enemy_group.add(Enemy(WIDTH+64,HEIGHT-stage_repeat_count*HEIGHT/10-20,180,4,10,13,30,4))
-                        enemy_group.add(Enemy(WIDTH+64,stage_repeat_count*HEIGHT/10+20,180,4,10,13,30,4))
-                    end_while_poke_spawn(2,10)
-                
-                next_challenge(240)
-            if stage_challenge == 2:
-                if not boss.appear: 
-                    boss_spawn(1)
-                if boss.health <= 0 and boss.appear:
-                    stage_count = 0
-                    boss.appear = False
-                    next_challenge(0)
-            if stage_challenge == 3:
-                bground_spawn(2,1)
-                if while_poke_spawn(10,5,2):
-                    pokemon_spawn(5,WIDTH,20,10)
-                    pokemon_spawn(6,WIDTH,HEIGHT-20,0)
-                    end_while_poke_spawn(2,5)
+                    if while_poke_spawn(10,15,2):
+                        pokemon_spawn(5,WIDTH,20,10)
+                        pokemon_spawn(6,WIDTH,HEIGHT-20,0)
+                        end_while_poke_spawn(2,15)
 
-                pokemon_spawn(4,WIDTH,HEIGHT/2,60)
-                pokemon_spawn(4,WIDTH,HEIGHT/2+20,60)
-                pokemon_spawn(4,WIDTH,HEIGHT/2+60,60)
-                pokemon_spawn(4,WIDTH,HEIGHT/2-20,60)
-                pokemon_spawn(4,WIDTH,HEIGHT/2-60,60)
+                    if while_poke_spawn(40,10,2):
+                        pokemon_spawn(3,WIDTH+64,HEIGHT-stage_repeat_count*HEIGHT/10-20,40)
+                        pokemon_spawn(3,WIDTH+64,stage_repeat_count*HEIGHT/10+20,0)
+                        if while_time(stage_repeat_count,2):
+                            enemy_group.add(Enemy(WIDTH+64,HEIGHT-stage_repeat_count*HEIGHT/10-20,180,4,10,13,30,4))
+                            enemy_group.add(Enemy(WIDTH+64,stage_repeat_count*HEIGHT/10+20,180,4,10,13,30,4))
+                        end_while_poke_spawn(2,10)
+                    
+                    next_challenge(240)
+                if stage_challenge == 2:
+                    if not boss.appear and not boss.died_next_stage: 
+                        boss_spawn(1)
+                    if boss.died_next_stage:
+                        stage_count = 0
+                        boss.died_next_stage = False
+                        next_challenge(0)
+                if stage_challenge == 3:
+                    bground_spawn(2,1)
+                    if while_poke_spawn(10,5,2):
+                        pokemon_spawn(5,WIDTH,20,10)
+                        pokemon_spawn(6,WIDTH,HEIGHT-20,0)
+                        end_while_poke_spawn(2,5)
 
-                if while_poke_spawn(20,10,4):
-                    pokemon_spawn(1,1012,-30,20)
+                    pokemon_spawn(4,WIDTH,HEIGHT/2,60)
+                    pokemon_spawn(4,WIDTH,HEIGHT/2+20,60)
+                    pokemon_spawn(4,WIDTH,HEIGHT/2+60,60)
+                    pokemon_spawn(4,WIDTH,HEIGHT/2-20,60)
+                    pokemon_spawn(4,WIDTH,HEIGHT/2-60,60)
+
+                    if while_poke_spawn(20,10,4):
+                        pokemon_spawn(1,1012,-30,20)
+                        pokemon_spawn(1,912,-30,0)
+                        pokemon_spawn(2,1012,HEIGHT+30,0)
+                        pokemon_spawn(2,912,HEIGHT+30,0) 
+                        end_while_poke_spawn(4,10)
+
+                    if while_poke_spawn(10,5,2):
+                        pokemon_spawn(5,WIDTH,20,10)
+                        pokemon_spawn(6,WIDTH,HEIGHT-20,0)
+                        end_while_poke_spawn(2,5)
+
+                    pokemon_spawn(4,WIDTH,HEIGHT/2,30)
+                    pokemon_spawn(4,WIDTH,HEIGHT/2+40,30)
+                    pokemon_spawn(4,WIDTH,HEIGHT/2-40,0)
+                    pokemon_spawn(4,WIDTH,HEIGHT/2+80,30)
+                    pokemon_spawn(4,WIDTH,HEIGHT/2,0)
+                    pokemon_spawn(4,WIDTH,HEIGHT/2-80,0)
+                    next_challenge(360)
+                if stage_challenge == 4:
+                    bground_spawn(3,1)
+                    pokemon_spawn(7,WIDTH-120,-30,60,90)
+                    pokemon_spawn(7,WIDTH-120,-30,60,90)
+                    pokemon_spawn(7,WIDTH-120,-30,60,90)
+                    pokemon_spawn(7,WIDTH-120,-30,120,90)
+                    pokemon_spawn(7,WIDTH-120,HEIGHT+30,60,-90)
+                    pokemon_spawn(7,WIDTH-120,-30,60,90)
+                    pokemon_spawn(7,WIDTH-120,HEIGHT+30,60,-90)
+                    pokemon_spawn(7,WIDTH-120,-30,60,90)
+                    pokemon_spawn(7,WIDTH-120,HEIGHT+30,60,-90)
+
+                    if while_poke_spawn(40,10,2):
+                        pokemon_spawn(3,WIDTH+64,HEIGHT-stage_repeat_count*HEIGHT/10-20,40)
+                        pokemon_spawn(3,WIDTH+64,stage_repeat_count*HEIGHT/10+20,0)
+                        if while_time(stage_repeat_count,3):
+                            enemy_group.add(Enemy(WIDTH+64,HEIGHT-stage_repeat_count*HEIGHT/10-20,180,4,10,13,30,4))
+                        if while_time(stage_repeat_count,2):
+                            enemy_group.add(Enemy(WIDTH-120,HEIGHT+30,-90,4,7,15,30,7))
+                        end_while_poke_spawn(2,10)
+                    if while_poke_spawn(40,10,2):
+                        pokemon_spawn(3,WIDTH+64,HEIGHT-stage_repeat_count*HEIGHT/10-20,40)
+                        pokemon_spawn(3,WIDTH+64,stage_repeat_count*HEIGHT/10+20,0)
+                        if while_time(stage_repeat_count,3):
+                            enemy_group.add(Enemy(WIDTH+64,stage_repeat_count*HEIGHT/10+20,180,4,10,13,30,4))
+                        if while_time(stage_repeat_count,2):
+                            enemy_group.add(Enemy(WIDTH-120,-30,90,4,7,15,30,7))
+                        end_while_poke_spawn(2,10)
+                    next_challenge(360)
+                if stage_challenge == 5:
+                    if not boss.appear and not boss.died_next_stage: 
+                        boss_spawn(2)
+                    if boss.died_next_stage:
+                        stage_count = 0
+                        if not text.started:
+                            stage_challenge = 0
+                            stage_line = 0
+                            text.re_start()
+                            stage_condition = 1
+            if stage_fun == 2:
+                if stage_challenge == 0:
+                    pokemon_spawn(1,1012,-30,120)
+                    pokemon_spawn(1,912,-30,0)
+
+                    if while_poke_spawn(30,10,2):
+                        pokemon_spawn(1,1012,-30,30)
+                        pokemon_spawn(1,912,-30,0)
+                        end_while_poke_spawn(2,10)
+
+                    pokemon_spawn(2,1012,HEIGHT+30,0)
+                    pokemon_spawn(2,912,HEIGHT+30,0)
+
+                    if while_poke_spawn(30,10,2):
+                        pokemon_spawn(2,1012,HEIGHT+30,30)
+                        pokemon_spawn(2,912,HEIGHT+30,0)
+                        end_while_poke_spawn(2,10)
+
+                    pokemon_spawn(1,1012,-30,0)
                     pokemon_spawn(1,912,-30,0)
                     pokemon_spawn(2,1012,HEIGHT+30,0)
-                    pokemon_spawn(2,912,HEIGHT+30,0) 
-                    end_while_poke_spawn(4,10)
+                    pokemon_spawn(2,912,HEIGHT+30,0)
 
-                if while_poke_spawn(10,5,2):
-                    pokemon_spawn(5,WIDTH,20,10)
-                    pokemon_spawn(6,WIDTH,HEIGHT-20,0)
-                    end_while_poke_spawn(2,5)
+                    if while_poke_spawn(30,10,4):
+                        pokemon_spawn(1,1012,-30,30)
+                        pokemon_spawn(1,912,-30,0)
+                        pokemon_spawn(2,1012,HEIGHT+30,0)
+                        pokemon_spawn(2,912,HEIGHT+30,0) 
+                        end_while_poke_spawn(4,10)    
 
-                pokemon_spawn(4,WIDTH,HEIGHT/2,30)
-                pokemon_spawn(4,WIDTH,HEIGHT/2+40,30)
-                pokemon_spawn(4,WIDTH,HEIGHT/2-40,0)
-                pokemon_spawn(4,WIDTH,HEIGHT/2+80,30)
-                pokemon_spawn(4,WIDTH,HEIGHT/2,0)
-                pokemon_spawn(4,WIDTH,HEIGHT/2-80,0)
-                next_challenge(360)
-            if stage_challenge == 4:
-                bground_spawn(3,1)
-                pokemon_spawn(7,WIDTH-120,-30,60,90)
-                pokemon_spawn(7,WIDTH-120,-30,60,90)
-                pokemon_spawn(7,WIDTH-120,-30,60,90)
-                pokemon_spawn(7,WIDTH-120,-30,120,90)
-                pokemon_spawn(7,WIDTH-120,HEIGHT+30,60,-90)
-                pokemon_spawn(7,WIDTH-120,-30,60,90)
-                pokemon_spawn(7,WIDTH-120,HEIGHT+30,60,-90)
-                pokemon_spawn(7,WIDTH-120,-30,60,90)
-                pokemon_spawn(7,WIDTH-120,HEIGHT+30,60,-90)
+                    pokemon_spawn(1,1112,-30,60)
+                    pokemon_spawn(2,1112,HEIGHT+30,10)
+                    pokemon_spawn(1,1112,-30,10)
+                    pokemon_spawn(2,1112,HEIGHT+30,10)
+                    title_spawn(1,240)
 
-                if while_poke_spawn(40,10,2):
-                    pokemon_spawn(3,WIDTH+64,HEIGHT-stage_repeat_count*HEIGHT/10-20,40)
-                    pokemon_spawn(3,WIDTH+64,stage_repeat_count*HEIGHT/10+20,0)
-                    if while_time(stage_repeat_count,3):
-                        enemy_group.add(Enemy(WIDTH+64,HEIGHT-stage_repeat_count*HEIGHT/10-20,180,4,10,13,30,4))
-                    if while_time(stage_repeat_count,2):
-                        enemy_group.add(Enemy(WIDTH-120,HEIGHT+30,-90,4,7,15,30,7))
-                    end_while_poke_spawn(2,10)
-                if while_poke_spawn(40,10,2):
-                    pokemon_spawn(3,WIDTH+64,HEIGHT-stage_repeat_count*HEIGHT/10-20,40)
-                    pokemon_spawn(3,WIDTH+64,stage_repeat_count*HEIGHT/10+20,0)
-                    if while_time(stage_repeat_count,3):
-                        enemy_group.add(Enemy(WIDTH+64,stage_repeat_count*HEIGHT/10+20,180,4,10,13,30,4))
-                    if while_time(stage_repeat_count,2):
-                        enemy_group.add(Enemy(WIDTH-120,-30,90,4,7,15,30,7))
-                    end_while_poke_spawn(2,10)
-                next_challenge(360)
-            if stage_challenge == 5:
-                if not boss.appear: 
-                    boss_spawn(2)
-                if boss.health <= 0 and boss.appear:
-                    stage_count = 0
-                    next_challenge(0)
+                    next_challenge(260)
+                if stage_challenge == 1:
+                    bground_spawn(1,1)
+                    if while_poke_spawn(40,10,2):
+                        pokemon_spawn(3,WIDTH+64,HEIGHT-stage_repeat_count*HEIGHT/10-20,40)
+                        pokemon_spawn(3,WIDTH+64,stage_repeat_count*HEIGHT/10+20,0)
+                        if while_time(stage_repeat_count,3):
+                            enemy_group.add(Enemy(WIDTH+64,HEIGHT-stage_repeat_count*HEIGHT/10-20,180,4,10,13,30,4))
+                        end_while_poke_spawn(2,10)
 
+                    if while_poke_spawn(40,10,2):
+                        pokemon_spawn(3,WIDTH+64,HEIGHT-stage_repeat_count*HEIGHT/10-20,40)
+                        pokemon_spawn(3,WIDTH+64,stage_repeat_count*HEIGHT/10+20,0)
+                        if while_time(stage_repeat_count,3):
+                            enemy_group.add(Enemy(WIDTH+64,stage_repeat_count*HEIGHT/10+20,180,4,10,13,30,4))
+                        end_while_poke_spawn(2,10)
 
+                    if while_poke_spawn(10,15,2):
+                        pokemon_spawn(5,WIDTH,20,10)
+                        pokemon_spawn(6,WIDTH,HEIGHT-20,0)
+                        end_while_poke_spawn(2,15)
+
+                    if while_poke_spawn(40,10,2):
+                        pokemon_spawn(3,WIDTH+64,HEIGHT-stage_repeat_count*HEIGHT/10-20,40)
+                        pokemon_spawn(3,WIDTH+64,stage_repeat_count*HEIGHT/10+20,0)
+                        if while_time(stage_repeat_count,2):
+                            enemy_group.add(Enemy(WIDTH+64,HEIGHT-stage_repeat_count*HEIGHT/10-20,180,4,10,13,30,4))
+                            enemy_group.add(Enemy(WIDTH+64,stage_repeat_count*HEIGHT/10+20,180,4,10,13,30,4))
+                        end_while_poke_spawn(2,10)
+                    
+                    next_challenge(240)
+                if stage_challenge == 2:
+                    if not boss.appear and not boss.died_next_stage: 
+                        boss_spawn(1)
+                    if boss.died_next_stage:
+                        stage_count = 0
+                        boss.died_next_stage = False
+                        next_challenge(0)
+                if stage_challenge == 3:
+                    bground_spawn(2,1)
+                    if while_poke_spawn(10,5,2):
+                        pokemon_spawn(5,WIDTH,20,10)
+                        pokemon_spawn(6,WIDTH,HEIGHT-20,0)
+                        end_while_poke_spawn(2,5)
+
+                    pokemon_spawn(4,WIDTH,HEIGHT/2,60)
+                    pokemon_spawn(4,WIDTH,HEIGHT/2+20,60)
+                    pokemon_spawn(4,WIDTH,HEIGHT/2+60,60)
+                    pokemon_spawn(4,WIDTH,HEIGHT/2-20,60)
+                    pokemon_spawn(4,WIDTH,HEIGHT/2-60,60)
+
+                    if while_poke_spawn(20,10,4):
+                        pokemon_spawn(1,1012,-30,20)
+                        pokemon_spawn(1,912,-30,0)
+                        pokemon_spawn(2,1012,HEIGHT+30,0)
+                        pokemon_spawn(2,912,HEIGHT+30,0) 
+                        end_while_poke_spawn(4,10)
+
+                    if while_poke_spawn(10,5,2):
+                        pokemon_spawn(5,WIDTH,20,10)
+                        pokemon_spawn(6,WIDTH,HEIGHT-20,0)
+                        end_while_poke_spawn(2,5)
+
+                    pokemon_spawn(4,WIDTH,HEIGHT/2,30)
+                    pokemon_spawn(4,WIDTH,HEIGHT/2+40,30)
+                    pokemon_spawn(4,WIDTH,HEIGHT/2-40,0)
+                    pokemon_spawn(4,WIDTH,HEIGHT/2+80,30)
+                    pokemon_spawn(4,WIDTH,HEIGHT/2,0)
+                    pokemon_spawn(4,WIDTH,HEIGHT/2-80,0)
+                    next_challenge(360)
+                if stage_challenge == 4:
+                    bground_spawn(3,1)
+                    pokemon_spawn(7,WIDTH-120,-30,60,90)
+                    pokemon_spawn(7,WIDTH-120,-30,60,90)
+                    pokemon_spawn(7,WIDTH-120,-30,60,90)
+                    pokemon_spawn(7,WIDTH-120,-30,120,90)
+                    pokemon_spawn(7,WIDTH-120,HEIGHT+30,60,-90)
+                    pokemon_spawn(7,WIDTH-120,-30,60,90)
+                    pokemon_spawn(7,WIDTH-120,HEIGHT+30,60,-90)
+                    pokemon_spawn(7,WIDTH-120,-30,60,90)
+                    pokemon_spawn(7,WIDTH-120,HEIGHT+30,60,-90)
+
+                    if while_poke_spawn(40,10,2):
+                        pokemon_spawn(3,WIDTH+64,HEIGHT-stage_repeat_count*HEIGHT/10-20,40)
+                        pokemon_spawn(3,WIDTH+64,stage_repeat_count*HEIGHT/10+20,0)
+                        if while_time(stage_repeat_count,3):
+                            enemy_group.add(Enemy(WIDTH+64,HEIGHT-stage_repeat_count*HEIGHT/10-20,180,4,10,13,30,4))
+                        if while_time(stage_repeat_count,2):
+                            enemy_group.add(Enemy(WIDTH-120,HEIGHT+30,-90,4,7,15,30,7))
+                        end_while_poke_spawn(2,10)
+                    if while_poke_spawn(40,10,2):
+                        pokemon_spawn(3,WIDTH+64,HEIGHT-stage_repeat_count*HEIGHT/10-20,40)
+                        pokemon_spawn(3,WIDTH+64,stage_repeat_count*HEIGHT/10+20,0)
+                        if while_time(stage_repeat_count,3):
+                            enemy_group.add(Enemy(WIDTH+64,stage_repeat_count*HEIGHT/10+20,180,4,10,13,30,4))
+                        if while_time(stage_repeat_count,2):
+                            enemy_group.add(Enemy(WIDTH-120,-30,90,4,7,15,30,7))
+                        end_while_poke_spawn(2,10)
+                    next_challenge(360)
+                if stage_challenge == 5:
+                    if not boss.appear and not boss.died_next_stage: 
+                        boss_spawn(2)
+                    if boss.died_next_stage:
+                        stage_count = 0
+                        if not text.started:
+                            stage_condition = 1
+                            stage_line = 0
+                            stage_fun += 1                       
 
             stage_cline = 0
+
+
+
     ################################################# 
 
     while play:
@@ -1905,42 +2131,37 @@ def play_game():
             background_scroll()
             # 점수 표시
             bomb_group.draw(screen)
-            score_text = score_font.render(str(score).zfill(10), True, (255,255,255))
-            screen.blit(score_text,(WIDTH-score_text.get_rect().width,0))
-
             item_group.draw(screen)
             magic_spr.draw(screen)      
             beams_group.draw(screen)
 
             player_group.draw(screen) 
             player_sub.draw()
+            # 피격점 표시
+            pygame.draw.circle(screen, (200,100,100), get_new_pos(player.pos), 8)
+            pygame.draw.circle(screen, (255,255,255), get_new_pos(player.pos), 7)
             enemy_group.draw(screen)
             
             if not starting or read_end: enemy_group.draw(screen)
 
-            effect_group.draw(screen)
-
             if starting and not read_end: # 원형 체력바 그리기
                 drawArc(screen, (0,0,0), player.pos, 112, 15, 360*100,120 if not player.godmod else 255)
                 drawArc(screen, health_color(player.health/500), player.pos, 110, 10, 360*player.health/500,120 if not player.godmod else 255)
-            if boss.attack_start and boss.health > 0:
+
+            effect_group.draw(screen)
+            if boss.attack_start and boss.health > 0: # 보스 체력바 그리기
                 try:
-                    drawArc(screen, (0, 0, 0), boss.pos, 112, 15, 360*100,200)
-                    drawArc(screen, health_color(boss.health/boss.max_health), boss.pos, 110, 10, 360*boss.health/boss.max_health,200)
-                except:
-                    drawArc(screen, (0, 0, 0), boss.pos, 112, 15, 360*100,200)
-                    drawArc(screen, (0,0,0), boss.pos, 110, 10, 1,200)   
+                    drawArc(screen, (0, 0, 0), boss.pos, 112, 15, 360*100,255)
+                    drawArc(screen, (0, 66, 107), boss.pos, 115, 5, 360*boss.real_health/boss.real_max_health,255)
+                    drawArc(screen, health_color(boss.health/boss.max_health), boss.pos, 110, 10, 360*boss.health/boss.max_health,255)
+                except:pass  
             if boss.appear: boss_group.draw(screen)           
             spr.draw(screen)
-
-            # 피격점 표시
-            pygame.draw.circle(screen, (200,100,100), get_new_pos(player.pos), 8)
-            pygame.draw.circle(screen, (255,255,255), get_new_pos(player.pos), 7)
 
             title.draw()
             if text.started:text.draw()
             ui.draw()
-            if boss.appear and boss.spell[0].spellcard:
+            if boss.spell and boss.appear and boss.spell[0].spellcard:
                 boss.spell[0].draw()
 
             pygame.display.flip()
