@@ -1,10 +1,12 @@
 from audioop import add
+from shutil import move
 from sys import float_repr_style
 import pygame, math
-from random import randint, uniform
+from random import randint, uniform, choice
 from pygame.locals import *
 import cv2
 import numpy
+import time
 
 # 게임에 핵심적인 기능만 주석을 넣었습니다 ##
 # 초기화
@@ -91,6 +93,7 @@ def play_game():
     FIELD_1 = 'resources\Music\\BGM\\Unforgettable, the Nostalgic Greenery.wav'
     FIELD_2 = 'resources\Music\\BGM\\【東方Arrange】The Lake Reflects the Cleansed Moonlight【chair ちぇあ】.wav'
     BOSS_BGM1 = 'resources\Music\\BGM\\The Rabbit Has Landed.wav'
+    BOSS_BGM2 = 'resources\Music\BGM\【東方Arrange】September Pumpkin【chair ちぇあ】.wav'
     # 플레이어
     class Player(pygame.sprite.Sprite):
         def __init__(self, x, y, speed, health):
@@ -389,9 +392,10 @@ def play_game():
             pygame.sprite.Sprite.__init__(self)
             self.image = pygame.Surface((256, 256), pygame.SRCALPHA)      
             self.rect = self.image.get_rect(center = (x, y))
+            self.image2 = self.image.copy()
             self.radius = 0
             self.pos = (x, y)
-            
+            self.image_num = 0
 
             self.count = 0
             self.list = [0,0,0,0]
@@ -405,6 +409,7 @@ def play_game():
             self.move_dir = 0
             self.move_speed = 0
             self.move_point = (0,0)
+            self.move_time = 0
             self.ready = False
             self.move_ready = False # 스펠 시작시 움직이는중?
             self.godmod = False
@@ -420,6 +425,8 @@ def play_game():
             global score
             if self.appear:
                 if self.attack_start:
+                    inum = self.image_num
+                    self.image_num = 0
                     if self.count == 0:
                         effect_group.add(Effect(self.pos,4))
                     # 보스가 등장했을때 실행
@@ -434,7 +441,19 @@ def play_game():
                             self.count = 1
                             self.ready = True
                             self.godmod = False
-                        self.count, self.pos, self.move_dir, self.move_speed, self.ready = boss_attack(self.spell[0].num, self.count, self.pos, self.move_dir, self.move_speed, self.ready)
+                        self.count, self.pos, self.ready = boss_attack(self.spell[0].num, self.count, self.pos, self.ready)
+
+                    if self.move_speed == 0:self.image_num =0
+                    else:
+                        imgdir = self.move_dir
+                        if imgdir < 0: 360+imgdir
+                        if big_small(imgdir,89,269): self.image_num =2
+                        else: self.image_num =1
+                    if inum != self.image_num:
+                        if self.image_num == 0:self.image = self.image2                
+                        if self.image_num == 1:self.image = pygame.transform.rotate(self.image2, -10)
+                        if self.image_num == 2:self.image = pygame.transform.rotate(self.image2, 10)                      
+                        self.rect = self.image.get_rect(center = (round(self.pos[0]),round(self.pos[1])))
 
                     # 빔에 맞았을때
                     if len(collide) > 0 and not self.godmod:
@@ -472,6 +491,10 @@ def play_game():
                             self.attack_start = False
                             self.died_next_stage = True
                             self.count = 0
+                            for _ in range(0,20):
+                                item_group.add(Item(get_new_pos(self.pos,randint(-100,100),randint(-100,100)),0))
+                            for _ in range(0,40):
+                                item_group.add(Item(get_new_pos(self.pos,randint(-200,200),randint(-200,200)),1))
                     self.count += 1
 
                 # 처음등장시 중앙으로 오기
@@ -564,14 +587,19 @@ def play_game():
                 if mod == 0 and sub == 1:
                     screen_die = 1
                 if mod == 1:
-                    self.count += 1
-                    if when_time(self.count,120):
-
-                        for i in range(0,360,20):
-                            bullet(self.pos,i+randint(-5,5),3,2,0)
-                        for i in range(0,360,20):
-                            bullet(self.pos,i+randint(-7,7),2,2,0)
-                        self.kill()
+                    if sub == 1:
+                        self.count += 1
+                        if when_time(self.count,120):
+                            for i in range(0,360,20):
+                                bullet(self.pos,i+randint(-5,5),3,2,0)
+                            self.kill()
+                    if sub == 2:
+                        self.count += 1
+                        if when_time(self.count,120):
+                            for i in range(0,360,20):
+                                bullet(self.pos,i+randint(-5,5),3,2,0)
+                                bullet(self.pos,i+randint(-7,7),2,2,0)
+                            self.kill()                        
                 if mod == 2:
                     if sub == 0:
                         self.direction = look_at_point(self.pos, enemy.pos)
@@ -1056,45 +1084,86 @@ def play_game():
             text = ""
             if self.started and not self.pause:
                 self.stat += 1
-                if self.stat == 1:
-                    self.turn = 0
-                    text = "요즘 따라 좀 덥네"
-                    self.turn
-                if self.stat == 2:
-                    self.turn = 0
-                    text = "이럴땐 호수에서 자는게 제일인데~"
-                if self.stat == 3:
-                    self.turn = 1
-                    boss.real_appear = True
-                    text = "더위를 피할거라면"
-                if self.stat == 4:
-                    self.turn = 1
-                    text = "큰 나무 밑에 있어봐 꽤 시원하다구"
-                if self.stat == 5:
-                    self.turn = 0
-                    text = "말만 그렇지 '엄청' 시원하지 않다고"
-                if self.stat == 6:
-                    self.turn = 1
-                    pygame.mixer.music.stop()
-                    pygame.mixer.music.load(BOSS_BGM1)
-                    pygame.mixer.music.play(-1)
-                    text = "그럼 내가 엄청 시원하게 해줄게!"
-                if self.stat == 7:
-                    # 보스전 시작
-                    self.pause = True
-                    boss.attack_start = True
-                    self.char_move = [-80,-80]
-                    boss.count = 0
-                    self.count = 0
-                if self.stat == 8:
-                    self.turn = 0
-                    text = "확실히 시원하긴 하네~"
-                    boss.count = 0
-                if self.stat == 9:
-                    # 대화 끝
-                    self.started = False
-                    self.count = 0
-
+                if boss.num == 2:
+                    if self.stat == 1:
+                        self.turn = 0
+                        text = "요즘 따라 좀 덥네"
+                        self.turn
+                    if self.stat == 2:
+                        self.turn = 0
+                        text = "이럴땐 호수에서 자는게 제일인데~"
+                    if self.stat == 3:
+                        self.turn = 1
+                        boss.real_appear = True
+                        text = "더위를 피할거라면"
+                    if self.stat == 4:
+                        self.turn = 1
+                        text = "큰 나무 밑에 있어봐 꽤 시원하다구"
+                    if self.stat == 5:
+                        self.turn = 0
+                        text = "말만 그렇지 '엄청' 시원하지 않다고"
+                    if self.stat == 6:
+                        self.turn = 1
+                        pygame.mixer.music.stop()
+                        pygame.mixer.music.load(BOSS_BGM1)
+                        pygame.mixer.music.play(-1)
+                        text = "그럼 내가 엄청 시원하게 해줄게!"
+                    if self.stat == 7:
+                        # 보스전 시작
+                        self.pause = True
+                        boss.attack_start = True
+                        self.char_move = [-80,-80]
+                        boss.count = 0
+                        self.count = 0
+                    if self.stat == 8:
+                        self.turn = 0
+                        text = "확실히 시원하긴 하네~"
+                        boss.count = 0
+                    if self.stat == 9:
+                        # 대화 끝
+                        self.started = False
+                        self.count = 0
+                if boss.num == 4:
+                    if self.stat == 1:
+                        self.turn = 0
+                        text = "바다는 시원할줄 알았는데_여기도 조금 덥네"
+                    if self.stat == 2:
+                        self.turn = 1
+                        text = "너무 더워~"
+                    if self.stat == 3:
+                        self.turn = 1
+                        boss.real_appear = True
+                        text = "요즘따라 바다속이 더 따뜻해졌어"
+                    if self.stat == 4:
+                        self.turn = 0
+                        text = "넌 원래 바다속에 있어야 되지않니?"
+                    if self.stat == 5:
+                        self.turn = 1
+                        text = "바다에 산소가 부족해져서 나왔는데_더 더워"
+                    if self.stat == 6:
+                        self.turn = 1
+                        pygame.mixer.music.stop()
+                        pygame.mixer.music.load(BOSS_BGM2)
+                        pygame.mixer.music.play(-1)
+                        text = "하지만 너랑 싸울 기회는 노칠 수 없지!"
+                    if self.stat == 7:
+                        # 보스전 시작
+                        self.pause = True
+                        boss.attack_start = True
+                        self.char_move = [-80,-80]
+                        boss.count = 0
+                        self.count = 0
+                    if self.stat == 8:
+                        self.turn = 0
+                        text = "이렇게 싸우면 숨쉬러 나오는 의미가 없잖아"
+                        boss.count = 0
+                    if self.stat == 9:
+                        self.turn = 1
+                        text = "흐어..억. 그러네.."
+                    if self.stat == 10:
+                        # 대화 끝
+                        self.started = False
+                        self.count = 0
                 if self.stat > 0:
                     textlist = text.split('_')
                     self.text = self.font.render(textlist[0], True, (255,255,255) if self.turn == 0 else (255, 87, 84))
@@ -1189,7 +1258,6 @@ def play_game():
         return val % time == 0
 
     def bullet(pos,dir,speed,img,col,mode=0,num = (0,0)):
-        #effect.add(Effect(pos,1))
         spr.add(Bullet(pos[0],pos[1],dir,speed,img,col,mode,num))
     def bullet_effect(sound,col,pos):
         sound.play()
@@ -1203,7 +1271,8 @@ def play_game():
     def calculate_new_xy(old_xy, speed, angle_in_degrees):
         move_vec = pygame.math.Vector2()
         move_vec.from_polar((speed, angle_in_degrees))
-        return old_xy + move_vec
+        move_vec = (move_vec[0]*dt,move_vec[1]*dt)
+        return (old_xy[0] + move_vec[0],old_xy[1] + move_vec[1])
 
     def noreturn_xy(speed, angle_in_degrees):
         move_vec = pygame.math.Vector2()
@@ -1235,9 +1304,20 @@ def play_game():
         angle = math.degrees(math.atan2(y - dy, dx - x))
         return angle      
 
-    def set_bossmove_point(pos,speed,miss):
+    def set_bossmove_point(pos,speed,miss,chum=True):
         try:
-            if not boss.move_ready:
+            if chum:
+                if not boss.move_ready:
+                    if boss.move_point == (0,0):
+                        boss.move_point = ((pos[0]-boss.pos[0])/speed,(pos[1]-boss.pos[1])/speed) 
+                        if boss.move_point == (0,0):
+                            boss.move_point = (0.1,0.1)
+                    boss.pos = (boss.pos[0] + boss.move_point[0],boss.pos[1] + boss.move_point[1])                 
+                    if distance(pos,boss.pos) < miss and boss.move_point != (0,0):
+                        boss.move_point = (0,0)
+                        boss.pos = (pos[0],pos[1])
+                        boss.move_ready = True
+            else:
                 if boss.move_point == (0,0):
                     boss.move_point = ((pos[0]-boss.pos[0])/speed,(pos[1]-boss.pos[1])/speed) 
                     if boss.move_point == (0,0):
@@ -1245,10 +1325,7 @@ def play_game():
                 boss.pos = (boss.pos[0] + boss.move_point[0],boss.pos[1] + boss.move_point[1])                 
                 if distance(pos,boss.pos) < miss and boss.move_point != (0,0):
                     boss.move_point = (0,0)
-                    boss.pos = (pos[0],pos[1])
-                    boss.move_ready = True
-                    boss.move_dir = 0
-                    boss.move_speed = 0
+                    boss.pos = (pos[0],pos[1])               
         except IndexError as e:
             pass      
         return (boss.pos)
@@ -1287,6 +1364,8 @@ def play_game():
                         bkgd_list[bkgd_list.index(image)].appear = False
                         if image.num == 4:delete_background(2)
                         if image.num == 5:delete_background(1)
+                        if image.num == 8:delete_background(7)
+                        if image.num == 9:delete_background(6)
 
     def delete_background(num):
         for img in bkgd_list:
@@ -1295,7 +1374,44 @@ def play_game():
 
     def randfloat(min,max):
         return round(uniform(min,max),1)
-    # 이미지 나눠 저장하기
+    
+    def set_go_boss(speed,dir,count):
+        if dir > 180: 180-dir
+        if boss.move_time != 0:
+            print(boss.pos[1],boss_movebox.y+boss_movebox.height-boss.rect.height)
+            if boss.pos[0] < boss_movebox.x+boss.rect.width:
+                if big_small(dir,90,180) or big_small(dir,-180,-90):dir = -dir+180 
+                if abs(dir) == 180: dir = 0
+            if boss.pos[0] > boss_movebox.x+boss_movebox.width-boss.rect.width:
+                if big_small(dir,270,360) or big_small(dir,0,90):-dir+180 
+                if abs(dir) == 0: dir = 180
+            if boss.pos[1] < boss_movebox.y+boss.rect.height:
+                if big_small(dir,0,180):-dir+180 
+                if abs(dir) == -90: dir = 90
+            if boss.pos[1] > boss_movebox.y+boss_movebox.height-boss.rect.height:
+                print(dir)
+                if big_small(dir,-180,0):-dir+180 
+                if abs(dir) ==90: dir = -90            
+            boss.move_dir = dir
+            boss.move_speed = speed
+            boss.move_time = count
+    def go_boss():
+        pos = list(calculate_new_xy(boss.pos, boss.move_speed, boss.move_dir))
+        if pos[0] < boss_movebox.x:
+            pos[0] = boss_movebox.x
+        if pos[0] > boss_movebox.x+boss_movebox.width:
+            pos[0] = boss_movebox.x+boss_movebox.width
+        if pos[1] < boss_movebox.y:
+            pos[1] = boss_movebox.y
+        if pos[1] > boss_movebox.y+boss_movebox.height:
+            pos[1] = boss_movebox.y+boss_movebox.height
+        boss.move_time -= 1
+        if boss.move_time == 0:
+            boss.move_speed = 0
+            boss.move_dir = 0
+        return pos
+
+    # 이미지 나눠 저장하기\
     a_list = []
     cur_list = []
 
@@ -1442,9 +1558,14 @@ def play_game():
     
     starting = True
     read_end = False
-
+    boss_movepoint = []
+    boss_movebox = Rect(580,70,408,584)
+    
     clock = pygame.time.Clock()
-
+    prev_time = time.time()
+    dt = 0
+    FPS = 60
+    TARGET_FPS = 60
     # 점수 코어
     global score
     score = 0
@@ -1456,10 +1577,10 @@ def play_game():
     boss_background = pygame.Surface((1080,720))
     # 폰트 불러오기
     score_font = pygame.font.Font(FONT_1, 50)
-    fps = 60
+    
     # 스펠카드 모음
     spells = [Spell(1,1000,False,"통상1"),Spell(2,1000,True,"기다라라 정글"),Spell(3,1000,False),Spell(4,1300,True,"무지개 아이스크름"),\
-    Spell(5,1300,True,"최고의 네잎클로버"),Spell(6,1300,False),Spell(7,1300,True)]
+    Spell(5,1300,True,"최고의 네잎클로버"),Spell(6,1300,False),Spell(7,1300,True),Spell(8,1000,False),Spell(9,1300,True),Spell(10,1000,False)]
 
     # 소환 반복 (줄에 stage_line)
     def while_poke_spawn(time,repeat,line):
@@ -1513,17 +1634,21 @@ def play_game():
             if val == 1:bkgd_list.append(Back_Ground(bg_image,(1080,0,1080,240),1,3,0,True))
             if val == 2:bkgd_list.append(Back_Ground(bg_image,(1080,480,1080,240),3,4,480,True))
             if val == 3:bkgd_list.append(Back_Ground(bg_image,(2160,0,1080,580),2,5,0,True)) 
+            if val == 8:bkgd_list.append(Back_Ground(bg_image,(1080,972,1080,468),2,8,252,True))
+            if val == 9:bkgd_list.append(Back_Ground(bg_image,(1080,720,1080,252),1,9,0,True))
         stage_cline += 1
     # 게임의 배경, 스테이지
     def game_defalt_setting(fun): # 게임 스테이지 배경 정하기
         global bgm_num, bkgd_list
+        bkgd_list = []
         ##############################################
         if fun == 1:
             bkgd_list.append(Back_Ground(bg_image,(0,0,1080,240),1,0,0))
             bkgd_list.append(Back_Ground(bg_image,(0,240,1080,240),2,1,240))
             bkgd_list.append(Back_Ground(bg_image,(0,480,1080,240),3,2,480))
         if fun == 2:
-            pass
+            bkgd_list.append(Back_Ground(bg_image,(0,720,1080,464),2,6,0))
+            bkgd_list.append(Back_Ground(bg_image,(0,1184,1080,256),3,7,464))
         if fun == 3:
             bgm = 1
         if fun == 4:
@@ -1645,8 +1770,8 @@ def play_game():
         if num == 10:
             if when_time(count,60):
                 bullet_effect(s_tan1,3,pos)
-                for i in range(0,20):
-                    bullet(pos,look_at_player(pos)+randint(-10,10),randfloat(5,7),3,3)
+                for i in range(0,10):
+                    bullet(pos,look_at_player(pos)+randint(-10,10),randfloat(4,6),3,3)
                 speed = 0
             if when_time(count,180):
                 speed = 4
@@ -1654,7 +1779,7 @@ def play_game():
             if when_time(count,90):
                 speed = 0
                 s_lazer1.play()
-                lazer_spawner.append([pos,look_at_player(pos),7,3,60])
+                lazer_spawner.append([pos,look_at_player(pos),7,3,30])
             if when_time(count,150):
                 speed = 5     
         
@@ -1664,6 +1789,7 @@ def play_game():
         global boss_background
         
         # 적이동을 위한 값
+        boss.image.fill((0,0,0,0))
         boss.move_dir = 0
         boss.move_speed = 0
         boss.move_point = (0,0)
@@ -1674,6 +1800,7 @@ def play_game():
         boss.attack_start = False
         boss.real_appear = False
         boss.died_next_stage = False
+        boss.image_num = 0
         if num == 1: 
             boss.pos = (WIDTH+64,HEIGHT)
             boss.radius = 40
@@ -1681,8 +1808,7 @@ def play_game():
             boss.num = 1
             boss.spell = [spells[0]]
             boss.dies = False
-            boss.attack_start = True
-            
+            boss.attack_start = True           
         if num == 2: 
             boss.pos = (WIDTH+64,HEIGHT+64)
             boss.radius = 40
@@ -1701,18 +1827,27 @@ def play_game():
             boss.dies = False
             boss.attack_start = True
             boss_background.blit(bg2_image,(0,0),(0,720,1080,720))
+        if num == 4: 
+            boss.pos = (WIDTH+64,HEIGHT+64)
+            boss.radius = 40
+            boss.image.blit(pokemons[3],(0,0))         
+            boss.num = 4
+            boss.spell = [spells[7],spells[8],spells[9],spells[3],spells[4]]
+            boss.dies = True
+            boss_background.blit(bg2_image,(0,0),(0,0,1080,720))
+            text.started = True
+            boss_background.blit(bg2_image,(0,0),(0,720,1080,720))
         boss.real_max_health = 0
         for i in boss.spell:
             boss.real_max_health += i.health
         boss.real_health = boss.real_max_health
-
+        boss.image2 = boss.image.copy()
         boss.appear = True
         boss.rect = boss.image.get_rect(center = (boss.pos))
-        
-        
-    def boss_attack(num,count,pos,dir,speed,ready):
+
+    def boss_attack(num,count,pos,ready):
         if num == 1:
-            pos = set_bossmove_point((WIDTH-300,HEIGHT/2),130,10)
+            pos = set_bossmove_point((WIDTH-300,HEIGHT/2),120,3)
             if ready:
                 if while_time(count,20) and count < 120:
                     add_effect(pos,2,5)
@@ -1722,13 +1857,9 @@ def play_game():
                         bullet(pos,look_at_player(pos)+i+5,5,4,5)
                         bullet(pos,look_at_player(pos)+i-5,5,4,5)
                 if when_time(count,60):
-                    dir , speed = 90 , 2
-                if when_time(count,120):
-                    dir , speed = 0 , 0
+                    set_go_boss(2,90,50)
                 if when_time(count,180):
-                    dir , speed = 270 , 2
-                if when_time(count,240):
-                    dir , speed = 0 , 0
+                    set_go_boss(2,-90,50)
                     count = 0
         if num == 2:
             pos = set_bossmove_point((WIDTH-300,HEIGHT/2),130,10)
@@ -1758,13 +1889,9 @@ def play_game():
                         bullet(pos,look_at_player(pos)+i+5,3,1,5)
                         bullet(pos,look_at_player(pos)+i-5,3,1,5)
                 if when_time(count,60):
-                    dir , speed = 90 , 2
-                if when_time(count,120):
-                    dir , speed = 0 , 0
+                    set_go_boss(2,90,50)
                 if when_time(count,180):
-                    dir , speed = 270 , 2
-                if when_time(count,240):
-                    dir , speed = 0 , 0
+                    set_go_boss(2,-90,50)
                     count = 0
         if num == 4:
             pos = set_bossmove_point((WIDTH-300,HEIGHT/2,0),130,50)
@@ -1775,6 +1902,8 @@ def play_game():
                     s_tan1.play()
                     for i in range(0,360,15):
                         bullet((pos[0]+randint(-60,60),pos[1]+randint(-60,60)),i+rand,5,randint(2,3),randint(1,7))
+                if while_time(count,180):
+                    set_go_boss(2,randint(0,360),30)
         if num == 5:
             pos = set_bossmove_point((WIDTH-300,HEIGHT/2,0),130,50)
             if ready:
@@ -1794,6 +1923,27 @@ def play_game():
         if num == 6:
             pos = set_bossmove_point((WIDTH-300,HEIGHT/2,0),130,50)
             if ready:
+                if while_time(count,8) and count < 90:
+                    bullet_effect(s_tan1,4,pos)
+                    for i in range(0,360,30):
+                        bullet(pos,i+count*6.2,5,3,4)
+                if while_time(count,8) and big_small(count,90,180):
+                    bullet_effect(s_tan1,3,pos)
+                    for i in range(0,360,30):
+                        bullet(pos,i-count*6.2,5,3,3)
+                if when_time(count,300):
+                    count = 0
+        if num == 7:
+            pos = set_bossmove_point((WIDTH-300,HEIGHT/2,0),130,50)
+            if ready:
+                if while_time(count,8) and count<40:
+                    bullet_effect(s_tan1,4,pos)
+                    bullet(pos,count*4,2,15,3,1.1)  
+                if when_time(count,120):
+                    count = 0
+        if num == 8:
+            pos = set_bossmove_point((WIDTH-300,HEIGHT/2,0),120,3)
+            if ready:
                 if while_time(count,4) and count < 90:
                     bullet_effect(s_tan1,4,pos)
                     for i in range(0,360,30):
@@ -1804,20 +1954,38 @@ def play_game():
                         bullet(pos,i-count*3.1,5,3,3)
                 if when_time(count,300):
                     count = 0
-        if num == 7:
+                if when_time(count,90):
+                    set_go_boss(5,90,60)                    
+        if num == 9:
+            pos = set_bossmove_point((WIDTH-300,HEIGHT/2,0),120,3)
+            if ready:
+                if when_time(count,60):
+                    bullet_effect(s_tan1,4,pos)
+                    rand = randint(0,30)
+                    for i in range(0,360,30):
+                        bullet(pos,i+rand,2,15,3,1.2)  
+                if when_time(count,180):
+                    s_kira0.play()
+                    set_go_boss(2,randint(0,360),60)
+                if when_time(count,300):
+                    count = 0
+        if num == 10:
             pos = set_bossmove_point((WIDTH-300,HEIGHT/2,0),130,50)
             if ready:
-                if while_time(count,4) and count<60:
+                if while_time(count,10):
+                    rand = randint(0,10)
                     bullet_effect(s_tan1,4,pos)
-                    bullet(pos,count*4,2,15,3,1)  
-                if when_time(count,120):
-                    count = 0
-
-
-        pos = calculate_new_xy(pos, speed, dir)
-        return count,pos,dir,speed,ready
+                    for i in range(0,360,10):
+                        bullet(pos,i+rand,5,4,4)
+                if while_time(count,50):
+                    set_go_boss(1,randint(0,360),50)  
+        
+        if ready:pos = go_boss()
+        else:pos = calculate_new_xy(pos,boss.move_speed,boss.move_dir)
+        return count,pos,ready
     # 스테이지
-
+    stage_challenge = 0
+    stage_fun = 0    
     def stage_manager():
         global stage_cline, stage_line, stage_repeat_count, stage_count, stage_condition, stage_challenge,stage_fun
         
@@ -2041,7 +2209,8 @@ def play_game():
                         pokemon_spawn(11,WIDTH+64,randint(200,HEIGHT-200),40)
                         pokemon_spawn(10,WIDTH+64,randint(50,HEIGHT-50),0)
                         end_while_poke_spawn(2,10)
-
+                    bground_spawn(8,1)
+                    bground_spawn(9,0)
                     pokemon_spawn(9,WIDTH+64,480,60)
                     pokemon_spawn(9,WIDTH+64,240,0)                    
 
@@ -2054,69 +2223,45 @@ def play_game():
                         boss.died_next_stage = False
                         next_challenge(0)
                 if stage_challenge == 3:
-                    bground_spawn(2,1)
-                    if while_poke_spawn(10,5,2):
-                        pokemon_spawn(5,WIDTH,20,10)
-                        pokemon_spawn(6,WIDTH,HEIGHT-20,0)
-                        end_while_poke_spawn(2,5)
+                    pokemon_spawn(9,WIDTH+64,480,30)
+                    pokemon_spawn(9,WIDTH+64,240,0)
+                    if while_poke_spawn(40,10,1):
+                        pokemon_spawn(11,WIDTH+64,randint(200,HEIGHT-200),40)
+                        end_while_poke_spawn(1,10)
 
-                    pokemon_spawn(4,WIDTH,HEIGHT/2,60)
-                    pokemon_spawn(4,WIDTH,HEIGHT/2+20,60)
-                    pokemon_spawn(4,WIDTH,HEIGHT/2+60,60)
-                    pokemon_spawn(4,WIDTH,HEIGHT/2-20,60)
-                    pokemon_spawn(4,WIDTH,HEIGHT/2-60,60)
+                    pokemon_spawn(10,WIDTH+64,HEIGHT/20*stage_repeat_count,120)
+                    if while_poke_spawn(20,10,1):
+                        pokemon_spawn(10,WIDTH+64,HEIGHT/20*stage_repeat_count,20)
+                        end_while_poke_spawn(1,10)
+                    if while_poke_spawn(20,10,1):
+                        pokemon_spawn(10,WIDTH+64,HEIGHT-HEIGHT/20*stage_repeat_count,20)
+                        end_while_poke_spawn(1,10)
+                    pokemon_spawn(8,WIDTH,HEIGHT,30,-135,4)
+                    pokemon_spawn(8,WIDTH,0,0,135,4)
+                    if while_poke_spawn(10,10,2):
+                        pokemon_spawn(8,WIDTH,HEIGHT,10,-135,4)
+                        pokemon_spawn(8,WIDTH,0,0,135,4)
+                        end_while_poke_spawn(2,10)
+                    pokemon_spawn(10,WIDTH+64,120,180)
+                    pokemon_spawn(10,WIDTH+64,600,0)                        
+                    if while_poke_spawn(20,10,2):
+                        pokemon_spawn(10,WIDTH+64,HEIGHT/20*stage_repeat_count*2,20)
+                        pokemon_spawn(10,WIDTH+64,HEIGHT-HEIGHT/20*stage_repeat_count*2,0)
+                        end_while_poke_spawn(2,10)
 
-                    if while_poke_spawn(20,10,4):
-                        pokemon_spawn(1,1012,-30,20)
-                        pokemon_spawn(1,912,-30,0)
-                        pokemon_spawn(2,1012,HEIGHT+30,0)
-                        pokemon_spawn(2,912,HEIGHT+30,0) 
-                        end_while_poke_spawn(4,10)
+                    pokemon_spawn(11,WIDTH+64,randint(200,HEIGHT-200),60)
+                    if while_poke_spawn(10,10,5):
+                        pokemon_spawn(8,WIDTH+64,randint(200,HEIGHT-200),10,180,5)
+                        pokemon_spawn(8,WIDTH+64,randint(200,HEIGHT-200),0,180,5)
+                        pokemon_spawn(8,WIDTH+64,randint(200,HEIGHT-200),0,180,5)
+                        pokemon_spawn(8,WIDTH+64,randint(200,HEIGHT-200),0,180,5)
+                        pokemon_spawn(8,WIDTH+64,randint(200,HEIGHT-200),0,180,5)
+                        end_while_poke_spawn(5,10)
+                    next_challenge(480)
 
-                    if while_poke_spawn(10,5,2):
-                        pokemon_spawn(5,WIDTH,20,10)
-                        pokemon_spawn(6,WIDTH,HEIGHT-20,0)
-                        end_while_poke_spawn(2,5)
-
-                    pokemon_spawn(4,WIDTH,HEIGHT/2,30)
-                    pokemon_spawn(4,WIDTH,HEIGHT/2+40,30)
-                    pokemon_spawn(4,WIDTH,HEIGHT/2-40,0)
-                    pokemon_spawn(4,WIDTH,HEIGHT/2+80,30)
-                    pokemon_spawn(4,WIDTH,HEIGHT/2,0)
-                    pokemon_spawn(4,WIDTH,HEIGHT/2-80,0)
-                    next_challenge(360)
                 if stage_challenge == 4:
-                    bground_spawn(3,1)
-                    pokemon_spawn(7,WIDTH-120,-30,60,90)
-                    pokemon_spawn(7,WIDTH-120,-30,60,90)
-                    pokemon_spawn(7,WIDTH-120,-30,60,90)
-                    pokemon_spawn(7,WIDTH-120,-30,120,90)
-                    pokemon_spawn(7,WIDTH-120,HEIGHT+30,60,-90)
-                    pokemon_spawn(7,WIDTH-120,-30,60,90)
-                    pokemon_spawn(7,WIDTH-120,HEIGHT+30,60,-90)
-                    pokemon_spawn(7,WIDTH-120,-30,60,90)
-                    pokemon_spawn(7,WIDTH-120,HEIGHT+30,60,-90)
-
-                    if while_poke_spawn(40,10,2):
-                        pokemon_spawn(3,WIDTH+64,HEIGHT-stage_repeat_count*HEIGHT/10-20,40)
-                        pokemon_spawn(3,WIDTH+64,stage_repeat_count*HEIGHT/10+20,0)
-                        if while_time(stage_repeat_count,3):
-                            enemy_group.add(Enemy(WIDTH+64,HEIGHT-stage_repeat_count*HEIGHT/10-20,180,4,10,13,30,4))
-                        if while_time(stage_repeat_count,2):
-                            enemy_group.add(Enemy(WIDTH-120,HEIGHT+30,-90,4,7,15,30,7))
-                        end_while_poke_spawn(2,10)
-                    if while_poke_spawn(40,10,2):
-                        pokemon_spawn(3,WIDTH+64,HEIGHT-stage_repeat_count*HEIGHT/10-20,40)
-                        pokemon_spawn(3,WIDTH+64,stage_repeat_count*HEIGHT/10+20,0)
-                        if while_time(stage_repeat_count,3):
-                            enemy_group.add(Enemy(WIDTH+64,stage_repeat_count*HEIGHT/10+20,180,4,10,13,30,4))
-                        if while_time(stage_repeat_count,2):
-                            enemy_group.add(Enemy(WIDTH-120,-30,90,4,7,15,30,7))
-                        end_while_poke_spawn(2,10)
-                    next_challenge(360)
-                if stage_challenge == 5:
                     if not boss.appear and not boss.died_next_stage: 
-                        boss_spawn(2)
+                        boss_spawn(4)
                     if boss.died_next_stage:
                         stage_count = 0
                         if not text.started:
@@ -2132,7 +2277,10 @@ def play_game():
 
     while play:
         # 60 프레임
-        clock.tick(fps)
+        clock.tick(FPS)
+        now = time.time()
+        dt = (now-prev_time)*TARGET_FPS
+        prev_time = now
         if cur_screen == 1:
             # 키 이벤트
             for ev in pygame.event.get():
@@ -2188,27 +2336,27 @@ def play_game():
                             del lazer_spawner[lazer_spawner.index(i)]
                 spr.update(screen)
                 if not time_stop:
-                    beams_group.update()                            
+                    if beams_group: beams_group.update()                            
                     player_group.update(hit_list)
-                    enemy_group.update()
-                    item_group.update()
+                    if enemy_group:enemy_group.update()
+                    if item_group: item_group.update()
                     if boss.appear: boss_group.update(boss_collide)
-                    effect_group.update()
+                    if effect_group: effect_group.update()
                     player_sub.update()
-                    bomb_group.update()
+                    if bomb_group: bomb_group.update()
                     if text.started and not text.pause: text.update()
                     stage_manager()
                     frame_count += 1
                     stage_count += 1
-                    for i in bkgd_list:
-                        i.update()
+                    if not bkgd_list == []:
+                        for i in bkgd_list:i.update()
                     rotated_sprite = pygame.transform.rotate(player_slow_img, math.degrees(frame_count/20))
-                    rect = rotated_sprite.get_rect(center = (round(player.pos[0]), round(player.pos[1])))
                 
             # 그리기 시작
             screen.fill((0,0,0))
             #배경 스크롤
             background_scroll()
+                
             # 점수 표시
             bomb_group.draw(screen)
             item_group.draw(screen)
