@@ -49,7 +49,6 @@ def play_game():
     except:sfx_volume = 0
     try:music_volume = mmusic_volume/100
     except:music_volume = 0
-    pygame.mixer.music.set_volume(music_volume)
 
     s_lazer1 = pygame.mixer.Sound('resources\Music\SFX\se_lazer00.wav')
     s_lazer1.set_volume(sfx_volume)
@@ -90,11 +89,33 @@ def play_game():
     s_enedead = pygame.mixer.Sound('resources\Music\SFX\se_enep00.wav')
     s_enedead.set_volume(sfx_volume)
     FONT_1 = 'resources\Font\SEBANG Gothic Bold.ttf' 
-    FIELD_1 = 'resources\Music\\BGM\\Unforgettable, the Nostalgic Greenery.wav'
-    FIELD_2 = 'resources\Music\\BGM\\The Lake Reflects the Cleansed Moonlight.wav'
-    BOSS_BGM1 = 'resources\Music\\BGM\\The Rabbit Has Landed.wav'
-    BOSS_BGM2 = 'resources\Music\BGM\September Pumpkin.wav'
+    FIELD_1 = 'resources\Music\BGM\\1Stage.wav'
+    FIELD_2 = 'resources\Music\BGM\\2Stage.wav'
+    BOSS_BGM1 = 'resources\Music\BGM\\1Boss.wav'
+    BOSS_BGM2 = 'resources\Music\BGM\\2Boss.wav'
+    def music_and_sfx_volume():
+        pygame.mixer.music.set_volume(music_volume)
+        s_lazer1.set_volume(sfx_volume)
+        s_tan1.set_volume(sfx_volume/2)
+        s_tan2.set_volume(sfx_volume/2)
+        s_ch2.set_volume(sfx_volume)
+        s_ch0.set_volume(sfx_volume)
+        s_cat1.set_volume(sfx_volume*1.5)
+        s_enep1.set_volume(sfx_volume)
+        s_enep2.set_volume(sfx_volume)
+        s_slash.set_volume(sfx_volume)
+        s_pldead.set_volume(sfx_volume)
+        s_plst0.set_volume(sfx_volume/5)
+        s_damage0.set_volume(sfx_volume/5)
+        s_damage1.set_volume(sfx_volume/5)
+        s_graze.set_volume(sfx_volume)
+        s_kira0.set_volume(sfx_volume)
+        s_kira1.set_volume(sfx_volume)
+        s_boom.set_volume(sfx_volume)
+        s_item0.set_volume(sfx_volume)
+        s_enedead.set_volume(sfx_volume)
     # 플레이어
+    music_and_sfx_volume()
     class Player(pygame.sprite.Sprite):
         def __init__(self, x, y, speed, health):
             pygame.sprite.Sprite.__init__(self) # 초기화?
@@ -2294,7 +2315,6 @@ def play_game():
 
 
     ################################################# 
-
     while play:
         # 60 프레임
         clock.tick(FPS)
@@ -2419,28 +2439,39 @@ def play_game():
                     play = False
                 if ev.type == pygame.KEYDOWN: 
                     if ev.key == pygame.K_UP:
-                        curser = curser_max if curser == 0 else curser - 1
+                        curser = curser_max if curser == 0 else curser - 1 # 커서위로
                     if ev.key == pygame.K_DOWN:
-                        curser = 0 if curser == curser_max else curser + 1
+                        curser = 0 if curser == curser_max else curser + 1 # 커서밑으로
                     if ev.key == pygame.K_z or ev.key == pygame.K_RETURN:
-                        if menu_mod == 3:
-                            if curser == 0:
-                                full_on = False if full_on == True else True
-                        else:
-                            if (curser == 1 or curser == 2) and select_mod == 0: break
-                            if curser == 4 and select_mod == 0: play = False
+                        if (curser == 1 or curser == 2) and select_mod == 0: break
+                        if curser == 4 and select_mod == 0: play = False # 게임끄기
+                        if not menu_mod == 3: # 옵션 창이면 모드 옮기기 X
                             select_mod += 1
-                            if menu_mod == 0:
-                                cur_screen = 1 ############ rpdlatlwks
-                            menu_mod = curser
-                            curser = 0
+                        if menu_mod == 0: cur_screen = 1 ############ 게임시작
+                        menu_mod = curser
+                        curser = 0
                     if ev.key == pygame.K_f:
-                        full_on = False if full_on == True else True
-                        
-                        
+                        full_on = False if full_on == True else True                        
                     if ev.key == pygame.K_x or ev.key == pygame.K_ESCAPE:
                         if select_mod > 0: select_mod -= 1
                         menu_mod = -1
+                        try:sfx_volume = msfx_volume/100
+                        except:sfx_volume = 0
+                        try:music_volume = mmusic_volume/100
+                        except:music_volume = 0
+                        music_and_sfx_volume()
+                    if ev.key == pygame.K_RIGHT:
+                        if menu_mod == 3:
+                            if curser == 1:
+                                mmusic_volume = mmusic_volume + 5 if mmusic_volume < 100 else 100
+                            if curser == 2:
+                                msfx_volume = msfx_volume + 5 if msfx_volume < 100 else 100
+                    if ev.key == pygame.K_LEFT:
+                        if menu_mod == 3:
+                            if curser == 1:
+                                mmusic_volume = mmusic_volume - 5 if mmusic_volume > 0 else 0
+                            if curser == 2:
+                                msfx_volume = msfx_volume - 5 if msfx_volume > 0 else 0
             screen.blit(background_img,(0,0))
             
             ui_x = WIDTH - 300
@@ -2468,8 +2499,8 @@ def play_game():
                     text_box[2] = "효과음  " + str(msfx_volume)
                     for i in range(0,4):
                         text_color = (255,0,255) if i == curser else (0,0,255)
-                        text = score_font.render(text_box[i], True, text_color)
-                        screen.blit(text,(200,200+80*i))
+                        text1 = score_font.render(text_box[i], True, text_color)
+                        screen.blit(text1,(200,200+80*i))
             pygame.display.flip()
         
         if full_on != cur_full_mod:
