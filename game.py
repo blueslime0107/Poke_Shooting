@@ -43,8 +43,8 @@ def play_game():
     player_slow_img.blit(bullet_image, (0,0), Rect(128,128,64,64))
     player_slow_img = pygame.transform.scale(player_slow_img, (64*2, 64*2))
 
-    msfx_volume = 80
-    mmusic_volume = 100
+    msfx_volume = 30
+    mmusic_volume = 90
     try:sfx_volume = msfx_volume/100
     except:sfx_volume = 0
     try:music_volume = mmusic_volume/100
@@ -127,9 +127,11 @@ def play_game():
             self.pos = (x,y)
             
             self.speed = speed
+            self.max_health = health
             self.health = health
             self.power = 0
             self.mp = 8
+            self.before_health = 0
 
             self.count = 0
             self.radius = 4 # 원 충돌범위를 위한 반지름 값
@@ -179,7 +181,8 @@ def play_game():
                 s_pldead.play()
                 self.godmod = True
                 self.count = 0
-                self.health -= 60
+                self.before_health = self.health
+                self.health -= round(collide[0].radius/2 * 7 * collide[0].speed/2)
                 # self.hit_speed = collide[0].speed
                 # self.hit_dir = collide[0].direction
             
@@ -341,7 +344,7 @@ def play_game():
                 self.damage = 3
             if self.num == 1:
                 pygame.draw.rect(self.image, (247, 178, 238), (3,3,34,26),0)
-                self.speed = 20
+                self.speed = 50
                 self.damage = 1
                 if enemy_group: self.direction = look_at_point(self.pos,enemy_group.sprites()[0].pos)
                 if boss.attack_start: self.direction = look_at_point(self.pos,boss_group.sprites()[0].pos)
@@ -359,7 +362,7 @@ def play_game():
                 self.image_sample.fill((255,255,255))
                 self.image_sample = pygame.transform.scale(self.image_sample, (60, 32))
                 self.speed = 0
-    
+
                 
 
             self.image_rotate = pygame.transform.rotate(self.image_sample, self.direction)
@@ -1602,7 +1605,7 @@ def play_game():
     spells = [Spell(1,1000,False,"통상1"),Spell(2,1000,True,"기다라라 정글"),Spell(3,1000,False),Spell(4,1300,True,"무지개 아이스크름"),\
     Spell(5,1300,True,"최고의 네잎클로버"),Spell(6,1300,False),Spell(7,1300,True),Spell(8,1300,False),Spell(9,2000,True),Spell(10,1300,False),\
         Spell(11,2800,True),Spell(12,2000,True)]
-
+    stage_challenge = 1
     # 소환 반복 (줄에 stage_line)
     def while_poke_spawn(time,repeat,line):
         global stage_cline, stage_line, stage_repeat_count, stage_count
@@ -2414,7 +2417,8 @@ def play_game():
 
             if starting and not read_end: # 원형 체력바 그리기
                 drawArc(screen, (0,0,0), player.pos, 112, 15, 360*100,120 if not player.godmod else 255)
-                drawArc(screen, health_color(player.health/500), player.pos, 110, 10, 360*player.health/500,120 if not player.godmod else 255)
+                if player.godmod: drawArc(screen, health_color(player.health/player.max_health), player.pos, 110, 10, 360*player.before_health/player.max_health,120)
+                drawArc(screen, health_color(player.health/player.max_health), player.pos, 110, 10, 360*player.health/player.max_health,120 if not player.godmod else 255)
 
             effect_group.draw(screen)
             if boss.attack_start and boss.health > 0: # 보스 체력바 그리기
