@@ -130,6 +130,18 @@ def play_game():
         cur_list.append(a_list)
         a_list = []
     bullets = cur_list
+
+    cur_list = []
+    for i in range(0,112,16):
+        image = pygame.Surface((16,16),pygame.SRCALPHA)
+        image.blit(bullet_image,(0,0),Rect(i,176,16,16))
+        image = pygame.transform.scale2x(image)
+        for j in range(1,33):
+            image2 = pygame.transform.scale(image, (j,j))
+            a_list.append(image2)
+        cur_list.append(a_list)
+        a_list = []
+    bullet_erase = cur_list
     cur_list = []
     for i in range(0,256,32):
         image = pygame.Surface((32,32), pygame.SRCALPHA)
@@ -137,6 +149,7 @@ def play_game():
         image = pygame.transform.scale2x(image)
         for i in range(1,65,2):
             image2 = pygame.transform.scale(image,(i*2,i*2))
+            image2 = pygame.transform.scale2x(image2)
             a_list.append(image2)
         cur_list.append(a_list)
         a_list = []
@@ -520,7 +533,8 @@ def play_game():
             global score
 
             # 능력
-            self.pos, self.move_dir, self.move_speed ,self.count= enemy_attack(self.num, self.count, self.pos, self.move_dir, self.move_speed)
+            if not self.health <= 0:
+                self.pos, self.move_dir, self.move_speed ,self.count= enemy_attack(self.num, self.count, self.pos, self.move_dir, self.move_speed)
 
             if not screen_rect.colliderect(self.rect) and self.screen_apper: # 밖으로 나가면 사라지기
                 self.kill() 
@@ -747,245 +761,7 @@ def play_game():
 
 
             #모드 값이 있으면 탄 속성 변화###############################################
-            if True:
-                if mod == 0 and sub == 1:
-                    screen_die = 1
-                if mod == 1:
-                    if sub == 1:
-                        self.count += 1
-                        if when_time(self.count,120):
-                            for i in range(0,360,20):
-                                bullet(self.pos,i+randint(-5,5),3,2,0)
-                            self.kill()
-                    if sub == 2:
-                        self.count += 1
-                        if when_time(self.count,120):
-                            for i in range(0,360,20):
-                                bullet(self.pos,i+randint(-5,5),3,2,0)
-                                bullet(self.pos,i+randint(-7,7),2,2,0)
-                            self.kill()                        
-                if mod == 2:
-                    if sub == 0:
-                        self.count += 1
-                        if self.count > 120:
-                            bullet(self.pos,randint(-88,88)+180,2,12,3)
-                            bullet(self.pos,randint(-88,88)+180,2,12,3)
-                            self.kill()
-                        elif self.count > 80 and self.speed != 0:
-                            self.speed -= 0.2
-                    if sub == 1:
-                        if self.pos[0] < -30:
-                            self.pos = get_new_pos(self.pos,1143,0)
-                            bullet(self.pos,randint(-88,88)+180,5,18,4)
-                            bullet(self.pos,randint(-88,88)+180,5,18,4)  
-                            for i in range(4,6):
-                                for j in range(1,11,5):
-                                    bullet(self.pos,180,i+j/10,4,4) 
-                            for _ in range(0,5):
-                                for c in range(4,6):
-                                    bullet((self.pos[0]+randint(-30,30),self.pos[1]),180,c,4,4) 
-                            s_tan2.play()
-                            self.kill()                         
-                if mod == 3:
-                    if enemy.list[1] == 1:
-                        rand_int = randint(0,90)
-                        for i in range(0,360,120):
-                            bullet(self.pos,i+rand_int,3,9,6)       
-                        self.kill()
-                if mod == 4:
-                    if sub == 0:
-                        if not small_border.collidepoint(self.pos):
-                            shape = (2,11,15,18)
-                            play_sound(s_boom,1,1)
-                            for j in range(0,720,20):
-                                bullet((self.pos[0]+j,self.pos[1]),90,round(uniform(6,10),2),shape[randint(0,3)],1,4.1)
-                                bullet((self.pos[0]+j,self.pos[1]),-90,round(uniform(6,10),2),shape[randint(0,3)],1,4.1) 
-                                bullet((self.pos[0]-j,self.pos[1]),90,round(uniform(6,10),2),shape[randint(0,3)],1,4.1)
-                                bullet((self.pos[0]-j,self.pos[1]),-90,round(uniform(6,10),2),shape[randint(0,3)],1,4.1)
-                                if j % 40 == 0:  
-                                    bullet((self.pos[0]+j,self.pos[1]),90,round(uniform(6,10),2),11,0,4.2)
-                                    bullet((self.pos[0]+j,self.pos[1]),-90,round(uniform(6,10),2),11,0,4.2)
-                                    bullet((self.pos[0]-j,self.pos[1]),90,round(uniform(6,10),2),11,0,4.2)
-                                    bullet((self.pos[0]-j,self.pos[1]),-90,round(uniform(6,10),2),11,0,4.2)
-                            self.kill()
-                    if sub == 1:
-                        screen_die = 1
-                        if self.speed >= -3 : self.speed -= 0.1
-                    if sub == 2:
-                        screen_die = 1
-                        if self.speed >= 3 : self.speed -= 0.1
-                if mod == 5:  
-                    screen_die = 1  
-                    if self.count == 60: self.pos = calculate_new_xy(player.pos,100,self.direction*-1)
-                    if self.count == 90:
-                        self.image2 = pygame.transform.scale2x(bullets[9][6])
-                        self.image = pygame.transform.rotate(self.image2, self.direction-90) 
-                    if self.count >= 90:
-                        if self.speed >= -5: self.speed -= 0.1
-                    self.count += 1
-                if mod == 6:
-                    if sub == 0:
-                        if distance(self.pos,player.pos) <= 200 and self.count == 0:
-                            s_kira1.play(loops = 0, maxtime = 100)
-                            self.image2 = pygame.transform.scale2x(bullets[4][3])
-                            self.image = pygame.transform.rotate(self.image2, self.direction-90)   
-                            self.speed /= 2
-                            self.count += 1
-                    if sub == 1:
-                        self.count += self.speed/10
-                        self.speed = 0
-                        self.count += 1
-                        if self.count > 0:
-                            bullet(self.pos,self.direction,(self.count - int(self.count))*15,0,7)                   
-                        if self.count > 20:
-                            self.kill()
-                if mod == 8:
-                    if sub == 0:
-                        if distance(self.pos,enemy.list[0]) < 50 and self.speed != 0:
-                            self.speed -= 1
-                        if self.speed <= 2:
-                            if self.count == 0:
-                                s_enep2.play()
-                                for i in range(0,360,15):
-                                    bullet(self.rect.center,i+self.count,5,15,4)
-                            if while_time(self.count,10):
-                                for i in range(0,360,45):
-                                    bullet(self.rect.center,i+self.count+0,5,18,4)
-                            if while_time(self.count,30):
-                                s_tan1.play()
-                                for i in range(0,360,45):
-                                    bullet(self.rect.center,i+self.count*2,3,12,4)
-                            self.count += 1
-                            if self.count == 120:
-                                self.kill()
-                if mod == 9:
-                    if when_time(self.count, 0):
-                        self.pos = calculate_new_xy(self.pos,40,-self.direction)
-                        self.count = 1
-                    self.pos = (self.pos[0] +self.num[0], self.pos[1] +self.num[1])
-                    if self.speed <= 4:
-                        self.speed += 0.1
-                    # if when_time(self.count,60) and not self.move_fun:
-                    #     self.move_fun = True
-                    #     self.count = 0
-                    #     self.count += look_at_point(enemy.pos,self.pos)
-                    #     self.count2 = distance(self.pos, enemy.pos)
-                    # if self.move_fun:
-                    #     self.pos = move_circle(enemy.pos,self.count,self.count2)
-                    #     self.pos = (self.pos[0] -self.count3, self.pos[1])
-                    #     self.count3 += 2
-                    # self.count += 1
-                if mod == 10:
-                    if sub == 0:
-                        if enemy.list[0] == 1:
-                            self.direction = look_at_point(self.pos,enemy.pos)
-                            if self.speed <= 5:
-                                self.speed += 0.1
-                            if distance(self.pos,enemy.pos) <= 10:
-                                self.kill()
-                    if sub == 1:
-                        screen_die = 1
-                        self.count += 1
-                        if self.count == 45 or not small_border.collidepoint(self.pos):
-                            for i in range(0,360,30):
-                                bullet(self.pos,i+self.count,4,2,2,0.1)
-                            for i in range(0,360,20):
-                                bullet(self.pos,i+self.count,3,4,2,0.1)
-                            for i in range(0,360,10):
-                                bullet(self.pos,i+self.count,2,11,2,0.1)
-                            for i in range(0,360,90):
-                                for j in range(0,5):
-                                    bullet(self.pos,look_at_point(self.pos,player.pos)+20-10*j+i,5,17,2,0.1)
-                            self.kill()
-                if mod == 11:
-                    if sub == 0:
-                        if self.speed >= 0 and self.count <= 120:
-                            self.speed -= 0.1            
-                        if self.count == 60:
-                            self.image2 = pygame.transform.scale2x(bullets[16][self.num[0]])
-                            self.image = pygame.transform.rotate(self.image2, self.direction-90)
-                            self.rect = self.image.get_rect(center = self.pos) 
-                        self.count += 1
-                        if while_time(self.count,60) and self.count <= 120:
-                            self.speed = self.num[1]
-                            self.direction = look_at_point(self.pos,player.pos) + randint(-40,40)
-                            self.rect = self.image.get_rect(center = self.pos)
-                        if while_time(self.count,30) and self.count >=120 and distance(self.pos,player.pos) >= 40:
-                            bullet(self.pos,self.direction,0,2,self.num[0],11.1)
-                    if sub == 1:
-                        self.count += 1
-                        if self.count >= 120 and self.speed <= 7:
-                            self.speed += 0.1
-                if mod == 12:
-                    if sub == 0:
-                        if self.count <= 40:
-                            self.direction -= 5
-                        else:
-                            self.kill()
-                        self.pos = (self.pos[0] +self.num[0], self.pos[1] +self.num[1])
-                    if sub == 1:
-                        self.direction -= 0.4
-                    if sub == 2:
-                        self.direction += 0.4
-                    self.count += 1
-                if mod == 15:
-                    if distance(self.pos,player.pos) <= 300 and self.count == 0:
-                        self.speed /= 2
-                        self.count += 1
-                    if distance(self.pos,enemy.list[0]) <= 150 and time_stop:
-                        s_tan1.play()
-                        for i in range(0,360,30):
-                            bullet(calculate_new_xy(self.pos, 64, -i),i,2,1,5)
-                        for i in range(0,360,30):
-                            bullet(calculate_new_xy(self.pos, 32, -i),i,3,12,5)
-                        self.kill()
-                if mod == 16:
-                    if sub == 0:
-                        if self.count <= 60:
-                            self.direction -= 2
-                        else:
-                            self.direction += 2
-                        
-                        if self.count == 120:
-                            self.count = 0
-                    if sub == 1:
-                        if self.count <= 60:
-                            self.direction += 2
-                        else:
-                            self.direction -= 2 
-                        if self.count == 120:
-                            self.count = 0
-                    if sub == 2:
-                        if self.speed > 0 and self.count < 90:
-                            self.speed -= 0.1
-                        if self.count == 90:
-                            self.speed = 4
-                            self.direction = look_at_point(self.pos,player.pos)
-                    self.count += 1 
-                if mod == 17:
-                    if sub == 0:
-                        if enemy.list[1] != self.num[1] :
-                            self.move_fun = True 
-                        else:
-                            self.move_fun = False
-                if mod == 18:
-                    screen_die = 1
-                    if sub == 0:
-                        self.count += 1
-                        if self.speed <= 7 and self.count >= 120:
-                            self.speed += 0.1
-                    if sub == 1:
-                        if self.speed <= 7 and enemy.list[1] > 0:
-                            self.speed += 0.03
-                    if sub == 2:
-                        
-                        if self.count >=15 and not self.speed == 0:
-                            self.speed = 0
-                        else:
-                            self.count += 1
-                        if enemy.list[1] > 0:
-                            self.speed = 4
-            
+            bullet_type(self,mod,sub)           
             ################################################
                         
             if direc != self.direction and self.lotate:# 각도 계산후 위치 업데이트
@@ -1107,6 +883,11 @@ def play_game():
                 self.count += 1
                 try:self.image = white_circle[len(white_circle)-1-self.count]
                 except: self.kill()
+            if self.num == 7:
+                try:self.image = bullet_erase[self.col][len(bullet_erase)-1-self.count]  
+                except:self.kill()
+                self.count += 1
+            
             if self.num == 99:
                 self.count += 1
                 try:self.image = black_screen[self.count-1]   
@@ -1375,12 +1156,15 @@ def play_game():
         def update(self):
             self.x -= self.speed
 
-
-    def rect_center(rect,rounded=True):
-        if rounded:
-            return (round(rect.width/2),round(rect.height/2))
-        else:
-            return (rect.width/2,rect.height/2)
+    def bullet_clear():
+        if spr:
+            for bullet in spr.sprites():
+                add_effect(bullet.pos,7,bullet.shape[1])
+                bullet.kill()
+    def enemy_clear():
+        if enemy_group:
+            for i in enemy_group.sprites():
+                i.health = 0
 
     def get_new_pos(pos,x=0,y=0):
         return (round(pos[0] + x), round(pos[1] + y))
@@ -1628,7 +1412,7 @@ def play_game():
     # 스펠카드 모음
     spells = [Spell(1,1000,False,"통상1"),Spell(2,1000,True,"기다라라 정글"),Spell(3,1000,False),Spell(4,1300,True,"무지개 아이스크름"),\
     Spell(5,1300,True,"최고의 네잎클로버"),Spell(6,1300,False),Spell(7,1300,True),Spell(8,1300,False),Spell(9,2000,True),Spell(10,1300,False),\
-        Spell(11,2800,True),Spell(12,2000,True)]
+        Spell(11,2800,True),Spell(12,2000,True),Spell(13,1000,False),Spell(14,1000,False)]
     # 소환 반복 (줄에 stage_line)
     def while_poke_spawn(time,repeat,line):
         global stage_cline, stage_line, stage_repeat_count, stage_count
@@ -1653,6 +1437,10 @@ def play_game():
             stage_count = 0
             stage_line = 0
             stage_challenge += 1
+            enemy_clear()
+            bullet_clear()
+            
+            
     # 스테이지 이름
     def title_spawn(val,time):
         global stage_count 
@@ -1722,7 +1510,7 @@ def play_game():
     # 소환하는 적 
 
     #################################################
-    def pokemon_spawn(val,pos,time,dir=0,speed=0,no_count = False):
+    def pokemon_spawn(val,pos,time,dir=0,speed=0):
         global stage_count 
         global stage_line # 현재 조건의 라인
         global stage_cline # 검사 중인 라인
@@ -1761,7 +1549,13 @@ def play_game():
             ##################### 3 스테이지 $$$$$$$$$$$$$$$$$
             if stage_fun == 3:
                 if val == 12:
-                    enemy_group.add(Enemy(x,y,180,speed,100,21,30,val))       
+                    enemy_group.add(Enemy(x,y,180,speed,30,21,30,val))    
+                if val == 13:
+                    enemy_group.add(Enemy(x,y,dir,speed,80,22,40,val))   
+                if val == 14:
+                    enemy_group.add(Enemy(x,y,dir,speed,100,23,40,val))   
+                if val == 15:
+                    enemy_group.add(Enemy(x,y,dir,speed,30,24,40,val)) 
         stage_cline += 1
     # 적의 공격타입
     def enemy_attack(num,count,pos,dir,speed):
@@ -1851,8 +1645,31 @@ def play_game():
                     bullet(pos,look_at_player(pos)-10,5,1,5)
                     bullet(pos,look_at_player(pos)-20,5,1,5)
                 if when_time(count,150):
-                    speed = 5          
-        
+                    speed = 5  
+            if num == 13: 
+                if count > 60 and speed > 2:
+                    speed -= 0.2
+                if while_time(count,3):
+                    bullet(get_new_pos(pos,0,50),180+90,8,1,3) 
+                    bullet(get_new_pos(pos,0,50),180+60,8,1,3) 
+                    bullet(get_new_pos(pos,0,50),180+30,8,1,3) 
+                    bullet(get_new_pos(pos,0,-50),180-90,8,1,1) 
+                    bullet(get_new_pos(pos,0,-50),180-60,8,1,1) 
+                    bullet(get_new_pos(pos,0,-50),180-30,8,1,1) 
+                if while_time(count,10):
+                    bullet_effect(s_tan1,5,get_new_pos(pos,-50,0))
+                    bullet(get_new_pos(pos,-50,0),look_at_player(pos),7,3,5) 
+            if num == 14: 
+                if count > 60 and speed > 0:
+                    speed -= 0.5
+                if while_time(count,60) and count < 181:
+                    bullet(pos,look_at_player(pos),5,15,6,3)
+                if count > 300 and speed < 5:
+                    speed += 1             
+            if num == 15:
+                if when_time(count,40):
+                    bullet_effect(s_tan1,0,pos)
+                    bullet(pos,look_at_player(pos),7,17,0,4)
         return pos,dir,speed,count
 
     def boss_spawn(num): # 보스 시작, 배경
@@ -1907,6 +1724,18 @@ def play_game():
             boss_background.blit(bg2_image,(0,0),(0,0,1080,720))
             boss_background.blit(bg2_image,(0,0),(0,720,1080,720))
             text.started = True
+        if num == 5: 
+            boss.pos = (WIDTH+64,640)
+            boss.radius = 70
+            boss.image.blit(pokemons[24],(0,0))         
+            boss.num = 5
+            boss.spell = [spells[12],spells[13]]
+            boss.dies = True
+            boss.attack_start = True
+            boss_background.blit(bg2_image,(0,0),(0,720,1080,720))
+        
+        
+        
         boss.real_max_health = 0
         for i in boss.spell:
             boss.real_max_health += i.health
@@ -2070,10 +1899,97 @@ def play_game():
                 if while_time(count,360):
                     set_go_boss(3,look_at_player(pos)+180,60)   
                     count = 0                    
+        if num == 13:
+            pos = set_bossmove_point((WIDTH-300,HEIGHT/2,0),120,3)
+            if ready:
+                if while_time(count,30):
+                    bullet_effect(s_tan1,5,pos)
+                    for i in range(0,360,3):
+                        bullet(pos,i+randint(-3,3),3,3,5)
+        if num == 14:
+            pos = set_bossmove_point((WIDTH-300,HEIGHT/2,0),120,3)
+            if ready:
+                if while_time(count,5):
+                    bullet_effect(s_tan1,5,pos)
+                    for i in range(0,4):
+                        bullet(pos,count+90*i,6,9,5)
+                        bullet(pos,count-7+90*i,6,9,5)
+                        bullet(pos,count-14+90*i,6,9,5)
+                        bullet(pos,count+7+90*i,6,9,5)
+                        bullet(pos,count+14+90*i,6,9,5)
+                if while_time(count,180):
+                    set_go_boss(3,look_at_player(pos),60)  
+                      
+                 
+        
+        
         if ready:pos = go_boss()
         else:pos = calculate_new_xy(pos,boss.move_speed,boss.move_dir)
         return count,pos,ready
     # 스테이지
+    def bullet_type(self,mod,sub):
+        if mod == 0 and sub == 1:
+            screen_die = 1
+        if mod == 1:
+            if sub == 1:
+                self.count += 1
+                if when_time(self.count,120):
+                    for i in range(0,360,20):
+                        bullet(self.pos,i+randint(-5,5),3,2,0)
+                    self.kill()
+            if sub == 2:
+                self.count += 1
+                if when_time(self.count,120):
+                    for i in range(0,360,20):
+                        bullet(self.pos,i+randint(-5,5),3,2,0)
+                        bullet(self.pos,i+randint(-7,7),2,2,0)
+                    self.kill()                        
+        if mod == 2:
+            if sub == 0:
+                self.count += 1
+                if self.count > 120:
+                    bullet(self.pos,randint(-88,88)+180,2,12,3)
+                    bullet(self.pos,randint(-88,88)+180,2,12,3)
+                    self.kill()
+                elif self.count > 80 and self.speed != 0:
+                    self.speed -= 0.2
+            if sub == 1:
+                if self.pos[0] < -30:
+                    self.pos = get_new_pos(self.pos,1143,0)
+                    bullet(self.pos,randint(-88,88)+180,5,18,4)
+                    bullet(self.pos,randint(-88,88)+180,5,18,4)  
+                    for i in range(4,6):
+                        for j in range(1,11,5):
+                            bullet(self.pos,180,i+j/10,4,4) 
+                    for _ in range(0,5):
+                        for c in range(4,6):
+                            bullet((self.pos[0]+randint(-30,30),self.pos[1]),180,c,4,4) 
+                    s_tan2.play()
+                    self.kill()
+        if mod == 3:
+            if sub == 0:
+                self.count += 1
+                if while_time(self.count,30) and self.count < 91:
+                    bullet_effect(s_tan2,6,self.pos)
+                    rand = randint(0,59)
+                    for i in range(0,360,45):
+                        bullet(self.pos,i+rand,1,10,7)
+                        bullet(self.pos,i+rand,1,12,6,3.1)
+                        
+            if sub == 1:
+                self.count += 1
+                if self.count > 120 and self.speed < 6:
+                    self.speed += 0.1
+        if mod == 4:
+            self.count += 1
+            if sub == 0:
+                if while_time(self.count,2):
+                    bullet(self.pos,self.direction+randint(-40,40),0,11,7,4.1)
+            if sub == 1:
+                if self.count > 120 and self.speed < 5:
+                    self.speed += 0.05
+            
+    
     player.power = 400
     stage_challenge = 0
     stage_fun = 2
@@ -2362,7 +2278,7 @@ def play_game():
             if stage_fun == 3:
                 if stage_challenge == 0:
 
-                    pokemon_spawn(12,RIGHT_POS[1],10,-135,4)
+                    pokemon_spawn(12,RIGHT_POS[1],120,-135,4)
                     pokemon_spawn(12,RIGHT_POS[2],10,-135,4)
                     pokemon_spawn(12,RIGHT_POS[3],10,-135,4)
                     pokemon_spawn(12,RIGHT_POS[4],10,-135,4)
@@ -2374,73 +2290,43 @@ def play_game():
 
                     next_challenge(260)
                 if stage_challenge == 1:
+                    pokemon_spawn(13,RIGHT_POS[randint(3,5)],60,180+randint(-20,20),4)
 
-                    if while_poke_spawn(40,10,1):
-                        pokemon_spawn(10,WIDTH+64,randint(50,HEIGHT-50),40)
-                        end_while_poke_spawn(1,10)
-                    if while_poke_spawn(40,10,2):
-                        pokemon_spawn(11,WIDTH+64,randint(200,HEIGHT-200),40)
-                        pokemon_spawn(10,WIDTH+64,randint(50,HEIGHT-50),0)
-                        end_while_poke_spawn(2,10)
-                    bground_spawn(8,1)
-                    bground_spawn(9,0)
-                    pokemon_spawn(9,WIDTH+64,480,60)
-                    pokemon_spawn(9,WIDTH+64,240,0)                    
+                    if while_poke_spawn(120,3,1):
+                        pokemon_spawn(13,RIGHT_POS[randint(3,5)],120,180+randint(-20,20),4)
+                        end_while_poke_spawn(1,3)
 
-                    next_challenge(480)
+                    if while_poke_spawn(80,6,3):
+                        pokemon_spawn(13,RIGHT_POS[randint(3,5)],80,180+randint(-20,20),4)
+                        pokemon_spawn(12,RIGHT_POS[randint(2,6)],0,180,5)
+                        pokemon_spawn(12,RIGHT_POS[randint(2,6)],0,180,5)
+                        end_while_poke_spawn(3,6)
+                    next_challenge(120)
                 if stage_challenge == 2:
+                    pokemon_spawn(14,RIGHT_POS[4],120,180,5)
+                    pokemon_spawn(14,RIGHT_POS[5],300,180,5)
+                    pokemon_spawn(14,RIGHT_POS[3],0,180,5)
+                    pokemon_spawn(14,RIGHT_POS[6],300,180,5)
+                    pokemon_spawn(14,RIGHT_POS[4],0,180,5)
+                    pokemon_spawn(14,RIGHT_POS[2],0,180,5)
+                    pokemon_spawn(14,RIGHT_POS[2],300,180,5)
+                    pokemon_spawn(14,RIGHT_POS[3],0,180,5)
+                    pokemon_spawn(14,RIGHT_POS[5],0,180,5)
+                    pokemon_spawn(14,RIGHT_POS[6],0,180,5)
+                    next_challenge(120)
+                if stage_challenge == 3:
+                    if while_poke_spawn(80,8,2):
+                        pokemon_spawn(15,RIGHT_POS[1],80,180,5)
+                        pokemon_spawn(15,RIGHT_POS[7],0,180,5)
+                        end_while_poke_spawn(2,8)
+                    next_challenge(120)
+                if stage_challenge == 4:
                     if not boss.appear and not boss.died_next_stage: 
-                        boss_spawn(3)
+                        boss_spawn(5)
                     if boss.died_next_stage:
                         stage_count = 0
                         boss.died_next_stage = False
-                        next_challenge(0)
-                if stage_challenge == 3:
-                    pokemon_spawn(9,WIDTH+64,480,30)
-                    pokemon_spawn(9,WIDTH+64,240,0)
-                    if while_poke_spawn(40,10,1):
-                        pokemon_spawn(11,WIDTH+64,randint(200,HEIGHT-200),40)
-                        end_while_poke_spawn(1,10)
-
-                    pokemon_spawn(10,WIDTH+64,HEIGHT/20*stage_repeat_count,120)
-                    if while_poke_spawn(20,10,1):
-                        pokemon_spawn(10,WIDTH+64,HEIGHT/20*stage_repeat_count,20)
-                        end_while_poke_spawn(1,10)
-                    if while_poke_spawn(20,10,1):
-                        pokemon_spawn(10,WIDTH+64,HEIGHT-HEIGHT/20*stage_repeat_count,20)
-                        end_while_poke_spawn(1,10)
-                    pokemon_spawn(8,WIDTH,HEIGHT,30,-135,4)
-                    pokemon_spawn(8,WIDTH,0,0,135,4)
-                    if while_poke_spawn(10,10,2):
-                        pokemon_spawn(8,WIDTH,HEIGHT,10,-135,4)
-                        pokemon_spawn(8,WIDTH,0,0,135,4)
-                        end_while_poke_spawn(2,10)
-                    pokemon_spawn(10,WIDTH+64,120,180)
-                    pokemon_spawn(10,WIDTH+64,600,0)                        
-                    if while_poke_spawn(20,10,2):
-                        pokemon_spawn(10,WIDTH+64,HEIGHT/20*stage_repeat_count*2,20)
-                        pokemon_spawn(10,WIDTH+64,HEIGHT-HEIGHT/20*stage_repeat_count*2,0)
-                        end_while_poke_spawn(2,10)
-
-                    pokemon_spawn(11,WIDTH+64,randint(200,HEIGHT-200),60)
-                    if while_poke_spawn(10,10,5):
-                        pokemon_spawn(8,WIDTH+64,randint(200,HEIGHT-200),10,180,5)
-                        pokemon_spawn(8,WIDTH+64,randint(200,HEIGHT-200),0,180,5)
-                        pokemon_spawn(8,WIDTH+64,randint(200,HEIGHT-200),0,180,5)
-                        pokemon_spawn(8,WIDTH+64,randint(200,HEIGHT-200),0,180,5)
-                        pokemon_spawn(8,WIDTH+64,randint(200,HEIGHT-200),0,180,5)
-                        end_while_poke_spawn(5,10)
-                    next_challenge(480)
-                if stage_challenge == 4:
-                    if not boss.appear and not boss.died_next_stage: 
-                        boss_spawn(4)
-                    if boss.died_next_stage:
-                        stage_count = 0
-                        if not text.started:
-                            stage_challenge = 0
-                            stage_line = 0
-                            text.re_start()
-                            stage_condition = 1                               
+                        next_challenge(0)                              
             stage_cline = 0
 
 
@@ -2550,14 +2436,16 @@ def play_game():
                 drawArc(screen, health_color(player.health/player.max_health), player.pos, 110, 10, 360*player.health/player.max_health,120 if not player.godmod else 255)
                 
 
-            effect_group.draw(screen)
+            
+  
+            if boss.appear: boss_group.draw(screen)
+            effect_group.draw(screen)   
             if boss.attack_start and boss.health > 0: # 보스 체력바 그리기
                 try:
                     drawArc(screen, (0, 0, 0), boss.pos, 112, 15, 360*100,255)
                     drawArc(screen, (0, 66, 107), boss.pos, 115, 5, 360*boss.real_health/boss.real_max_health,255)
                     drawArc(screen, health_color(boss.health/boss.max_health), boss.pos, 110, 10, 360*boss.health/boss.max_health,255)
-                except:pass  
-            if boss.appear: boss_group.draw(screen)           
+                except:pass        
             spr.draw(screen)
 
             title.draw()
