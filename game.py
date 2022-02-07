@@ -94,6 +94,7 @@ def play_game():
     FIELD_3 = 'resources\Music\BGM\\3Stage.wav'
     BOSS_BGM1 = 'resources\Music\BGM\\1Boss.wav'
     BOSS_BGM2 = 'resources\Music\BGM\\2Boss.wav'
+    BOSS_BGM3 = 'resources\Music\BGM\\3Boss.wav'
 
     tan_channel = pygame.mixer.Channel(0)
     kira_channel = pygame.mixer.Channel(1)
@@ -106,7 +107,14 @@ def play_game():
                 image = pygame.Surface((16, 16), pygame.SRCALPHA)
                 image.blit(bullet_image, (0,0), Rect(j,i,16,16))
                 image = pygame.transform.scale2x(image)
-                a_list.append(image)
+                if i == 160:
+                    k_list = []
+                    for k in range(0,180):
+                        image2 = pygame.transform.rotate(image, k*2)
+                        k_list.append(image2)
+                    a_list.append(k_list)
+                else:
+                    a_list.append(image)
             cur_list.append(a_list)
             a_list = []
         for i in range (192,201,8):
@@ -114,7 +122,14 @@ def play_game():
                 image = pygame.Surface((8, 8), pygame.SRCALPHA)
                 image.blit(bullet_image, (0,0), Rect(j,i,8,8))
                 image = pygame.transform.scale2x(image)
-                a_list.append(image)
+                if i == 192:
+                    k_list = []
+                    for k in range(0,180):
+                        image2 = pygame.transform.rotate(image, k*2)
+                        k_list.append(image2)
+                    a_list.append(k_list)
+                else:
+                    a_list.append(image)
             cur_list.append(a_list)
             a_list = []
         for i in range (208,400,32):
@@ -129,6 +144,7 @@ def play_game():
             image = pygame.Surface((64, 64), pygame.SRCALPHA)
             image.blit(bullet_image, (0,0), Rect(i*64,432,64,64))
             image = pygame.transform.scale2x(image)
+            a_list.append(image)
             a_list.append(image)
         cur_list.append(a_list)
         a_list = []
@@ -368,7 +384,10 @@ def play_game():
             keys = pygame.key.get_pressed()
             if keys[pygame.K_z] and while_time(self.count,6) and player.power >= 100:
                 for i in range(0,int(player.power/100)):
-                    beams_group.add(Beam(get_new_pos(self.ballxy[i],16,16),1))
+                    if keys[pygame.K_LSHIFT]:
+                        beams_group.add(Beam(get_new_pos(self.ballxy[i],16,16),2))
+                    else:
+                        beams_group.add(Beam(get_new_pos(self.ballxy[i],16,16),1))
             if keys[pygame.K_LSHIFT] and self.adddir <= 30:
                 self.adddir += 2
                 self.radi -= 1.2
@@ -498,6 +517,11 @@ def play_game():
                 if enemy_group: self.direction = look_at_point(self.pos,enemy_group.sprites()[0].pos)
                 if boss.attack_start: self.direction = look_at_point(self.pos,boss_group.sprites()[0].pos)
                 self.rect = self.image.get_rect(center = get_new_pos(self.pos))  
+            if self.num == 2:
+                self.image.fill((255, 255, 222))
+                pygame.draw.rect(self.image, (247, 178, 238), (3,3,34,26),0)
+                self.speed = 25
+                self.damage = 2
             self.image = pygame.transform.rotate(self.image, self.direction)
             
 
@@ -700,7 +724,7 @@ def play_game():
                             self.real_appear = False
                             self.appear = False 
                             self.count = 0                          
-                if self.num == 2 or self.num == 4:
+                if self.num == 2 or self.num == 4 or self.num == 6 or self.num == 8 or self.num == 10 or self.num == 11:
                     text.pause = False
                 
             self.rect.center = (int(self.pos[0]),int(self.pos[1])) 
@@ -736,7 +760,7 @@ def play_game():
             # 이미지
             pygame.sprite.Sprite.__init__(self)
             self.shape = (bul, col)
-            self.image = bullets[bul][col]
+            self.image = bullets[bul][col] if not (bul == 10 or bul == 11 or bul == 14) else bullets[bul][col][0]
             self.image2 = self.image.copy()
             self.add_dir = 0
             self.move_fun = False
@@ -754,6 +778,8 @@ def play_game():
             if self.lotate: 
                 self.image = pygame.transform.rotate(self.image2, self.direction-90)
                 self.rect = self.image.get_rect(center = (int(self.pos[0]),int(self.pos[1])))
+            self.keeplotate = True if (bul == 10 or bul == 11 or bul == 14) else False
+            self.keeplotate_count = 0
             
         def update(self, screen):
             global score
@@ -769,7 +795,13 @@ def play_game():
                         
             if direc != self.direction and self.lotate:# 각도 계산후 위치 업데이트
                 self.image = pygame.transform.rotate(self.image2, self.direction-90)
-                self.rect = self.image.get_rect(center = (round(self.pos[0]),round(self.pos[1])))    
+                self.rect = self.image.get_rect(center = (round(self.pos[0]),round(self.pos[1])))  
+            if self.keeplotate:
+                self.keeplotate_count += 1
+                if self.keeplotate_count == 180:
+                    self.keeplotate_count = 0
+                self.image = bullets[self.shape[0]][self.shape[1]][self.keeplotate_count]
+                self.rect = self.image.get_rect(center = (round(self.pos[0]),round(self.pos[1])))  
             if not self.move_fun and not time_stop:
                 self.pos = calculate_new_xy(self.pos, self.speed, -self.direction)
             self.rect.center = round(self.pos[0]), round(self.pos[1]) 
@@ -785,6 +817,16 @@ def play_game():
                 self.kill()
             if screen_die == 1 and not bullet_border.colliderect(self.rect):
                 self.kill()
+    
+        def change_shape(self,bul,col):
+            self.image = bullets[bul][col] if not (bul == 10 or bul == 11 or bul == 14) else bullets[bul][col][0]
+            self.image2 = self.image.copy()
+            self.lotate = False if bul == 2 or bul == 3 or bul == 10 or bul==11 or bul == 12 or bul == 15 or bul == 10 or bul == 14 or bul == 19 else True   
+            if self.lotate: 
+                self.image = pygame.transform.rotate(self.image2, self.direction-90)
+                self.rect = self.image.get_rect(center = (int(self.pos[0]),int(self.pos[1])))
+            self.keeplotate = True if (bul == 10 or bul == 11 or bul == 14) else False
+            self.rect = self.image.get_rect(center = (round(self.pos[0]),round(self.pos[1])))
     ############################################
 
     class MagicField(pygame.sprite.Sprite):
@@ -809,33 +851,8 @@ def play_game():
             pygame.transform.rotate(self.image, direction)
 
         def update(self, screen):
-            mod, sub = math.trunc(self.mod), (self.mod*10)%10
-            subxy = self.pos
-            if mod == 9:
-                if while_time(self.count,10):
-                    for i in range(0,360,90):                    
-                        bullet(self.pos, i+self.count,1,2,0,9,noreturn_xy(self.speed,-self.direction))
-                self.count += 1
-            if mod == 12:
-                if self.count <= 60:
-                    self.speed = 0
-                elif self.count == 61:
-                    s_boom.play()
-                    self.speed = 6
-                    randnum = randint(0,360)
-                    for i in range(0,360,12):
-                        bullet(enemy.pos,randnum+i,4,4,3,12.1)
-                        bullet(enemy.pos,randnum+i,4,4,3,12.2)
-                    randnum = randint(0,360)
-                    for i in range(0,360,24):
-                        bullet(enemy.pos,randnum+i,3,3,3,12.1)
-                        bullet(enemy.pos,randnum+i,3,3,3,12.2)
-                if while_time(self.count,5):
-                    for i in range(0,360,90):
-                        bullet(self.pos,i+self.count,8,1,4,12,noreturn_xy(self.speed,-self.direction))
-                        bullet(self.pos,i+self.count+20,8,1,4,12,noreturn_xy(self.speed,-self.direction))
-                        bullet(self.pos,i+self.count-20,8,1,4,12,noreturn_xy(self.speed,-self.direction))
-                self.count += 1
+            mod = math.trunc(self.mod)
+            magic_type(self,mod)
 
 
             # 각도 계산후 위치 업데이트
@@ -858,26 +875,26 @@ def play_game():
             self.col = col
 
         def update(self):
-            if self.num == 1:
+            if self.num == 1: # 적 사망 파란 포켓볼
                 self.count += 1
                 try: self.image = enemy_died_circle[self.count -1]
                 except:self.kill()
-            if self.num == 2:
+            if self.num == 2: # 탄 효과
                 self.count += 1
                 try:
                     self.image = bullet_taning[self.col][len(bullet_taning)-self.count]
                     if 64-self.count < 1: self.kill()
                 except: self.kill()
-            if self.num == 3:
+            if self.num == 3: # 커지고 투명 원 안채워짐
                 self.count += 1
                 try: self.image = died_white_circle[self.count -1]
                 except:self.kill()
-            if self.num == 4:
+            if self.num == 4: # 보스 주위에 도는 하얀 포켓볼
                 self.pos = boss.pos
                 if self.count == 360:self.count = 0
                 self.image = boss_circle[self.count]
                 if not boss.appear:self.kill()
-            if self.num == 5:
+            if self.num == 5: # 커지는 투명 원
                 self.count += 1
                 try:self.image = white_circle[self.count]
                 except: self.kill()
@@ -1090,6 +1107,49 @@ def play_game():
                     if self.stat == 9:
                         self.turn = 1
                         text = "흐어..억. 그러네.."
+                    if self.stat == 10:
+                        # 대화 끝
+                        self.boss_appear_img = False
+                        self.started = False
+                        self.count = 0
+                if boss.num == 6:
+                    if self.stat == 1:
+                        self.turn = 0
+                        text = "갑자기 여름이 되서 그런가_덤비는 얘들이 많네"
+                    if self.stat == 2:
+                        self.turn = 1
+                        text = "힘을 얻어서 그래"
+                    if self.stat == 3:
+                        self.turn = 1
+                        boss.real_appear = True
+                        self.boss_appear_img = True
+                        text = "내 노래 덕분에 힘이 커진거지"
+                    if self.stat == 4:
+                        self.turn = 0
+                        text = "그러면 아까 치코리타도 너가 한짓이니?"
+                    if self.stat == 5:
+                        self.turn = 1
+                        text = "그렇다고 볼 수 있지~_(치코리타 아닌데..)"
+                    if self.stat == 6:
+                        self.turn = 1
+                        pygame.mixer.music.stop()
+                        pygame.mixer.music.load(BOSS_BGM3)
+                        pygame.mixer.music.play(-1)
+                        text = "모처럼 온김에 내 노래도 들어줘라!"
+                    if self.stat == 7:
+                        # 보스전 시작
+                        self.pause = True
+                        boss.attack_start = True
+                        self.char_move = [-80,-80]
+                        boss.count = 0
+                        self.count = 0
+                    if self.stat == 8:
+                        self.turn = 0
+                        text = "입장료는 냈지?"
+                        boss.count = 0
+                    if self.stat == 9:
+                        self.turn = 1
+                        text = "그래.."
                     if self.stat == 10:
                         # 대화 끝
                         self.boss_appear_img = False
@@ -1442,7 +1502,9 @@ def play_game():
     # 스펠카드 모음
     spells = [Spell(1,1000,False,"통상1"),Spell(2,1000,True,"기다라라 정글"),Spell(3,1000,False),Spell(4,1300,True,"무지개 아이스크름"),\
     Spell(5,1300,True,"최고의 네잎클로버"),Spell(6,1300,False),Spell(7,1300,True),Spell(8,1300,False),Spell(9,2000,True),Spell(10,1300,False),\
-        Spell(11,2800,True),Spell(12,2000,True),Spell(13,1000,False),Spell(14,1000,False)]
+        Spell(11,2800,True),Spell(12,2000,True),Spell(13,1000,False),Spell(14,1000,False,"3stage"),Spell(15,1000,False),Spell(16,2000,True),Spell(17,1000,False),Spell(18,2500,True),\
+            Spell(19,1000,False),Spell(20,1000,True),Spell(21,1000,True)]
+
     # 소환 반복 (줄에 stage_line)
     def while_poke_spawn(time,repeat,line):
         global stage_cline, stage_line, stage_repeat_count, stage_count
@@ -1775,7 +1837,16 @@ def play_game():
             boss.dies = True
             boss.attack_start = True
             boss_background.blit(bg2_image,(0,0),(0,720,1080,720))
-        
+        if num == 6: 
+            boss.pos = (WIDTH+64,HEIGHT+64)
+            boss.radius = 40
+            boss.image.blit(pokemons[7],(0,0))         
+            boss.num = num
+            boss.spell = [spells[17],spells[15],spells[16],spells[17],spells[18],spells[19],spells[20]]
+            boss.dies = True
+            boss_background.blit(bg2_image,(0,0),(0,0,1080,720))
+            boss_background.blit(bg2_image,(0,0),(0,720,1080,720))
+            text.started = True        
         
         
         boss.real_max_health = 0
@@ -1961,9 +2032,49 @@ def play_game():
                         bullet(pos,count+14+90*i,6,9,5)
                 if while_time(count,180):
                     set_go_boss(3,look_at_player(pos),60)  
-                      
-                 
-        
+        if num == 15:
+            pos = set_bossmove_point((WIDTH-300,HEIGHT/2,0),120,3)
+            if ready:
+                if while_time(count,8) and count < 60:
+                    bullet_effect(s_tan1,5,pos)
+                    for i in range(0,360,10):
+                        bullet(pos,i,6,9,5)
+                if while_time(count+4,8) and count < 60:
+                    bullet_effect(s_tan1,5,pos)
+                    for i in range(0,360,10):
+                        bullet(pos,i+5,6,9,5)
+                if while_time(count,60):
+                    set_go_boss(3,look_at_player(pos),30)
+                if when_time(count,150):
+                    count = 0                        
+        if num == 16:
+            pos = set_bossmove_point((WIDTH-300,HEIGHT/2,0),120,3)
+            if ready:
+                if while_time(count,2) and count < 180:
+                    bullet_effect(s_tan1,1,pos)
+                    for i in range(0,360,90):
+                        bullet(pos,count**1.4+i,4,2,1,6)   
+                if when_time(count,300):
+                    count = 0   
+        if num == 18:
+            pos = set_bossmove_point((WIDTH-300,HEIGHT/2,0),120,3)
+            if ready:
+                if when_time(count,60):
+                    magic_bullet((1080,pos[1]),180,10,(255,255,255),1)
+                    magic_bullet((1090,pos[1]+100),180,10,(255,255,255),1)
+                    magic_bullet((1100,pos[1]-100),180,10,(255,255,255),1)
+                    magic_bullet((1110,pos[1]+200),180,10,(255,255,255),1)
+                    magic_bullet((1120,pos[1]-200),180,10,(255,255,255),1)
+                if count == 180:
+                    s_ch0.play()
+                if count == 240:
+                    s_kira0.play()
+                    add_effect(pos,5)
+                    count = 0
+                if while_time(count,60):
+                    set_go_boss(3,choice([90,270]),30)
+
+                          
         
         if ready:pos = go_boss()
         else:pos = calculate_new_xy(pos,boss.move_speed,boss.move_dir)
@@ -2039,10 +2150,29 @@ def play_game():
                 bullet_effect(s_kira0,0,0,True)
                 bullet(self.pos,180,7,4,5)
                 self.kill()  
-    
-    player.power = 0
-    stage_challenge = 0
-    stage_fun = 0
+        if mod == 6:
+            self.count += 1
+            if self.count == 60:
+                bullet_effect(s_kira0,3,self.pos)
+                bullet(self.pos,self.direction,6,2,3)
+        if mod == 7:
+            if boss.count == 240:
+                self.speed = 2
+
+    def magic_type(self,mod):
+        if mod == 1:
+            self.count += 1
+            if while_time(self.count+2,4) and self.count < 180:
+                bullet_effect(s_tan1,0,self.pos)
+                bullet(self.pos,90,0,1,0,7) 
+            if while_time(self.count,4) and self.count < 180:
+                bullet_effect(s_tan1,0,self.pos)
+                bullet(self.pos,270,0,1,0,7)      
+
+
+    player.power = 400
+    stage_challenge = 8
+    stage_fun = 2
     def stage_manager():
         global stage_cline, stage_line, stage_repeat_count, stage_count, stage_condition, stage_challenge,stage_fun
         
@@ -2416,6 +2546,17 @@ def play_game():
                     pokemon_spawn(16,RIGHT_POS[1],180,180,6)          
                     pokemon_spawn(16,RIGHT_POS[7],0,180,6)
                     pokemon_spawn(13,RIGHT_POS[4],0,180,6)
+                if stage_challenge == 8:
+                    if not boss.appear and not boss.died_next_stage: 
+                        boss_spawn(6)
+                    if boss.died_next_stage:
+                        stage_count = 0
+                        if not text.started:
+                            stage_challenge = 0
+                            stage_line = 0
+                            text.re_start()
+                            stage_condition = 1 
+            
             stage_cline = 0
 
 
