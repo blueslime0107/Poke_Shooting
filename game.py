@@ -39,10 +39,6 @@ def play_game():
     bg_image = pygame.transform.scale2x(bg_image)
     bg2_image = pygame.transform.scale2x(bg2_image)
 
-    player_slow_img = pygame.Surface((64, 64), pygame.SRCALPHA)
-    player_slow_img.blit(bullet_image, (0,0), Rect(128,128,64,64))
-    player_slow_img = pygame.transform.scale(player_slow_img, (64*2, 64*2))
-
     msfx_volume = 30
     mmusic_volume = 90
     try:sfx_volume = msfx_volume/100
@@ -226,7 +222,7 @@ def play_game():
         image = pygame.Surface((64,64), pygame.SRCALPHA)
         image.blit(bullet_image,(0,0),(128,128,64,64))
         image = pygame.transform.scale2x(image)
-        for j in range(0,360):
+        for j in range(0,90):
             image2 = pygame.transform.rotate(image, j)  
             rect = image2.get_rect() 
             pygame.draw.circle(image2 , (200,100,100),rect.center, 8)
@@ -243,6 +239,12 @@ def play_game():
             rect = image2.get_rect()   
             cur_list.append(image2)
     magic_circle_sprite = cur_list
+
+    # 이미지 나눠 저장하기 
+    RIGHT_POS = [(WIDTH+64,-64),(WIDTH+64,HEIGHT/6-32),(WIDTH+64,HEIGHT/4),(WIDTH+64,HEIGHT/6*2+32),(WIDTH+64,HEIGHT/2),(WIDTH+64,HEIGHT/6+360-32),(WIDTH+64,HEIGHT/4+360),(WIDTH+64,HEIGHT/6*2+360+32),(WIDTH+64,HEIGHT+64)]
+    UP_POS = [(WIDTH/2,-64),(WIDTH/2+108,-64),(WIDTH/2+108*2,-64),(WIDTH/2+108*3,-64),(WIDTH/2+108*4,-64)]
+    DOWN_POS = [(WIDTH/2,HEIGHT+64),(WIDTH/2+108,HEIGHT+64),(WIDTH/2+108*2,HEIGHT+64),(WIDTH/2+108*3,HEIGHT+64),(WIDTH/2+108*4,HEIGHT+64)]
+    
     clock = pygame.time.Clock()
     prev_time = time.time()
     dt = 0
@@ -909,16 +911,6 @@ def play_game():
                 self.count += 1
                 try:self.image = black_screen[self.count-1]   
                 except:self.kill()  
-            if self.num == 100:  
-                if keys[pygame.K_LSHIFT]:
-                    self.count += 1         
-                    try:     self.image = slow_player_circle[self.count]
-                    except: 
-                        self.image = slow_player_circle[0]
-                        self.count = 0
-                    self.pos = player.pos
-                else:
-                    self.image.fill((0,0,0,0))
 
             self.rect = self.image.get_rect(center = get_new_pos((self.pos)))
             self.count += 1
@@ -928,7 +920,6 @@ def play_game():
             pygame.sprite.Sprite.__init__(self) # 초기화?
             self.image = items[num]      # 이미지          
             self.rect = self.image.get_rect(center = (round(pos[0]), round(pos[1])))
-            self.image2 = self.image.copy()
             self.pos = pos
             self.count = 0
             self.num = num
@@ -999,6 +990,37 @@ def play_game():
 
             score_text = score_font.render(str(score).zfill(10), True, (255,255,255))
             screen.blit(score_text,(WIDTH-score_text.get_rect().width,0))            
+    class Under_PI():
+        def __init__(self):
+            self.slow_image = slow_player_circle[0]
+            self.rect = self.slow_image.get_rect(center = get_new_pos(player.pos))
+            self.slow_count = 0
+            self.pos = player.pos
+
+        def draw(self):
+            if keys[pygame.K_LSHIFT]:
+                self.pos = player.pos
+                self.slow_image = slow_player_circle[self.slow_count]
+                pygame.draw.circle(screen, (255,0,0), self.rect.center, 3)
+                self.rect = self.slow_image.get_rect(center = get_new_pos(self.pos))
+                screen.blit(self.slow_image, self.rect.topleft)
+                self.slow_count += 1
+                if self.slow_count >= len(slow_player_circle): self.slow_count = 0
+
+
+            if starting and not read_end: # 원형 체력바 그리기
+                if player.godmod: drawArc(screen, (0, 194, 247), player.pos, 116, 22, 360*player.godmod_count/player.max_godmod_count,255)
+                drawArc(screen, (0,0,0), player.pos, 112, 15, 360*100,120 if not player.godmod else 255)
+                if player.godmod: drawArc(screen, health_color(player.health/player.max_health), player.pos, 110, 10, 360*player.before_health/player.max_health,120)
+                drawArc(screen, health_color(player.health/player.max_health), player.pos, 110, 10, 360*player.health/player.max_health,120 if not player.godmod else 255)
+            if boss.attack_start and boss.health > 0: # 보스 체력바 그리기
+                try:
+                    drawArc(screen, (0, 0, 0), boss.pos, 112, 15, 360*100,255)
+                    drawArc(screen, (0, 66, 107), boss.pos, 115, 5, 360*boss.real_health/boss.real_max_health,255)
+                    drawArc(screen, health_color(boss.health/boss.max_health), boss.pos, 110, 10, 360*boss.health/boss.max_health,255)
+                except:pass  
+
+
     class TextBox():
         def __init__(self):
             self.image1 =  pygame.Surface((200,400), pygame.SRCALPHA)
@@ -1205,7 +1227,6 @@ def play_game():
             self.textbox.fill((0,0,0,150))
             self.turn = 0
             self.char_move = [-80,-80]
-
     class Back_Ground():
         def __init__(self, img, rect, speed, num, y=0,not_appear=False):
             image = pygame.Surface((rect[2],rect[3]), pygame.SRCALPHA)
@@ -1422,11 +1443,6 @@ def play_game():
             boss.move_speed = 0
             boss.move_dir = 0
         return pos
-
-    # 이미지 나눠 저장하기 
-    RIGHT_POS = [(WIDTH+64,-64),(WIDTH+64,HEIGHT/6-32),(WIDTH+64,HEIGHT/4),(WIDTH+64,HEIGHT/6*2+32),(WIDTH+64,HEIGHT/2),(WIDTH+64,HEIGHT/6+360-32),(WIDTH+64,HEIGHT/4+360),(WIDTH+64,HEIGHT/6*2+360+32),(WIDTH+64,HEIGHT+64)]
-    UP_POS = [(WIDTH/2,-64),(WIDTH/2+108,-64),(WIDTH/2+108*2,-64),(WIDTH/2+108*3,-64),(WIDTH/2+108*4,-64)]
-    DOWN_POS = [(WIDTH/2,HEIGHT+64),(WIDTH/2+108,HEIGHT+64),(WIDTH/2+108*2,HEIGHT+64),(WIDTH/2+108*3,HEIGHT+64),(WIDTH/2+108*4,HEIGHT+64)]
     # 개발자 전용
     
     global bkgd, time_stop
@@ -1459,7 +1475,6 @@ def play_game():
     menu_mod = -1
     difficulty = 0
     character = 0
-
     cur_screen = 0
 
     bullet_border_wide = 200
@@ -1476,9 +1491,10 @@ def play_game():
     bomb_activated = False
     title = Tittle(1)
     ui = UI(1)
+    under_ui = Under_PI()
     text = TextBox()
     beams_group = pygame.sprite.Group()
-    effect_group = pygame.sprite.Group(Effect(player.pos,100))
+    effect_group = pygame.sprite.Group()
     item_group = pygame.sprite.Group()
     
     starting = True
@@ -1490,6 +1506,7 @@ def play_game():
     global score
     score = 0
     score_setting = (10,10,987650,10,0,0,0,0,0)
+    slow_img = 0
 
     # 보스마다 기본설정
     global bkgd_list,boss_background
@@ -1502,7 +1519,7 @@ def play_game():
     spells = [Spell(1,1000,False,"통상1"),Spell(2,1000,True,"기다라라 정글"),Spell(3,1000,False),Spell(4,1300,True,"무지개 아이스크름"),\
     Spell(5,1300,True,"최고의 네잎클로버"),Spell(6,1300,False),Spell(7,1300,True),Spell(8,1300,False),Spell(9,2000,True),Spell(10,1300,False),\
         Spell(11,2800,True),Spell(12,2000,True),Spell(13,1000,False),Spell(14,1000,False,"3stage"),Spell(15,1000,False),Spell(16,2000,True),Spell(17,1000,False),Spell(18,2000,True),\
-            Spell(19,1000,False),Spell(20,1000,True),Spell(21,1000,True)]
+            Spell(19,1000,False),Spell(20,1000,True),Spell(21,1000,True),Spell(22,1000,False,"4s m"),Spell(23,1000,False,"4s m")]
 
     # 소환 반복 (줄에 stage_line)
     def while_poke_spawn(time,repeat,line):
@@ -1582,8 +1599,8 @@ def play_game():
             bkgd_list.append(Back_Ground(bg_image,(0,1440,1080,252),5,8,0))
             bkgd_list.append(Back_Ground(bg_image,(1080,1552,1080,608),7,9,236))
         if fun == 4:
-            bkgd_list.append(Back_Ground(bg_image,(0,1440,1080,252),5,8,0))
-            bkgd_list.append(Back_Ground(bg_image,(1080,1552,1080,608),7,9,236))
+            bkgd_list.append(Back_Ground(bg_image,(0,2160,1080,720),10,10))
+            bkgd_list.append(Back_Ground(bg_image,(1080,2160,1080,720),8,11))
         if fun == 5:
             bkgd_list.append(Back_Ground(bg_image,(0,1440,1080,252),5,8,0))
             bkgd_list.append(Back_Ground(bg_image,(1080,1552,1080,608),7,9,236))
@@ -1622,8 +1639,7 @@ def play_game():
         global stage_line # 현재 조건의 라인
         global stage_cline # 검사 중인 라인
         x = pos[0]
-        y = pos[1]
-        
+        y = pos[1]        
         # x, y, dir, speed, health, img, hit_cir, num = val
         if (time == stage_count and stage_line == stage_cline) or simple:
             if not simple:
@@ -1672,11 +1688,9 @@ def play_game():
                 if val == 18:
                     enemy_group.add(Enemy(x,y,dir,speed,100,27,40,val))
                 if val == 19:
-                    enemy_group.add(Enemy(x,y,dir,speed,300,29,50,val))
-        
-        
-        
-        
+                    enemy_group.add(Enemy(x,y,dir,speed,250,29,50,val))
+                if val == 20:
+                    enemy_group.add(Enemy(x,y,dir,speed,150,28,50,val))               
         if not simple: stage_cline += 1
     # 적의 공격타입
     def enemy_attack(num,count,pos,dir,speed):
@@ -1814,23 +1828,42 @@ def play_game():
                 if count > 60:
                     speed -= 0.1
             if num == 19:
-                if while_time(count,15) and count > 60:
+                if while_time(count,5) and count > 60:
                     bullet_effect(s_tan1,6,pos)
                     if count == 75:
-                        for i in range(0,360,20):
-                            bullet(pos,look_at_player(pos)+i,6,19,7)
-                    for i in range(0,50,25):
-                        bullet(pos,look_at_player(pos)+i,5,9,6,10)
-                        bullet(pos,look_at_player(pos),5,9,6,10)
-                        bullet(pos,look_at_player(pos)-i,5,9,6,10)
+                        s_ch0.play()
+                        for i in range(0,360,6):
+                            bullet(pos,look_at_player(pos)+i,6,11,7)
+                    for i in range(0,360,45):
+                        bullet(pos,i+count*3.2,5,9,6)
                 if count == 60:
                     speed =0
-                if count == 180:
+                if count == 240:
+                    s_enep2.play()
                     for i in range(0,360,20):
                         bullet(pos,look_at_player(pos)+i,6,19,7)
                     dir = 0
                     speed =2
-                
+            if num == 20:
+                if pos[1] > HEIGHT-64 or pos[1] < 64:
+                    speed = 3
+                    if while_time(count,10):
+                        for i in range(0,360,40):
+                            bullet(pos,i+randint(0,9),randfloat(3,5),12,7,10)
+                        for i in range(0,360,40):
+                            bullet(pos,i+randint(0,9),randfloat(3,4),9,6,10)
+                else:
+                    speed = 6
+                    if while_time(count,50):
+                        bullet_effect(s_tan1,0,pos)
+                        bullet(pos,look_at_player(pos),5,8,0)
+                        for i in range(5,15,5):                    
+                            bullet(pos,look_at_player(pos)+i,5-i/10,8,0)
+                            bullet(pos,look_at_player(pos)-i,5-i/10,8,0)
+                        bullet(pos,look_at_player(pos),4,17,7)
+                        for i in range(5,15,5):                    
+                            bullet(pos,look_at_player(pos)+i,4-i/10,17,7)
+                            bullet(pos,look_at_player(pos)-i,4-i/10,17,7)
         return pos,dir,speed,count
 
     def boss_spawn(num): # 보스 시작, 배경
@@ -1904,8 +1937,24 @@ def play_game():
             boss_background.blit(bg2_image,(0,0),(0,0,1080,720))
             boss_background.blit(bg2_image,(0,0),(0,720,1080,720))
             text.started = True        
-        
-        
+        if num == 7: 
+            boss.pos = (WIDTH+64,0)
+            boss.radius = 70
+            boss.image.blit(pokemons[4],(0,0))         
+            boss.num = 5
+            boss.spell = [spells[21],spells[22]]
+            boss.dies = False
+            boss.attack_start = True     
+        if num == 8: 
+            boss.pos = (WIDTH+64,HEIGHT+64)
+            boss.radius = 40
+            boss.image.blit(pokemons[4],(0,0))         
+            boss.num = num
+            boss.spell = [spells[14],spells[15],spells[16],spells[17],spells[18],spells[19],spells[20]]
+            boss.dies = True
+            boss_background.blit(bg2_image,(0,0),(0,0,1080,720))
+            boss_background.blit(bg2_image,(0,0),(0,720,1080,720))
+            text.started = True        
         boss.real_max_health = 0
         for i in boss.spell:
             boss.real_max_health += i.health
@@ -1915,6 +1964,7 @@ def play_game():
         boss.rect = boss.image.get_rect(center = (boss.pos))
 
     def boss_attack(num,count,pos,ready):
+
         if num == 1:
             pos = set_bossmove_point((WIDTH-300,HEIGHT/2),120,3)
             if ready:
@@ -2068,7 +2118,7 @@ def play_game():
                     bullet(pos,180+randint(-20,20),7,19,3,2.1)
                 if while_time(count,360):
                     set_go_boss(3,look_at_player(pos)+180,60)   
-                    count = 0                    
+                    count = 0                           
         if num == 13:
             pos = set_bossmove_point((WIDTH-300,HEIGHT/2,0),120,3)
             if ready:
@@ -2171,8 +2221,29 @@ def play_game():
                     s_tan1.play()
                     magic_bullet(get_new_pos(player.pos,100),0,0,3,1) 
                     magic_bullet(get_new_pos(player.pos,100),0,0,4,1)
-
-
+        if num == 22:
+            pos = set_bossmove_point((WIDTH-300,HEIGHT/2,0),120,3)
+            if ready:
+                if while_time(count,6):
+                    sub = count * 2.2
+                    for i in range(1,5):
+                        bullet_effect(s_tan1,4,calculate_new_xy(pos,60*i,sub))
+                        bullet(calculate_new_xy(pos,60*i,sub),-sub-90,5,1,4)
+                if while_time(count,120):
+                    set_go_boss(5,randint(0,360),30)
+        if num == 23:
+            pos = set_bossmove_point((WIDTH-300,HEIGHT/2,0),120,3)
+            if ready:
+                if while_time(count,6):
+                    sub = count * 2.2
+                    for i in range(1,5):
+                        bullet_effect(s_tan1,4,calculate_new_xy(pos,60*i,sub))
+                        bullet(calculate_new_xy(pos,60*i,sub),-sub-90,5,1,4)
+                        bullet_effect(s_tan1,1,calculate_new_xy(pos,-70*i,sub))
+                        bullet(calculate_new_xy(pos,-70*i,sub),-sub+45,5,1,1)
+                        bullet(calculate_new_xy(pos,-70*i,sub),-sub+135,5,1,1)
+                if while_time(count,120):
+                    set_go_boss(5,randint(0,360),30)
         if ready:pos = go_boss()
         else:pos = calculate_new_xy(pos,boss.move_speed,boss.move_dir)
         return count,pos,ready
@@ -2268,10 +2339,9 @@ def play_game():
             if self.count == 60:
                 self.speed = 3
                 self.direction = self.num[0]
-        if mod == 10:
-            self.count += 1
-            if while_time(self.count,10):
-                self.direction += randint(-5,5)
+        if mod == 10:# 점점 아래로 떨어짐
+            if self.count < 40: self.count += 1
+            self.pos = get_new_pos(self.pos,0,self.count/8)
     
     
     def magic_type(self,mod):
@@ -2313,7 +2383,7 @@ def play_game():
                 bullet(self.pos,look_at_player(self.pos)+85,4,16,4)
                 bullet(self.pos,look_at_player(self.pos)+95,6,16,4)
     player.power = 400
-    stage_challenge = 2
+    stage_challenge = 0
     stage_fun =3
     def stage_manager():
         global stage_cline, stage_line, stage_repeat_count, stage_count, stage_condition, stage_challenge,stage_fun
@@ -2731,14 +2801,72 @@ def play_game():
                         if stage_repeat_count == 12:
                             pokemon_spawn(18,RIGHT_POS[4],0,180,4,True)
                         end_while_poke_spawn(2,24)
-                    next_challenge(0,True)
+                    next_challenge(60,True)
                 if stage_challenge == 2:
                     pokemon_spawn(19,RIGHT_POS[4],60,180,5)
-                    pokemon_spawn(19,RIGHT_POS[3],480,180,5)
+                    pokemon_spawn(19,RIGHT_POS[3],420,180,5)
                     pokemon_spawn(19,RIGHT_POS[5],0,180,5)
-                    pokemon_spawn(19,RIGHT_POS[2],480,180,5)
+                    pokemon_spawn(19,RIGHT_POS[2],420,180,5)
                     pokemon_spawn(19,RIGHT_POS[6],0,180,5)
-                    pokemon_spawn(19,RIGHT_POS[4],0,180,5)
+                    next_challenge(660,True)
+                if stage_challenge == 3:
+                    if while_poke_spawn(30,7,1):
+                        pokemon_spawn(20,choice([DOWN_POS[2],DOWN_POS[3],DOWN_POS[4]]),30,-90,0)
+                        if stage_repeat_count>3:
+                            pokemon_spawn(17,choice([RIGHT_POS[5],RIGHT_POS[3],RIGHT_POS[4]]),60,180,7,True)
+                            pokemon_spawn(17,choice([RIGHT_POS[5],RIGHT_POS[3],RIGHT_POS[4]]),60,180,7,True)
+                        end_while_poke_spawn(1,7)
+                    waiting(120)
+                    if while_poke_spawn(30,7,1):
+                        pokemon_spawn(20,choice([UP_POS[2],UP_POS[3],UP_POS[4]]),30,90,0)
+                        if stage_repeat_count>3:
+                            pokemon_spawn(17,choice([RIGHT_POS[5],RIGHT_POS[3],RIGHT_POS[4]]),60,180,7,True)
+                            pokemon_spawn(17,choice([RIGHT_POS[5],RIGHT_POS[3],RIGHT_POS[4]]),60,180,7,True)
+                        end_while_poke_spawn(1,7)
+                    next_challenge(240)
+                if stage_challenge == 4:
+                    if not boss.appear and not boss.died_next_stage: 
+                        boss_spawn(7)
+                    if boss.died_next_stage:
+                        stage_count = 0
+                        boss.died_next_stage = False
+                        next_challenge(0) 
+                if stage_challenge == 5:
+                    if while_poke_spawn(10,60,1):
+                        pokemon_spawn(17,choice([RIGHT_POS[1],RIGHT_POS[2],RIGHT_POS[3],RIGHT_POS[4]]),10,randint(150,170),7)
+                        if while_time(stage_repeat_count,10):
+                            pokemon_spawn(18,RIGHT_POS[4],0,180,6,True)
+                        end_while_poke_spawn(1,30)    
+                    waiting(120)                            
+                    if while_poke_spawn(10,60,1):
+                        pokemon_spawn(17,choice([RIGHT_POS[7],RIGHT_POS[6],RIGHT_POS[5],RIGHT_POS[4]]),10,randint(190,210),7)
+                        if while_time(stage_repeat_count,10):
+                            pokemon_spawn(18,RIGHT_POS[4],0,180,6,True)
+                        end_while_poke_spawn(1,30)    
+                    waiting(120) 
+                    if while_poke_spawn(10,60,1):
+                        pokemon_spawn(17,choice([RIGHT_POS[1],RIGHT_POS[2],RIGHT_POS[3],RIGHT_POS[4]]),10,randint(150,170),7)
+                        if while_time(stage_repeat_count,29):
+                            pokemon_spawn(19,RIGHT_POS[5],0,180,6,True)
+                        end_while_poke_spawn(1,30)    
+                    waiting(120) 
+                    if while_poke_spawn(10,60,1):
+                        pokemon_spawn(17,choice([RIGHT_POS[7],RIGHT_POS[6],RIGHT_POS[5],RIGHT_POS[4]]),10,randint(190,210),7)
+                        if while_time(stage_repeat_count,29):
+                            pokemon_spawn(19,RIGHT_POS[3],0,180,6,True)
+                        end_while_poke_spawn(1,30)    
+                    next_challenge(240)
+                if stage_challenge == 6:
+                    if while_poke_spawn(100,8,1):
+                        pokemon_spawn(20,(player.pos[0],HEIGHT+64),100,-90,0)
+                        if stage_repeat_count > 3:
+                            pokemon_spawn(17,(WIDTH + 64,player.pos[1]),0,172,7,True)
+                            pokemon_spawn(17,(WIDTH + 64,player.pos[1]),0,174,6,True)
+                            pokemon_spawn(17,(WIDTH + 64,player.pos[1]),0,176,5,True)
+                            pokemon_spawn(17,(WIDTH + 64,player.pos[1]),0,178,4,True)
+                            pokemon_spawn(17,(WIDTH + 64,player.pos[1]),0,180,3,True)
+                        end_while_poke_spawn(1,8)    
+                    waiting(120)                                
             stage_cline = 0
 
 
@@ -2836,26 +2964,16 @@ def play_game():
             enemy_group.draw(screen)            
             if not starting or read_end: enemy_group.draw(screen)
             if boss.appear: boss_group.draw(screen)
-            effect_group.draw(screen)   
-            if starting and not read_end: # 원형 체력바 그리기
-                if player.godmod: drawArc(screen, (0, 194, 247), player.pos, 116, 22, 360*player.godmod_count/player.max_godmod_count,255)
-                drawArc(screen, (0,0,0), player.pos, 112, 15, 360*100,120 if not player.godmod else 255)
-                if player.godmod: drawArc(screen, health_color(player.health/player.max_health), player.pos, 110, 10, 360*player.before_health/player.max_health,120)
-                drawArc(screen, health_color(player.health/player.max_health), player.pos, 110, 10, 360*player.health/player.max_health,120 if not player.godmod else 255)
-            if boss.attack_start and boss.health > 0: # 보스 체력바 그리기
-                try:
-                    drawArc(screen, (0, 0, 0), boss.pos, 112, 15, 360*100,255)
-                    drawArc(screen, (0, 66, 107), boss.pos, 115, 5, 360*boss.real_health/boss.real_max_health,255)
-                    drawArc(screen, health_color(boss.health/boss.max_health), boss.pos, 110, 10, 360*boss.health/boss.max_health,255)
-                except:pass        
+            under_ui.draw()
             spr.draw(screen)
-
+            effect_group.draw(screen)         
+            
+            
             title.draw()
             if text.started:text.draw()
             ui.draw()
             if boss.spell and boss.appear and boss.spell[0].spellcard:
                 boss.spell[0].draw()
-
             pygame.display.flip()
         if cur_screen == 0:
             for ev in pygame.event.get():
