@@ -550,6 +550,7 @@ def play_game():
 
             self.count = 0
             self.list = [0,0]
+            self.max_health = health
             self.health = health
             self.num = num
 
@@ -578,7 +579,11 @@ def play_game():
                 enemy_boom_channel.play(s_enedead)
                 effect_group.add(Effect(self.pos,1))
                 effect_group.add(Effect(self.pos,3))
-                item_group.add(Item(self.pos,0))
+                for i in range(0,math.ceil(self.max_health/50)):
+                    rand = [randint(-100,100),randint(-100,100)]
+                    if rand[1] < 32: rand[1] = 32
+                    if rand[1] >688: rand[1] = 688
+                    item_group.add(Item(get_new_pos(self.pos,rand[0],rand[1]),0))
                 self.kill()
 
             self.count += 1
@@ -1356,10 +1361,10 @@ def play_game():
     def magic_bullet(pos,dir,speed,mode=0,screend=0):
         magic_spr.add(MagicField(pos,dir,speed,mode,screend))
 
-    def calculate_new_xy(old_xy, speed, angle_in_degrees):
+    def calculate_new_xy(old_xy, speed, angle_in_degrees, no_delta = False):
         move_vec = pygame.math.Vector2()
         move_vec.from_polar((speed, angle_in_degrees))
-        move_vec = (move_vec[0]*dt,move_vec[1]*dt)
+        if not no_delta: move_vec = (move_vec[0]*dt,move_vec[1]*dt)
         return (old_xy[0] + move_vec[0],old_xy[1] + move_vec[1])
 
     def noreturn_xy(speed, angle_in_degrees):
@@ -1589,7 +1594,8 @@ def play_game():
     Spell(5,1300,True,"최고의 네잎클로버"),Spell(6,1300,False),Spell(7,1300,True),Spell(8,1300,False),Spell(9,2000,True),Spell(10,1300,False),\
         Spell(11,2800,True),Spell(12,2000,True),Spell(13,1000,False),Spell(14,1000,False,"3stage"),Spell(15,1000,False),Spell(16,2000,True),Spell(17,1000,False),Spell(18,2000,True),\
             Spell(19,1000,False),Spell(20,1000,True),Spell(21,1000,True),Spell(22,1000,False,"4s m"),Spell(23,1000,False,"4s m"),Spell(24,1000,False,"4Boss"),\
-                Spell(25,2100,True,"4Boss"),Spell(26,1100,False,"4Boss"),Spell(27,1500,True,"4Boss"),Spell(28,800,False,"4Boss"),Spell(29,2200,True,"4Boss"),Spell(30,1500,True,"4Boss")]
+                Spell(25,2100,True,"4Boss"),Spell(26,1100,False,"4Boss"),Spell(27,1500,True,"4Boss"),Spell(28,800,False,"4Boss"),Spell(29,2200,True,"4Boss"),Spell(30,1500,True,"4Boss"),\
+                    Spell(31,1000,False,"5m"),Spell(32,1000,False,"5m")]
 
     # 소환 반복 (줄에 stage_line)
     def while_poke_spawn(time,repeat,line):
@@ -1773,8 +1779,8 @@ def play_game():
                     enemy_group.add(Enemy(x,y,dir,speed,100,35,30,val))
                 if val == 25:
                     enemy_group.add(Enemy(x,y,dir,speed,100,32,30,val))
-                if val == 18:
-                    enemy_group.add(Enemy(x,y,dir,speed,100,27,40,val))        
+                if val == 26:
+                    enemy_group.add(Enemy(x,y,dir,speed,20,36,30,val))        
         
         if not simple: stage_cline += 1
     # 적의 공격타입
@@ -1953,7 +1959,7 @@ def play_game():
             if num == 21:
                 if distance(pos,player.pos) <= 300 and while_time(count,30):
                     bullet_effect(s_tan1,0,pos)
-                    bullet(pos,look_at_player(pos),3,3,0)
+                    bullet(pos,look_at_player(pos),3,3,0)                 
             if num == 22:
                 if while_time(count,5) and count > 60 and count < 240:
                     bullet_effect(s_tan1,2,pos)
@@ -1989,7 +1995,7 @@ def play_game():
                 if when_time(count,330):
                     speed = -1                   
             if num == 24:
-                if count == 80:
+                if count == 40:
                     bullet_effect(s_tan1,7,pos)
                     bullet(pos,look_at_player(pos),6,19,7,13)
             if num == 25:
@@ -2011,16 +2017,13 @@ def play_game():
                     list[1] =1
                 if list[1]:
                     speed += 0.2
-            if num == 18:
-                if while_time(count,20) and count > 60:
-                    bullet_effect(s_tan1,0,pos)
-                    rand = randint(0,9)
-                    for i in range(0,360,10):
-                        bullet(pos,i+rand,6,3,0)
-                        bullet(pos,i+rand,6,11,0)
-                if count > 60:
-                    speed -= 0.1                
-
+            if num == 26:
+                if when_time(count,80):
+                    bullet_effect(s_tan1,7,pos)
+                    for i in range(2,6):
+                        bullet(pos,look_at_player(pos)+3,i,5,7)   
+                        bullet(pos,look_at_player(pos)-3,i,5,7)   
+                     
         
         return pos,dir,speed,count,list
 
@@ -2113,6 +2116,16 @@ def play_game():
             boss_background.blit(bg2_image,(0,0),(0,0,1080,720))
             boss_background.blit(bg2_image,(0,0),(0,720,1080,720))
             text.started = True        
+        if num == 9: 
+            boss.pos = (WIDTH+64,0)
+            boss.radius = 70
+            boss.image.blit(pokemons[6],(0,0))         
+            boss.num = 9
+            boss.spell = [spells[30],spells[31]]
+            boss.dies = False
+            boss.attack_start = True  
+        
+        
         boss.real_max_health = 0
         for i in boss.spell:
             boss.real_max_health += i.health
@@ -2385,8 +2398,8 @@ def play_game():
                 if while_time(count,6):
                     sub = count * 2.2
                     for i in range(1,5):
-                        bullet_effect(s_tan1,4,calculate_new_xy(pos,60*i,sub))
-                        bullet(calculate_new_xy(pos,60*i,sub),-sub-90,5,1,4)
+                        bullet_effect(s_tan1,4,calculate_new_xy(pos,60*i,sub,True))
+                        bullet(calculate_new_xy(pos,60*i,sub,True),-sub-90,5,1,4)
                 if while_time(count,120):
                     set_go_boss(5,randint(0,360),30)
         if num == 23:
@@ -2395,11 +2408,11 @@ def play_game():
                 if while_time(count,6):
                     sub = count * 2.2
                     for i in range(1,5):
-                        bullet_effect(s_tan1,4,calculate_new_xy(pos,60*i,sub))
-                        bullet(calculate_new_xy(pos,60*i,sub),-sub-90,5,1,4)
-                        bullet_effect(s_tan1,1,calculate_new_xy(pos,-70*i,sub))
-                        bullet(calculate_new_xy(pos,-70*i,sub),-sub+45,5,1,1)
-                        bullet(calculate_new_xy(pos,-70*i,sub),-sub+135,5,1,1)
+                        bullet_effect(s_tan1,4,calculate_new_xy(pos,60*i,sub,True))
+                        bullet(calculate_new_xy(pos,60*i,sub,True),-sub-90,5,1,4)
+                        bullet_effect(s_tan1,1,calculate_new_xy(pos,-70*i,sub,True))
+                        bullet(calculate_new_xy(pos,-70*i,sub,True),-sub+45,5,1,1)
+                        bullet(calculate_new_xy(pos,-70*i,sub,True),-sub+135,5,1,1)
                 if while_time(count,120):
                     set_go_boss(5,randint(0,360),30)
         if num == 24:
@@ -2425,8 +2438,8 @@ def play_game():
                 if while_time(count,3) and count< 90:
                     sub = -(count * 3.2 + 45 )
                     for i in range(2,6):
-                        bullet_effect(s_tan1,4,calculate_new_xy(pos,60*i,sub))
-                        bullet(calculate_new_xy(pos,60*i,sub),look_at_player(boss.pos),0,1,4,11.4)
+                        bullet_effect(s_tan1,4,calculate_new_xy(pos,60*i,sub,True))
+                        bullet(calculate_new_xy(pos,60*i,sub,True),look_at_player(boss.pos),0,1,4,11.4)
                 if count == 90:
                     bullet_effect(s_kira0,0,0,True)
                 if while_time(count,120):
@@ -2459,12 +2472,12 @@ def play_game():
                 if while_time(count,2) and boss.move_speed == 20:
                     rand = (randint(-100,100),randint(-100,100))
                     bullet_effect(s_tan1,7,get_new_pos(pos,rand[0],rand[1]))
-                    bullet(get_new_pos(pos,rand[0],rand[1]),-boss.move_dir,8,15,7)     
+                    bullet(get_new_pos(pos,rand[0],rand[1],True),-boss.move_dir,8,15,7)     
                 if while_time(count,3) and boss.list[0]:
                     sub = -(count * 4.2 + 45)
                     for i in range(2,4):
-                        bullet_effect(s_tan1,7,calculate_new_xy(pos,60*i,sub))
-                        bullet(calculate_new_xy(pos,60*i,sub),-sub-90,4,1,7)                       
+                        bullet_effect(s_tan1,7,calculate_new_xy(pos,60*i,sub,True))
+                        bullet(calculate_new_xy(pos,60*i,sub,True),-sub-90,4,1,7)                       
                 if while_time(count,60):
                     set_go_boss(20,-look_at_point(pos,(0,player.pos[1])),999)                
                 if pos[0] < 64 and not boss.list[0]:
@@ -2519,9 +2532,9 @@ def play_game():
                 if while_time(count,3) and count < 60:
                     sub = -(count * 5.2 +45)
                     for i in range(2,10):
-                        bullet_effect(s_tan1,4,calculate_new_xy(pos,60*i,sub))
-                        bullet(calculate_new_xy(pos,60*i,sub),-sub+90,5,1,4)
-                        bullet(calculate_new_xy(pos,60*i,sub),-sub+135,5,1,4)
+                        bullet_effect(s_tan1,4,calculate_new_xy(pos,60*i,sub,True))
+                        bullet(calculate_new_xy(pos,60*i,sub,True),-sub+90,5,1,4)
+                        bullet(calculate_new_xy(pos,60*i,sub,True),-sub+135,5,1,4)
                 if while_time(count,2) and big_small(count,60,80):
                     rand = (randint(-100,100),randint(-100,100))
                     bullet_effect(s_tan1,4,get_new_pos(pos,rand[0],rand[1]))
@@ -2540,8 +2553,33 @@ def play_game():
                             bullet(pos,look_at_player(pos)-i/2+j,10-i/2+3,4,5)  
                 if count == 101:
                     count = 0  
-        
-        
+        if num == 31:
+            pos = set_bossmove_point((WIDTH-300,HEIGHT/2,0),120,3)
+            if ready: 
+                if while_time(count,40):
+                    boss.list[0] = look_at_player(pos)
+                    count = 0
+                if while_time(count,2) and count < 30:
+                    bullet_effect(s_tan1,1,calculate_new_xy(pos,100,-boss.list[0],True))  
+                    bullet(calculate_new_xy(pos,100,-boss.list[0],True),boss.list[0]+20,6,1,1,14.6,[boss.list[0]])   
+                    bullet(calculate_new_xy(pos,100,-boss.list[0],True),boss.list[0]-20,6,1,1,14.6,[boss.list[0]])    
+                if while_time(count,40):
+                    bullet_effect(s_tan2,6,pos)  
+                    for i in range(0,360,10):
+                        bullet(pos,i,4,2,6)    
+        if num == 32:
+            pos = set_bossmove_point((WIDTH-300,HEIGHT/2,0),120,3)
+            if ready: 
+                if while_time(count,40):
+                    boss.list[0] = look_at_player(pos)
+                    count = 0
+                if while_time(count,5) and count < 30:
+                    bullet_effect(s_tan1,1,calculate_new_xy(pos,100,-boss.list[0],True))  
+                    bullet(calculate_new_xy(pos,100,-boss.list[0],True),boss.list[0]+60,12,1,1,14.6,[boss.list[0]])   
+                    bullet(calculate_new_xy(pos,100,-boss.list[0],True),boss.list[0]-60,12,1,1,14.6,[boss.list[0]]) 
+                if when_time(count,30):
+                    bullet_effect(s_tan1,1,pos)  
+                    bullet(pos,boss.list[0],8,15,1)                              
         if ready:pos = go_boss()
         else:pos = calculate_new_xy(pos,boss.move_speed,boss.move_dir)
         return count,pos,ready
@@ -2664,7 +2702,10 @@ def play_game():
                     for i in range(0,360,90):
                         bullet(self.pos,self.direction+i,self.speed/2,11,7)
                 self.kill()
-
+        if mod == 14:
+            if boss.count == 30:
+                self.direction = self.num[0]
+                self.speed = sub
     def magic_type(self,mod):
         if mod == 1:
             self.count += 1
@@ -2703,9 +2744,9 @@ def play_game():
                 bullet(self.pos,look_at_player(self.pos)+90,5,16,5)
                 bullet(self.pos,look_at_player(self.pos)+85,4,16,4)
                 bullet(self.pos,look_at_player(self.pos)+95,6,16,4)
-    player.power = 400
+    player.power = 0
     stage_challenge = 0
-    stage_fun =4
+    stage_fun =0
     def stage_manager():
         global stage_cline, stage_line, stage_repeat_count, stage_count, stage_condition, stage_challenge,stage_fun
         
@@ -3236,7 +3277,50 @@ def play_game():
                         end_while_poke_spawn(1,92)      
 
                     pokemon_spawn(23,RIGHT_POS[3],60,160,5)  
-                    pokemon_spawn(23,RIGHT_POS[5],0,-160,5)      
+                    pokemon_spawn(23,RIGHT_POS[5],0,-160,5)
+                    next_challenge(360)
+                if stage_challenge == 3:
+                    waiting(120)
+                    pokemon_spawn(24,RIGHT_POS[6],20,180,5) 
+                    if while_poke_spawn(20,16,1):
+                        pokemon_spawn(26,RIGHT_POS[6],20,180,5)  
+                        end_while_poke_spawn(1,16)  
+                    pokemon_spawn(24,RIGHT_POS[2],20,180,5) 
+                    if while_poke_spawn(20,16,1):
+                        pokemon_spawn(26,RIGHT_POS[2],20,180,5)  
+                        end_while_poke_spawn(1,16)   
+
+                    pokemon_spawn(24,RIGHT_POS[4],60,180,5)
+                    if while_poke_spawn(20,8,2):
+                        pokemon_spawn(26,RIGHT_POS[3],20,160,5)  
+                        pokemon_spawn(26,RIGHT_POS[5],0,-160,5)  
+                        end_while_poke_spawn(2,8) 
+                    pokemon_spawn(24,RIGHT_POS[2],60,180,5)
+                    pokemon_spawn(24,RIGHT_POS[6],0,180,5)
+                    if while_poke_spawn(20,8,2):
+                        pokemon_spawn(26,RIGHT_POS[2],20,135,5)  
+                        pokemon_spawn(26,RIGHT_POS[6],0,-135,5)  
+                        end_while_poke_spawn(2,8) 
+                    next_challenge(120)
+                if stage_challenge == 4:
+                    if not boss.appear and not boss.died_next_stage: 
+                        boss_spawn(9)
+                    if boss.died_next_stage:
+                        stage_count = 0
+                        boss.died_next_stage = False
+                        next_challenge(0) 
+                if stage_challenge == 5:
+                    pokemon_spawn(25,RIGHT_POS[4],60,180,12) 
+                    pokemon_spawn(25,RIGHT_POS[4],120,180,12)
+                    pokemon_spawn(25,RIGHT_POS[4],60,180,12)
+                    if while_poke_spawn(20,32,2): 
+                        pokemon_spawn(26,RIGHT_POS[7],20,180,5) 
+                        pokemon_spawn(21,RIGHT_POS[4],0,randint(170,190),5) 
+                        if while_time(stage_repeat_count,14):
+                            pokemon_spawn(22,RIGHT_POS[4],0,180,5,True) 
+                        if when_time(stage_repeat_count,16):
+                            pokemon_spawn(23,RIGHT_POS[2],0,160,6,True)
+                        end_while_poke_spawn(2,64)
             stage_cline = 0
 
 
