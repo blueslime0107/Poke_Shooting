@@ -6,6 +6,8 @@ import cv2
 import numpy
 import time
 
+from soupsieve import select
+
 # 게임에 핵심적인 기능만 주석을 넣었습니다 ##
 pygame.init()
 pygame.mixer.pre_init(44100,-16,2,512)
@@ -17,7 +19,7 @@ render_layer = pygame.Surface((WIDTH,HEIGHT))
 up_render_layer = pygame.Surface((WIDTH,HEIGHT), SRCALPHA)
 screen = pygame.display.set_mode((WIDTH*2,HEIGHT*2))
 monitor_size = [pygame.display.Info().current_w, pygame.display.Info().current_h]
-screen_rect = screen.get_rect()
+screen_rect = render_layer.get_rect()
 bgm_num = 0
 # 소리 초기설정, 불러오기
 pygame.mixer.set_num_channels(32)
@@ -171,12 +173,22 @@ def play_game():
 
     cur_list = []
     a_list = []
-    for i in range(0,10):
+    for i in range(0,4):
         for j in range(0,10):
             image = pygame.Surface((64, 64), pygame.SRCALPHA)
             image.blit(pkmon_image, (0,0), Rect(j*64,i*64,64,64))
             image = pygame.transform.scale2x(image)
             cur_list.append(image)
+    image = pygame.Surface((64, 64), pygame.SRCALPHA)
+    image.blit(pkmon_image, (0,0), Rect(0,0,64,64))
+    image = pygame.transform.scale2x(image)
+    image = pygame.transform.flip(image, True, False)
+    cur_list.append(image)
+    image = pygame.Surface((64, 64), pygame.SRCALPHA)
+    image.blit(pkmon_image, (0,0), Rect(64,0,64,64))
+    image = pygame.transform.scale2x(image)
+    image = pygame.transform.flip(image, True, False)
+    cur_list.append(image)
     pokemons = cur_list
     # 이펙트 미리 그려놓기
     cur_list = []
@@ -228,7 +240,7 @@ def play_game():
         image = pygame.Surface((64,64), pygame.SRCALPHA)
         image.blit(bullet_image,(0,0),(128,128,64,64))
         for j in range(0,90):
-            image2 = pygame.transform.rotate(image, j)  
+            image2 = pygame.transform.rotate(image, j*2)  
             rect = image2.get_rect() 
             pygame.draw.circle(image2 , (200,100,100),rect.center, 4)
             pygame.draw.circle(image2 , (255,255,255),rect.center, 3)     
@@ -287,7 +299,7 @@ def play_game():
         def __init__(self, x, y, speed, health):
             pygame.sprite.Sprite.__init__(self) # 초기화?
             self.image = pygame.Surface((128, 128), pygame.SRCALPHA) # 이미지          
-            self.image.blit(pokemons[0],(0,-5)) # 이미지 위치조정
+            self.image.blit(pokemons[character],(0,-5)) # 이미지 위치조정
             self.rect = self.image.get_rect(center = (round(x), round(y)))
             self.image2 = self.image.copy()
             self.img_num = 0
@@ -324,9 +336,12 @@ def play_game():
             # 총 쏘기 이벤트
             if keys[pygame.K_z] and frame_count % 4 == 0 and not player.godmod and not pause:
                 s_plst0.play(loops=1, maxtime=50)
-                beams_group.add(Beam(get_new_pos(player.pos,5,15)))
-                beams_group.add(Beam(get_new_pos(player.pos,5,-15)))
-
+                if character == 0:
+                    beams_group.add(Beam(get_new_pos(player.pos,5,15)))
+                    beams_group.add(Beam(get_new_pos(player.pos,5,-15)))
+                if character == 41:
+                    beams_group.add(Beam(get_new_pos(player.pos,5,15),2))
+                    beams_group.add(Beam(get_new_pos(player.pos,5,-15),2))
             # 모양이 바꼈을 때만 모양 업데이트
             self.img_num = self.img_num + keys[pygame.K_RIGHT] + keys[pygame.K_LEFT]*2
             if inum != self.img_num:
@@ -371,6 +386,12 @@ def play_game():
             
             self.rect.center = round(self.pos[0]), round(self.pos[1]) 
             self.count += 1
+        def change_player(self,num):
+            self.image = pygame.Surface((128, 128), pygame.SRCALPHA) # 이미지          
+            self.image.blit(pokemons[num],(0,-5)) # 이미지 위치조정
+            self.rect = self.image.get_rect(center = self.pos)
+            self.image2 = self.image.copy()            
+
     class Player_hit(pygame.sprite.Sprite):
         def __init__(self):
             self.image = pygame.Surface((6,6)) # 이미지  
@@ -397,29 +418,60 @@ def play_game():
             keys = pygame.key.get_pressed()
             if keys[pygame.K_z] and while_time(self.count,6) and player.power >= 100:
                 for i in range(0,int(player.power/100)):
-                    beams_group.add(Beam(get_new_pos(self.ballxy[i],16,16),1))
-            if keys[pygame.K_LSHIFT] and self.adddir <= 30:
-                self.adddir += 2
-                self.radi -= 1.2
-            elif self.adddir > 0 and not keys[pygame.K_LSHIFT]:
-                self.adddir -= 2
-                self.radi += 1.2
+                    if character == 0:beams_group.add(Beam(get_new_pos(self.ballxy[i],16,16),1))
+                    else:
+                        if int(player.power/100) == 1 and i == 0:
+                            beams_group.add(Beam(get_new_pos(self.ballxy[0],16,16),3,15))
+                            beams_group.add(Beam(get_new_pos(self.ballxy[0],16,16),3,-15))
+                        elif int(player.power/100) == 3 and i == 2:
+                            beams_group.add(Beam(get_new_pos(self.ballxy[2],16,16),3,6))
+                            beams_group.add(Beam(get_new_pos(self.ballxy[2],16,16),3,-6))
+                        else:
+                            beams_group.add(Beam(get_new_pos(self.ballxy[i],16,16),3))
+            if character == 0:
+                if keys[pygame.K_LSHIFT] and self.adddir <= 30:
+                    self.adddir += 2
+                    self.radi -= 0.6
+                elif self.adddir > 0 and not keys[pygame.K_LSHIFT]:
+                    self.adddir -= 2
+                    self.radi += 0.6
 
-            if int(player.power/100) == 1:
-                self.ballxy[0] = move_circle(get_new_pos(player.pos,-16,-16),0,self.radi)
-            if int(player.power/100) == 2:
-                self.ballxy[0] = move_circle(get_new_pos(player.pos,-16,-16),45-self.adddir,self.radi)
-                self.ballxy[1] = move_circle(get_new_pos(player.pos,-16,-16),-45+self.adddir,self.radi)
-            if int(player.power/100) == 3:
-                self.ballxy[0] = move_circle(get_new_pos(player.pos,-16,-16),45-self.adddir,self.radi)
-                self.ballxy[1] = move_circle(get_new_pos(player.pos,-16,-16),-45+self.adddir,self.radi)
-                self.ballxy[2] = move_circle(get_new_pos(player.pos,-16,-16),0,self.radi)
-            if int(player.power/100) == 4:
-                self.ballxy[0] = move_circle(get_new_pos(player.pos,-16,-16),45-self.adddir,self.radi)
-                self.ballxy[1] = move_circle(get_new_pos(player.pos,-16,-16),-45+self.adddir,self.radi)
-                self.ballxy[2] = move_circle(get_new_pos(player.pos,-16,-16),105-self.adddir*2,self.radi)
-                self.ballxy[3] = move_circle(get_new_pos(player.pos,-16,-16),-105+self.adddir*2,self.radi)
+                if int(player.power/100) == 1:
+                    self.ballxy[0] = move_circle(get_new_pos(player.pos,-16,-16),0,self.radi)
+                if int(player.power/100) == 2:
+                    self.ballxy[0] = move_circle(get_new_pos(player.pos,-16,-16),45-self.adddir,self.radi)
+                    self.ballxy[1] = move_circle(get_new_pos(player.pos,-16,-16),-45+self.adddir,self.radi)
+                if int(player.power/100) == 3:
+                    self.ballxy[0] = move_circle(get_new_pos(player.pos,-16,-16),55-self.adddir,self.radi)
+                    self.ballxy[1] = move_circle(get_new_pos(player.pos,-16,-16),-55+self.adddir,self.radi)
+                    self.ballxy[2] = move_circle(get_new_pos(player.pos,-16,-16),0,self.radi)
+                if int(player.power/100) == 4:
+                    self.ballxy[0] = move_circle(get_new_pos(player.pos,-16,-16),45-self.adddir,self.radi)
+                    self.ballxy[1] = move_circle(get_new_pos(player.pos,-16,-16),-45+self.adddir,self.radi)
+                    self.ballxy[2] = move_circle(get_new_pos(player.pos,-16,-16),105-self.adddir*2,self.radi)
+                    self.ballxy[3] = move_circle(get_new_pos(player.pos,-16,-16),-105+self.adddir*2,self.radi)
+            if character == 41:
+                if keys[pygame.K_LSHIFT] and self.adddir <= 30:
+                    self.adddir += 2
+                    self.radi -= 0.6
+                elif self.adddir > 0 and not keys[pygame.K_LSHIFT]:
+                    self.adddir -= 2
+                    self.radi += 0.6
 
+                if int(player.power/100) == 1:
+                    self.ballxy[0] = move_circle(get_new_pos(player.pos,-16,-16),180,self.radi*2)
+                if int(player.power/100) == 2:
+                    self.ballxy[0] = move_circle(get_new_pos(player.pos,-16,-16),-135-self.adddir,self.radi*2)
+                    self.ballxy[1] = move_circle(get_new_pos(player.pos,-16,-16),135+self.adddir,self.radi*2)
+                if int(player.power/100) == 3:
+                    self.ballxy[0] = move_circle(get_new_pos(player.pos,-16,-16),-135-self.adddir,self.radi*2)
+                    self.ballxy[1] = move_circle(get_new_pos(player.pos,-16,-16),135+self.adddir,self.radi*2)
+                    self.ballxy[2] = move_circle(get_new_pos(player.pos,-16,-16),180,self.radi*2)
+                if int(player.power/100) == 4:
+                    self.ballxy[0] = move_circle(get_new_pos(player.pos,-16,-16),-115-self.adddir,self.radi*2.5)
+                    self.ballxy[1] = move_circle(get_new_pos(player.pos,-16,-16),115+self.adddir,self.radi*2.5)
+                    self.ballxy[2] = move_circle(get_new_pos(player.pos,-16,-16),-150-self.adddir*2,self.radi*2)
+                    self.ballxy[3] = move_circle(get_new_pos(player.pos,-16,-16),150+self.adddir*2,self.radi*2)
             self.count += 1
 
         def draw(self):
@@ -427,6 +479,16 @@ def play_game():
             if player.power >= 200:render_layer.blit(self.ball,get_new_pos(self.ballxy[1]))
             if player.power >= 300:render_layer.blit(self.ball,get_new_pos(self.ballxy[2]))
             if player.power >= 400:render_layer.blit(self.ball,get_new_pos(self.ballxy[3]))
+
+        def change_color(self,num):
+            self.ball = pygame.Surface((32, 32), pygame.SRCALPHA)
+            if num == 0:
+                pygame.draw.circle(self.ball, (255, 0, 222), (16,16), 8)
+                pygame.draw.circle(self.ball, (247, 178, 238), (16,16), 6)  
+            if num == 41:
+                pygame.draw.circle(self.ball, (0, 145, 56), (16,16), 8)
+                pygame.draw.circle(self.ball, (0, 209, 81), (16,16), 6)  
+            self.ballxy = [(-20,-20),(-20,-20),(-20,-20),(-20,-20)]          
 
     class Bomb(pygame.sprite.Sprite):
         def __init__(self, pos, num, col=0):
@@ -562,10 +624,14 @@ def play_game():
                 if boss.attack_start: self.direction = look_at_point(self.pos,boss_group.sprites()[0].pos)
                 self.rect = self.image.get_rect(center = get_new_pos(self.pos))  
             if self.num == 2:
-                self.image.fill((255, 255, 222))
-                pygame.draw.rect(self.image, (247, 178, 238), (3,3,34,26),0)
-                self.speed = 25
-                self.damage = 2
+                pygame.draw.rect(self.image, (161, 255, 170), (0,0,20,16),2)
+                pygame.draw.circle(self.image, (2, 191, 74), (10,8),7)
+                self.speed = 40
+                self.damage = 3
+            if self.num == 3:
+                pygame.draw.rect(self.image, (161, 255, 170), (0,0,20,16),1)
+                self.speed = 30
+                self.damage = 1.5
             self.image = pygame.transform.rotate(self.image, self.direction)
             
 
@@ -744,9 +810,9 @@ def play_game():
                             else:
                                 s_tan1.play()
                                 for _ in range(0,20):
-                                    item_group.add(Item(get_new_pos(self.pos,randint(-100,100),randint(-100,100)),0))
+                                    item_group.add(Item(get_new_pos((self.pos[0]*2,self.pos[1]*2),randint(-100,100),randint(-100,100)),0))
                                 for _ in range(0,40):
-                                    item_group.add(Item(get_new_pos(self.pos,randint(-200,200),randint(-200,200)),1))
+                                    item_group.add(Item(get_new_pos((self.pos[0]*2,self.pos[1]*2),randint(-200,200),randint(-200,200)),1))
                         else:#퇴장(다음 스테이지로, 공격멈추기)
                             del self.spell[0]
                             s_enep1.play()
@@ -1096,10 +1162,11 @@ def play_game():
 
 
             if starting and not read_end: # 원형 체력바 그리기
-                if player.godmod: drawArc(render_layer, (0, 194, 247), player.pos, 58, 11, 360*player.godmod_count/player.max_godmod_count,255)
-                drawArc(render_layer, (0,0,0), player.pos, 56, 8, 360*100,120 if not player.godmod else 255)
-                if player.godmod: drawArc(render_layer, health_color(player.health/player.max_health), player.pos, 55, 5, 360*player.before_health/player.max_health,120)
-                drawArc(render_layer, health_color(player.health/player.max_health), player.pos, 55, 5, 360*player.health/player.max_health,120 if not player.godmod else 255)
+                psi = player.pos if character == 0 else get_new_pos(player.pos,-2,-2)
+                if player.godmod: drawArc(render_layer, (0, 194, 247), psi, 58, 11, 360*player.godmod_count/player.max_godmod_count,255)
+                drawArc(render_layer, (0,0,0), psi, 56, 8, 360*100,120 if not player.godmod else 255)
+                if player.godmod: drawArc(render_layer, health_color(player.health/player.max_health), psi, 55, 5, 360*player.before_health/player.max_health,120)
+                drawArc(render_layer, health_color(player.health/player.max_health), psi, 55, 5, 360*player.health/player.max_health,120 if not player.godmod else 255)
 
 
     class TextBox():
@@ -1689,7 +1756,14 @@ def play_game():
     time_stop = False
     stage_count = 0
     
-    
+    global character
+    curser = 0
+    curser_max = 4
+    select_mod = 0
+    menu_mod = -1
+    character = 0
+    cur_screen = 0
+
     global stage_line, stage_cline, stage_repeat_count, stage_condition, stage_challenge, stage_fun
     stage_fun = 0
     stage_line = 0
@@ -1699,13 +1773,6 @@ def play_game():
     stage_challenge = 0
 
     # 게임 시작전 메뉴 변수들
-    curser = 0
-    curser_max = 4
-    select_mod = 0
-    menu_mod = -1
-    difficulty = 0
-    character = 0
-    cur_screen = 0
 
     bullet_border_wide = 200
     bullet_border = Rect(0-bullet_border_wide, 0-bullet_border_wide, WIDTH*2 + bullet_border_wide, HEIGHT*2 + bullet_border_wide)
@@ -1817,11 +1884,11 @@ def play_game():
         if time == stage_count and stage_line == stage_cline:
             stage_count = 0
             stage_line += 1
-            if val == 1:bkgd_list.append(Back_Ground(bg_image,(1080,0,1080,240),1,3,0,True))
-            if val == 2:bkgd_list.append(Back_Ground(bg_image,(1080,480,1080,240),3,4,480,True))
+            if val == 1:bkgd_list.append(Back_Ground(bg_image,(1080//2,0,1080//2,240//2),1,3,0,True))
+            if val == 2:bkgd_list.append(Back_Ground(bg_image,(1080,480,1080,240//2),3,4,480,True))
             if val == 3:bkgd_list.append(Back_Ground(bg_image,(2160,0,1080,580),2,5,0,True)) 
-            if val == 8:bkgd_list.append(Back_Ground(bg_image,(1080,972,1080,468),2,8,252,True))
-            if val == 9:bkgd_list.append(Back_Ground(bg_image,(1080,720,1080,252),1,9,0,True))
+            if val == 8:bkgd_list.append(Back_Ground(bg_image,(1080//2,972//2,1080//2,468//2),2,8,252,True))
+            if val == 9:bkgd_list.append(Back_Ground(bg_image,(1080//2,720//2,1080//2,252//2),1,9,0,True))
         stage_cline += 1
     # 게임의 배경, 스테이지
     def game_defalt_setting(fun): # 게임 스테이지 배경 정하기
@@ -1833,14 +1900,14 @@ def play_game():
             bkgd_list.append(Back_Ground(bg_image,(0,240,1080,240),2,1,240))
             bkgd_list.append(Back_Ground(bg_image,(0,480,1080,240),3,2,480))
         if fun == 2:
-            bkgd_list.append(Back_Ground(bg_image,(0,720,1080,464),2,6,0))
-            bkgd_list.append(Back_Ground(bg_image,(0,1184,1080,256),3,7,464))
+            bkgd_list.append(Back_Ground(bg_image,(0,360,540,232),2,6,0))
+            bkgd_list.append(Back_Ground(bg_image,(0,592,540,128),3,7,232))
         if fun == 3:
             bkgd_list.append(Back_Ground(bg_image,(0,1440,1080,252),5,8,0))
             bkgd_list.append(Back_Ground(bg_image,(1080,1552,1080,608),7,9,236))
         if fun == 4:
-            bkgd_list.append(Back_Ground(bg_image,(0,2160,1080,720),10,10))
-            bkgd_list.append(Back_Ground(bg_image,(1080,2160,1080,720),8,11))
+            bkgd_list.append(Back_Ground(bg_image,(0,1080,720,360),10,10))
+            bkgd_list.append(Back_Ground(bg_image,(540,1080,540,360),8,11))
         if fun == 5:
             bkgd_list.append(Back_Ground(bg_image,(0,1440,540,360),5,8,12))
         if fun == 6:
@@ -2258,7 +2325,7 @@ def play_game():
             boss.radius = 40
             boss.image.blit(pokemons[1],(0,0))         
             boss.num = 2
-            boss.spell = [spells[0],spells[1],spells[2],spells[3],spells[4]]
+            boss.spell = [spells[0],spells[1],spells[2],spells[4]]
             boss.dies = True
             boss_background.blit(bg2_image,(0,0),(0,0,1080,720))
             text.started = True
@@ -3401,9 +3468,9 @@ def play_game():
                 bullet(self.pos,self.count*2.1+180,0,4,5,20)
                 bullet(self.pos,self.count*2.1,0,4,3,20)
     
-    player.power = 400
-    stage_challenge = 2
-    stage_fun =5
+    player.power = 300
+    stage_challenge = 0
+    stage_fun =3
     def stage_manager():
         global stage_cline, stage_line, stage_repeat_count, stage_count, stage_condition, stage_challenge,stage_fun
         
@@ -3977,7 +4044,7 @@ def play_game():
                             pokemon_spawn(22,RIGHT_POS[4],0,180,5,True) 
                         if when_time(stage_repeat_count,16):
                             pokemon_spawn(23,RIGHT_POS[2],0,160,6,True)
-                        end_while_poke_spawn(2,64)
+                        end_while_poke_spawn(2,32)
                     next_challenge(300) 
                 if stage_challenge == 6:
                     if not boss.appear and not boss.died_next_stage: 
@@ -4135,102 +4202,119 @@ def play_game():
                 
             # 그리기 시작
             #배경 스크롤
-            background_scroll()               
-            # 점수 표시
-            bomb_group.draw(render_layer)
-            if boss.fire_field_radius > 0:
-                fire_layer = pygame.Surface((WIDTH,HEIGHT), SRCALPHA)
-                pygame.draw.circle(fire_layer, (255,0,0,150), boss.pos, boss.fire_field_radius)
-                render_layer.blit(fire_layer,(0,0))
-            item_group.draw(render_layer)
-            magic_spr.draw(render_layer)      
-            beams_group.draw(render_layer)
-            player_group.draw(render_layer) 
-            player_sub.draw()
-            enemy_group.draw(render_layer)            
-            if not starting or read_end: enemy_group.draw(render_layer)
-            if boss.appear: boss_group.draw(render_layer)
-            under_ui.draw()
-            screen.blit(pygame.transform.scale2x(render_layer),(0,0))
-            big_spr.draw(screen)
-            spr.draw(screen)
-            up_render_layer.fill((0,0,0,0))
-            effect_group.draw(up_render_layer)                     
-            title.draw()
-            if text.started:text.draw()
-            ui.draw()
-            if boss.spell and boss.appear and boss.spell[0].spellcard:
-                boss.spell[0].draw()
-            screen.blit(pygame.transform.scale2x(up_render_layer),(0,0))
+            if not pause:
+                background_scroll()               
+                bomb_group.draw(render_layer)
+                if boss.fire_field_radius > 0:
+                    fire_layer = pygame.Surface((WIDTH,HEIGHT), SRCALPHA)
+                    pygame.draw.circle(fire_layer, (255,0,0,150), boss.pos, boss.fire_field_radius)
+                    render_layer.blit(fire_layer,(0,0))
+                item_group.draw(render_layer)
+                magic_spr.draw(render_layer)      
+                beams_group.draw(render_layer)
+                player_group.draw(render_layer) 
+                player_sub.draw()
+                enemy_group.draw(render_layer)            
+                if not starting or read_end: enemy_group.draw(render_layer)
+                if boss.appear: boss_group.draw(render_layer)
+                under_ui.draw()
+                screen.blit(pygame.transform.scale2x(render_layer),(0,0))
+                big_spr.draw(screen)
+                spr.draw(screen)
+                up_render_layer.fill((0,0,0,0))
+                effect_group.draw(up_render_layer)                     
+                title.draw()
+                if text.started:text.draw()
+                ui.draw()
+                if boss.spell and boss.appear and boss.spell[0].spellcard:
+                    boss.spell[0].draw()
+                screen.blit(pygame.transform.scale2x(up_render_layer),(0,0))
+            else: 
+                screen.blit(pygame.transform.scale2x(render_layer),(0,0))
+                big_spr.draw(screen)
+                spr.draw(screen)
+                screen.blit(pygame.transform.scale2x(up_render_layer),(0,0))
+                pause_menu = pygame.Surface((WIDTH,HEIGHT), SRCALPHA)  
+                pause_menu.fill((255, 0, 85,100))
+                screen.blit(pygame.transform.scale2x(pause_menu),(0,0))            
             pygame.display.flip()
         if cur_screen == 0:
             for ev in pygame.event.get():
                 if ev.type == pygame.QUIT: # 게임끄기
                     play = False
                 if ev.type == pygame.KEYDOWN: 
+                    if ev.key == pygame.K_f:
+                        full_on = False if full_on == True else True  
                     if ev.key == pygame.K_UP:
                         curser = curser_max if curser == 0 else curser - 1 # 커서위로
                     if ev.key == pygame.K_DOWN:
                         curser = 0 if curser == curser_max else curser + 1 # 커서밑으로
-                    if ev.key == pygame.K_z or ev.key == pygame.K_RETURN:
-                        if (curser == 1 or curser == 2) and select_mod == 0: break
-                        if curser == 4 and select_mod == 0: play = False # 게임끄기
-                        if not menu_mod == 3: # 옵션 창이면 모드 옮기기 X
-                            select_mod += 1
-                        if menu_mod == 0: cur_screen = 1 ############ 게임시작
-                        menu_mod = curser
-                        curser = 0
-                    if ev.key == pygame.K_f:
-                        full_on = False if full_on == True else True                        
-                    if ev.key == pygame.K_x or ev.key == pygame.K_ESCAPE:
-                        if select_mod > 0: select_mod -= 1
-                        menu_mod = -1
-                        try:sfx_volume = msfx_volume/100
-                        except:sfx_volume = 0
-                        try:music_volume = mmusic_volume/100
-                        except:music_volume = 0
-                        music_and_sfx_volume()
-                    if ev.key == pygame.K_RIGHT:
-                        if menu_mod == 3:
-                            if curser == 1:
-                                mmusic_volume = mmusic_volume + 5 if mmusic_volume < 100 else 100
-                            if curser == 2:
-                                msfx_volume = msfx_volume + 5 if msfx_volume < 100 else 100
-                    if ev.key == pygame.K_LEFT:
-                        if menu_mod == 3:
-                            if curser == 1:
-                                mmusic_volume = mmusic_volume - 5 if mmusic_volume > 0 else 0
-                            if curser == 2:
-                                msfx_volume = msfx_volume - 5 if msfx_volume > 0 else 0
+
+                    if select_mod == 0: # 시작화면
+                        if ev.key == pygame.K_z or ev.key == pygame.K_RETURN:
+                            if curser == 3: play = False # 게임끄기
+                            if curser == 0: select_mod += 1 ############ 게임시작
+                            menu_mod = curser # 현재 어떤 버튼 눌렀는지 저장
+                            curser = 0
+                            break
+                    if select_mod == 1:
+                        if menu_mod == 0:
+                            if ev.key == pygame.K_z or ev.key == pygame.K_RETURN:
+                                character = 0 if curser == 0 else 41
+                                player.change_player(character)
+                                player_sub.change_color(character)
+                                cur_screen = 1                          
+                        # if ev.key == pygame.K_x or ev.key == pygame.K_ESCAPE:
+                            #if select_mod > 0: select_mod -= 1
+                            #menu_mod = -1
+                        # try:sfx_volume = msfx_volume/100
+                        # except:sfx_volume = 0
+                        # try:music_volume = mmusic_volume/100
+                        # except:music_volume = 0
+                        # music_and_sfx_volume()
+                    # if ev.key == pygame.K_RIGHT:
+                    #     if menu_mod == 2:
+                    #         if curser == 1:
+                    #             mmusic_volume = mmusic_volume + 5 if mmusic_volume < 100 else 100
+                    #         if curser == 2:
+                    #             msfx_volume = msfx_volume + 5 if msfx_volume < 100 else 100
+                    # if ev.key == pygame.K_LEFT:
+                    #     if menu_mod == 2:
+                    #         if curser == 1:
+                    #             mmusic_volume = mmusic_volume - 5 if mmusic_volume > 0 else 0
+                    #         if curser == 2:
+                    #             msfx_volume = msfx_volume - 5 if msfx_volume > 0 else 0
             render_layer.blit(background_img,(0,0))
             
-            ui_x = WIDTH - 150
+            ui_x = WIDTH - 180
             ui_y = HEIGHT - 200
-            if select_mod == 0:
-                curser_max = 4
-                render_layer.blit(menu_img,(0,0),(0,0,320,40))
-                for i in range(0,5):
-                    if curser == i:
-                        render_layer.blit(menu_img,(ui_x,ui_y+20*i),(128,40+20*i,114,23))
-                    else:
-                        render_layer.blit(menu_img,(ui_x,ui_y+20*i),(0,40+20*i,114,23))
-            if select_mod == 1:
-                if menu_mod == 0: # 난이도 정하기
-                    curser_max = 3
-                    for i in range(0,4):
-                        render_layer.blit(menu_img,(int(WIDTH/2-120),int(HEIGHT/2-60+128*i-128*curser)),(0,320+64*i,288,64))
-                        difficulty = curser
-                if menu_mod == 3:
-                    curser_max = 3
-                    text_box = ["화면모드","음악","효과음","플레이어"]
+            if select_mod == 0: # 시작화면
+                curser_max = 3
+                render_layer.blit(menu_img,(0,0),(0,0,320,48))# 타이틀
+                for i in range(0,4): # 메뉴 그리기
+                    menu = pygame.Surface((160,32), SRCALPHA)
+                    if curser == i: menu.fill((0,0,255,200))
+                    menu.blit(menu_img,(0,0),(0,48+32*i,320,48))
+                    render_layer.blit(menu,(ui_x,ui_y+32*i))
 
+            if select_mod == 1: # 다음옴션
+                if menu_mod == 0: # 시작>난이도 정하기
+                    curser_max = 1
+                    for i in range(0,2): # 메뉴 그리기
+                        menu = pygame.Surface((176,48), SRCALPHA)
+                        if curser == i: menu.fill((0,0,0,200))
+                        menu.blit(menu_img,(0,0),(0,224+48*i,176,48))
+                        render_layer.blit(menu,(int(WIDTH/2-240),int(HEIGHT/2-30+64*i-64*curser)))
+                if menu_mod == 2:
+                    curser_max = 3
+                    text_box = ["화면모드","음악","효과음"]
                     text_box[0] = "화면모드    창모드" if full_on == 0 else "화면모드    전체화면"
                     text_box[1] = "음악   " + str(mmusic_volume)
                     text_box[2] = "효과음  " + str(msfx_volume)
-                    for i in range(0,4):
+                    for i in range(0,3):
                         text_color = (255,0,255) if i == curser else (0,0,255)
                         text1 = score_font.render(text_box[i], True, text_color)
-                        render_layer.blit(text1,(200,200+80*i))
+                        render_layer.blit(text1,(200,100+40*i))
             screen.blit(pygame.transform.scale2x(render_layer),(0,0))
             pygame.display.flip()
         
