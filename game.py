@@ -25,253 +25,271 @@ bgm_num = 0
 pygame.mixer.set_num_channels(32)
 pygame.event.set_allowed([pygame.QUIT, pygame.KEYDOWN, pygame.KEYUP])
 
+
+# 이미지 불러오기
+bullet_image = pygame.image.load('resources\Image\Bullets.png').convert_alpha()
+bg_image = pygame.image.load('resources\Image\Bg1.png').convert_alpha()
+bg2_image = pygame.image.load('resources\Image\Bg2.png').convert_alpha()
+pkmon_image = pygame.image.load('resources\Image\pokemon.png').convert_alpha()
+background_img = pygame.image.load('resources\Image\\background.jpg').convert()
+menu_img = pygame.image.load('resources\Image\Menus.png').convert_alpha()
+item_img = pygame.image.load('resources\Image\item.png').convert_alpha()
+skill_img = pygame.image.load('resources\Image\skill.png').convert_alpha()
+ui_img = pygame.image.load('resources\Image\player_ui.png').convert_alpha()
+background_img = pygame.transform.scale(background_img, (WIDTH, HEIGHT))
+
+msfx_volume = 10
+mmusic_volume = 0
+try:sfx_volume = msfx_volume/100
+except:sfx_volume = 0
+try:music_volume = mmusic_volume/100
+except:music_volume = 0
+
+s_lazer1 = pygame.mixer.Sound('resources\Music\SFX\se_lazer00.wav')
+s_tan1 = pygame.mixer.Sound('resources\Music\SFX\se_tan00.wav')
+s_tan2 = pygame.mixer.Sound('resources\Music\SFX\se_tan01.wav')
+s_ch2 = pygame.mixer.Sound('resources\Music\SFX\se_ch02.wav')
+s_ch0 = pygame.mixer.Sound('resources\Music\SFX\se_ch00.wav')
+s_cat1 = pygame.mixer.Sound('resources\Music\SFX\se_cat00.wav')
+s_enep1 = pygame.mixer.Sound('resources\Music\SFX\se_enep01.wav')
+s_enep2 = pygame.mixer.Sound('resources\Music\SFX\se_enep02.wav')
+s_slash = pygame.mixer.Sound('resources\Music\SFX\se_slash.wav')
+s_pldead = pygame.mixer.Sound('resources\Music\SFX\se_pldead00.wav')
+s_plst0 = pygame.mixer.Sound('resources\Music\SFX\se_plst00.wav')
+s_damage0 = pygame.mixer.Sound('resources\Music\SFX\se_damage00.wav')
+s_damage1 = pygame.mixer.Sound('resources\Music\SFX\se_damage01.wav')
+s_graze = pygame.mixer.Sound('resources\Music\SFX\se_graze.wav')
+s_kira0 = pygame.mixer.Sound('resources\Music\SFX\se_kira00.wav')
+s_kira1 = pygame.mixer.Sound('resources\Music\SFX\se_kira01.wav')
+s_boom = pygame.mixer.Sound('resources\Music\SFX\se_enep02.wav')
+s_item0 = pygame.mixer.Sound('resources\Music\SFX\se_item00.wav')
+s_enedead = pygame.mixer.Sound('resources\Music\SFX\se_enep00.wav')
+s_ok = pygame.mixer.Sound('resources\Music\SFX\se_select00.wav')
+s_select = pygame.mixer.Sound('resources\Music\SFX\se_ok00.wav')
+s_cancel = pygame.mixer.Sound('resources\Music\SFX\se_cancel00.wav')
+s_pause = pygame.mixer.Sound('resources\Music\SFX\se_pause.wav')
+FONT_1 = 'resources\Font\SEBANG Gothic Bold.ttf' 
+FIELD_1 = 'resources\Music\BGM\\1Stage.wav'
+FIELD_2 = 'resources\Music\BGM\\2Stage.wav'
+FIELD_3 = 'resources\Music\BGM\\3Stage.wav'
+FIELD_4 = 'resources\Music\BGM\\4Stage.wav'
+FIELD_5 = 'resources\Music\BGM\\5Stage.wav'
+FIELD_6 = 'resources\Music\BGM\\6Stage.wav'
+BOSS_BGM1 = 'resources\Music\BGM\\1Boss.wav'
+BOSS_BGM2 = 'resources\Music\BGM\\2Boss.wav'
+BOSS_BGM3 = 'resources\Music\BGM\\3Boss.wav'
+BOSS_BGM4 = 'resources\Music\BGM\\4Boss.wav'
+BOSS_BGM5 = 'resources\Music\BGM\\5Boss.wav'
+BOSS_BGM6 = 'resources\Music\BGM\\6Boss.wav'
+
+tan_channel = pygame.mixer.Channel(0)
+kira_channel = pygame.mixer.Channel(1)
+kira2_channel = pygame.mixer.Channel(3)
+enemy_boom_channel = pygame.mixer.Channel(2)
+
+a_list = []
+cur_list = []
+if True:
+    for i in range (0,176,16):
+        for j in range (0,128,16):
+            image = pygame.Surface((16, 16), pygame.SRCALPHA)
+            image.blit(bullet_image, (0,0), Rect(j,i,16,16))
+            image = pygame.transform.scale2x(image)
+            if i == 160:
+                k_list = []
+                for k in range(0,180):
+                    image2 = pygame.transform.rotate(image, k*2)
+                    k_list.append(image2)
+                a_list.append(k_list)
+            else:
+                a_list.append(image)
+        cur_list.append(a_list)
+        a_list = []
+    for i in range (192,201,8):
+        for j in range (0,64,8):
+            image = pygame.Surface((8, 8), pygame.SRCALPHA)
+            image.blit(bullet_image, (0,0), Rect(j,i,8,8))
+            image = pygame.transform.scale2x(image)
+            if i == 192:
+                k_list = []
+                for k in range(0,180):
+                    image2 = pygame.transform.rotate(image, k*2)
+                    k_list.append(image2)
+                a_list.append(k_list)
+            else:
+                a_list.append(image)
+        cur_list.append(a_list)
+        a_list = []
+    for i in range (208,400,32):
+        for j in range (0,256,32):
+            image = pygame.Surface((32, 32), pygame.SRCALPHA)
+            image.blit(bullet_image, (0,0), Rect(j,i,32,32))
+            image = pygame.transform.scale2x(image)
+            if i == 240:
+                k_list = []
+                for k in range(0,180):
+                    image2 = pygame.transform.rotate(image, k*2)
+                    k_list.append(image2)
+                a_list.append(k_list)
+            else:
+                a_list.append(image)
+        cur_list.append(a_list)
+        a_list = []
+    for i in range(0,4):
+        image = pygame.Surface((64, 64), pygame.SRCALPHA)
+        image.blit(bullet_image, (0,0), Rect(i*64,432,64,64))
+        image = pygame.transform.scale2x(image)
+        a_list.append(image)
+        a_list.append(image)
+    cur_list.append(a_list)
+    a_list = []
+bullets = cur_list
+
+cur_list = []
+for i in range(0,112,16):
+    image = pygame.Surface((16,16),pygame.SRCALPHA)
+    image.blit(bullet_image,(0,0),Rect(i,176,16,16))
+    for j in range(1,33):
+        image2 = pygame.transform.scale(image, (j//2,j//2))
+        a_list.append(image2)
+    cur_list.append(a_list)
+    a_list = []
+bullet_erase = cur_list
+cur_list = []
+for i in range(0,256,32):
+    image = pygame.Surface((32,32), pygame.SRCALPHA)
+    image.blit(bullet_image, (0,0), Rect(i,400,32,32))
+    for i in range(1,65,2):
+        image2 = pygame.transform.scale(image,(i,i))
+        a_list.append(image2)
+    cur_list.append(a_list)
+    a_list = []
+bullet_taning = cur_list
+
+cur_list = []
+for i in range(0,128,16):
+    image = pygame.Surface((16,16),pygame.SRCALPHA)
+    image.blit(item_img, (0,0), Rect(i,0,16,16))
+    cur_list.append(image)
+items = cur_list
+
+cur_list = []
+a_list = []
+for i in range(0,4):
+    for j in range(0,10):
+        image = pygame.Surface((64, 64), pygame.SRCALPHA)
+        image.blit(pkmon_image, (0,0), Rect(j*64,i*64,64,64))
+        image = pygame.transform.scale2x(image)
+        cur_list.append(image)
+image = pygame.Surface((64, 64), pygame.SRCALPHA)
+image.blit(pkmon_image, (0,0), Rect(0,0,64,64))
+image = pygame.transform.scale2x(image)
+image = pygame.transform.flip(image, True, False)
+cur_list.append(image)
+image = pygame.Surface((64, 64), pygame.SRCALPHA)
+image.blit(pkmon_image, (0,0), Rect(64,0,64,64))
+image = pygame.transform.scale2x(image)
+image = pygame.transform.flip(image, True, False)
+cur_list.append(image)
+pokemons = cur_list
+# 이펙트 미리 그려놓기
+cur_list = []
+for i in range(0,360):
+    image = pygame.Surface((256,256), pygame.SRCALPHA)
+    image.blit(bullet_image,(0,0),(0,496,256,256))
+    image = pygame.transform.scale(image,(128,128))
+    image = pygame.transform.rotate(image, i)
+    cur_list.append(image)
+boss_circle = cur_list
+cur_list = []
+for i in range(1,256):
+    image = pygame.Surface((2*i,2*i), pygame.SRCALPHA)
+    pygame.draw.circle(image, (255,255,255,256-i), (2*i//2,2*i//2), 2*i//2)
+    cur_list.append(image)
+white_circle = cur_list
+cur_list = []
+for i in range(0,60):
+    image = pygame.Surface((WIDTH,HEIGHT), pygame.SRCALPHA)
+    image.fill((0,0,0,0+i*4))
+    cur_list.append(image)
+for i in range(0,60):
+    image = pygame.Surface((WIDTH,HEIGHT), pygame.SRCALPHA)
+    image.fill((0,0,0))
+    cur_list.append(image)
+for i in range(0,60):
+    image = pygame.Surface((WIDTH,HEIGHT), pygame.SRCALPHA)
+    image.fill((0,0,0,255-i*4))
+    cur_list.append(image)
+black_screen = cur_list
+cur_list = []
+for i in range(100,256,4):
+    image = pygame.Surface((64,64), pygame.SRCALPHA)        
+    image.blit(bullet_image,(0,0),(192,128,64,64))
+    image = pygame.transform.scale(image, (i/2, i/2))
+    image.fill((255, 255, 255, 340-i), special_flags=pygame.BLEND_RGBA_MULT)
+    cur_list.append(image)
+enemy_died_circle = cur_list
+cur_list = []
+for i in range(1,255,4):
+    width = 256-i
+    image = pygame.Surface((width,width), pygame.SRCALPHA)
+    rect2 = round(image.get_width()/2)
+    pygame.draw.circle(image, (255,255,255,256-i), (rect2,rect2), 1 if rect2-1 < 1 else rect2-1,1)
+    cur_list.append(image)
+died_white_circle = cur_list
+cur_list = []
+for i in range(0,1):
+    image = pygame.Surface((64,64), pygame.SRCALPHA)
+    image.blit(bullet_image,(0,0),(128,128,64,64))
+    for j in range(0,90):
+        image2 = pygame.transform.rotate(image, j*2)  
+        rect = image2.get_rect() 
+        pygame.draw.circle(image2 , (200,100,100),rect.center, 4)
+        pygame.draw.circle(image2 , (255,255,255),rect.center, 3)     
+        cur_list.append(image2)
+slow_player_circle = cur_list
+cur_list = []
+for i in range(0,1):
+    image = pygame.Surface((64,64), pygame.SRCALPHA)
+    image.blit(bullet_image,(0,0),(128,0,64,64))
+    for j in range(0,180):
+        image2 = pygame.transform.rotate(image, j*2)  
+        rect = image2.get_rect()   
+        cur_list.append(image2)
+magic_circle_sprite = cur_list
+
+# 이미지 나눠 저장하기 
+RIGHT_POS = [(WIDTH+64,-64),(WIDTH+64,HEIGHT/6-32),(WIDTH+64,HEIGHT/4),(WIDTH+64,HEIGHT/6*2+32),(WIDTH+64,HEIGHT/2),(WIDTH+64,HEIGHT/6+HEIGHT/2-32),(WIDTH+64,HEIGHT/4+HEIGHT/2),(WIDTH+64,HEIGHT/6*2+HEIGHT/2+32),(WIDTH+64,HEIGHT+64)]
+RIGHT_POS2 = [(WIDTH+64,HEIGHT/6-32),(WIDTH+64,HEIGHT/4),(WIDTH+64,HEIGHT/6*2+32),(WIDTH+64,HEIGHT/2),(WIDTH+64,HEIGHT/6+HEIGHT/2-32),(WIDTH+64,HEIGHT/4+HEIGHT/2),(WIDTH+64,HEIGHT/6*2+HEIGHT/2+32)]
+UP_POS = [(WIDTH/2,-64),(WIDTH/2+54,-64),(WIDTH/2+54*2,-64),(WIDTH/2+54*3,-64),(WIDTH/2+54*4,-64)]
+DOWN_POS = [(WIDTH/2,HEIGHT+64),(WIDTH/2+54,HEIGHT+64),(WIDTH/2+54*2,HEIGHT+64),(WIDTH/2+54*3,HEIGHT+64),(WIDTH/2+54*4,HEIGHT+64)]
+
+clock = pygame.time.Clock()
+prev_time = time.time()
+dt = 0
+FPS = 60
+TARGET_FPS = 60
+keys = pygame.key.get_pressed() 
+boss_movebox = Rect(300,35,204,292)
+score_setting = (10,10,987650,10,0,0,0,0,0)
+global score
+score = 0
+bkgd_list = []
+boss_background = pygame.Surface((1080,720))
+# 폰트 불러오기
+score_font = pygame.font.Font(FONT_1, 25)
+font1 = pygame.font.Font(FONT_1, 18)
+score_setting = (10,10,987650,10,0,0,0,0,0)
+bullet_border_wide = 200
+bullet_border = Rect(0-bullet_border_wide, 0-bullet_border_wide, WIDTH*2 + bullet_border_wide, HEIGHT*2 + bullet_border_wide)
+small_border = Rect(0, 0, WIDTH*2, HEIGHT*2)
+bullet_size = (10,6,8,8,6,6,6,9,6,7,7,4,5,15,15,20,10,10,10,20)
+lazer_spawner = []
 def play_game():
     
-    global WIDTH, HEIGHT, screen
-    # 이미지 불러오기
-    bullet_image = pygame.image.load('resources\Image\Bullets.png').convert_alpha()
-    bg_image = pygame.image.load('resources\Image\Bg1.png').convert_alpha()
-    bg2_image = pygame.image.load('resources\Image\Bg2.png').convert_alpha()
-    pkmon_image = pygame.image.load('resources\Image\pokemon.png').convert_alpha()
-    background_img = pygame.image.load('resources\Image\\background.jpg').convert()
-    menu_img = pygame.image.load('resources\Image\Menus.png').convert_alpha()
-    item_img = pygame.image.load('resources\Image\item.png').convert_alpha()
-    skill_img = pygame.image.load('resources\Image\skill.png').convert_alpha()
-    ui_img = pygame.image.load('resources\Image\player_ui.png').convert_alpha()
-    background_img = pygame.transform.scale(background_img, (WIDTH, HEIGHT))
-
-    msfx_volume = 10
-    mmusic_volume = 50
-    try:sfx_volume = msfx_volume/100
-    except:sfx_volume = 0
-    try:music_volume = mmusic_volume/100
-    except:music_volume = 0
-
-    s_lazer1 = pygame.mixer.Sound('resources\Music\SFX\se_lazer00.wav')
-    s_tan1 = pygame.mixer.Sound('resources\Music\SFX\se_tan00.wav')
-    s_tan2 = pygame.mixer.Sound('resources\Music\SFX\se_tan01.wav')
-    s_ch2 = pygame.mixer.Sound('resources\Music\SFX\se_ch02.wav')
-    s_ch0 = pygame.mixer.Sound('resources\Music\SFX\se_ch00.wav')
-    s_cat1 = pygame.mixer.Sound('resources\Music\SFX\se_cat00.wav')
-    s_enep1 = pygame.mixer.Sound('resources\Music\SFX\se_enep01.wav')
-    s_enep2 = pygame.mixer.Sound('resources\Music\SFX\se_enep02.wav')
-    s_slash = pygame.mixer.Sound('resources\Music\SFX\se_slash.wav')
-    s_pldead = pygame.mixer.Sound('resources\Music\SFX\se_pldead00.wav')
-    s_plst0 = pygame.mixer.Sound('resources\Music\SFX\se_plst00.wav')
-    s_damage0 = pygame.mixer.Sound('resources\Music\SFX\se_damage00.wav')
-    s_damage1 = pygame.mixer.Sound('resources\Music\SFX\se_damage01.wav')
-    s_graze = pygame.mixer.Sound('resources\Music\SFX\se_graze.wav')
-    s_kira0 = pygame.mixer.Sound('resources\Music\SFX\se_kira00.wav')
-    s_kira1 = pygame.mixer.Sound('resources\Music\SFX\se_kira01.wav')
-    s_boom = pygame.mixer.Sound('resources\Music\SFX\se_enep02.wav')
-    s_item0 = pygame.mixer.Sound('resources\Music\SFX\se_item00.wav')
-    s_enedead = pygame.mixer.Sound('resources\Music\SFX\se_enep00.wav')
-    FONT_1 = 'resources\Font\SEBANG Gothic Bold.ttf' 
-    FIELD_1 = 'resources\Music\BGM\\1Stage.wav'
-    FIELD_2 = 'resources\Music\BGM\\2Stage.wav'
-    FIELD_3 = 'resources\Music\BGM\\3Stage.wav'
-    FIELD_4 = 'resources\Music\BGM\\4Stage.wav'
-    FIELD_5 = 'resources\Music\BGM\\5Stage.wav'
-    FIELD_6 = 'resources\Music\BGM\\6Stage.wav'
-    BOSS_BGM1 = 'resources\Music\BGM\\1Boss.wav'
-    BOSS_BGM2 = 'resources\Music\BGM\\2Boss.wav'
-    BOSS_BGM3 = 'resources\Music\BGM\\3Boss.wav'
-    BOSS_BGM4 = 'resources\Music\BGM\\4Boss.wav'
-    BOSS_BGM5 = 'resources\Music\BGM\\5Boss.wav'
-    BOSS_BGM6 = 'resources\Music\BGM\\6Boss.wav'
-
-    tan_channel = pygame.mixer.Channel(0)
-    kira_channel = pygame.mixer.Channel(1)
-    kira2_channel = pygame.mixer.Channel(3)
-    enemy_boom_channel = pygame.mixer.Channel(2)
-
-    a_list = []
-    cur_list = []
-    if True:
-        for i in range (0,176,16):
-            for j in range (0,128,16):
-                image = pygame.Surface((16, 16), pygame.SRCALPHA)
-                image.blit(bullet_image, (0,0), Rect(j,i,16,16))
-                image = pygame.transform.scale2x(image)
-                if i == 160:
-                    k_list = []
-                    for k in range(0,180):
-                        image2 = pygame.transform.rotate(image, k*2)
-                        k_list.append(image2)
-                    a_list.append(k_list)
-                else:
-                    a_list.append(image)
-            cur_list.append(a_list)
-            a_list = []
-        for i in range (192,201,8):
-            for j in range (0,64,8):
-                image = pygame.Surface((8, 8), pygame.SRCALPHA)
-                image.blit(bullet_image, (0,0), Rect(j,i,8,8))
-                image = pygame.transform.scale2x(image)
-                if i == 192:
-                    k_list = []
-                    for k in range(0,180):
-                        image2 = pygame.transform.rotate(image, k*2)
-                        k_list.append(image2)
-                    a_list.append(k_list)
-                else:
-                    a_list.append(image)
-            cur_list.append(a_list)
-            a_list = []
-        for i in range (208,400,32):
-            for j in range (0,256,32):
-                image = pygame.Surface((32, 32), pygame.SRCALPHA)
-                image.blit(bullet_image, (0,0), Rect(j,i,32,32))
-                image = pygame.transform.scale2x(image)
-                if i == 240:
-                    k_list = []
-                    for k in range(0,180):
-                        image2 = pygame.transform.rotate(image, k*2)
-                        k_list.append(image2)
-                    a_list.append(k_list)
-                else:
-                    a_list.append(image)
-            cur_list.append(a_list)
-            a_list = []
-        for i in range(0,4):
-            image = pygame.Surface((64, 64), pygame.SRCALPHA)
-            image.blit(bullet_image, (0,0), Rect(i*64,432,64,64))
-            image = pygame.transform.scale2x(image)
-            a_list.append(image)
-            a_list.append(image)
-        cur_list.append(a_list)
-        a_list = []
-    bullets = cur_list
-
-    cur_list = []
-    for i in range(0,112,16):
-        image = pygame.Surface((16,16),pygame.SRCALPHA)
-        image.blit(bullet_image,(0,0),Rect(i,176,16,16))
-        for j in range(1,33):
-            image2 = pygame.transform.scale(image, (j//2,j//2))
-            a_list.append(image2)
-        cur_list.append(a_list)
-        a_list = []
-    bullet_erase = cur_list
-    cur_list = []
-    for i in range(0,256,32):
-        image = pygame.Surface((32,32), pygame.SRCALPHA)
-        image.blit(bullet_image, (0,0), Rect(i,400,32,32))
-        for i in range(1,65,2):
-            image2 = pygame.transform.scale(image,(i,i))
-            a_list.append(image2)
-        cur_list.append(a_list)
-        a_list = []
-    bullet_taning = cur_list
-
-    cur_list = []
-    for i in range(0,128,16):
-        image = pygame.Surface((16,16),pygame.SRCALPHA)
-        image.blit(item_img, (0,0), Rect(i,0,16,16))
-        cur_list.append(image)
-    items = cur_list
-
-    cur_list = []
-    a_list = []
-    for i in range(0,4):
-        for j in range(0,10):
-            image = pygame.Surface((64, 64), pygame.SRCALPHA)
-            image.blit(pkmon_image, (0,0), Rect(j*64,i*64,64,64))
-            image = pygame.transform.scale2x(image)
-            cur_list.append(image)
-    image = pygame.Surface((64, 64), pygame.SRCALPHA)
-    image.blit(pkmon_image, (0,0), Rect(0,0,64,64))
-    image = pygame.transform.scale2x(image)
-    image = pygame.transform.flip(image, True, False)
-    cur_list.append(image)
-    image = pygame.Surface((64, 64), pygame.SRCALPHA)
-    image.blit(pkmon_image, (0,0), Rect(64,0,64,64))
-    image = pygame.transform.scale2x(image)
-    image = pygame.transform.flip(image, True, False)
-    cur_list.append(image)
-    pokemons = cur_list
-    # 이펙트 미리 그려놓기
-    cur_list = []
-    for i in range(0,360):
-        image = pygame.Surface((256,256), pygame.SRCALPHA)
-        image.blit(bullet_image,(0,0),(0,496,256,256))
-        image = pygame.transform.scale(image,(128,128))
-        image = pygame.transform.rotate(image, i)
-        cur_list.append(image)
-    boss_circle = cur_list
-    cur_list = []
-    for i in range(1,256):
-        image = pygame.Surface((2*i,2*i), pygame.SRCALPHA)
-        pygame.draw.circle(image, (255,255,255,256-i), (2*i//2,2*i//2), 2*i//2)
-        cur_list.append(image)
-    white_circle = cur_list
-    cur_list = []
-    for i in range(0,60):
-        image = pygame.Surface((WIDTH,HEIGHT), pygame.SRCALPHA)
-        image.fill((0,0,0,0+i*4))
-        cur_list.append(image)
-    for i in range(0,60):
-        image = pygame.Surface((WIDTH,HEIGHT), pygame.SRCALPHA)
-        image.fill((0,0,0))
-        cur_list.append(image)
-    for i in range(0,60):
-        image = pygame.Surface((WIDTH,HEIGHT), pygame.SRCALPHA)
-        image.fill((0,0,0,255-i*4))
-        cur_list.append(image)
-    black_screen = cur_list
-    cur_list = []
-    for i in range(100,256,4):
-        image = pygame.Surface((64,64), pygame.SRCALPHA)        
-        image.blit(bullet_image,(0,0),(192,128,64,64))
-        image = pygame.transform.scale(image, (i/2, i/2))
-        image.fill((255, 255, 255, 340-i), special_flags=pygame.BLEND_RGBA_MULT)
-        cur_list.append(image)
-    enemy_died_circle = cur_list
-    cur_list = []
-    for i in range(1,255,4):
-        width = 256-i
-        image = pygame.Surface((width,width), pygame.SRCALPHA)
-        rect2 = round(image.get_width()/2)
-        pygame.draw.circle(image, (255,255,255,256-i), (rect2,rect2), 1 if rect2-1 < 1 else rect2-1,1)
-        cur_list.append(image)
-    died_white_circle = cur_list
-    cur_list = []
-    for i in range(0,1):
-        image = pygame.Surface((64,64), pygame.SRCALPHA)
-        image.blit(bullet_image,(0,0),(128,128,64,64))
-        for j in range(0,90):
-            image2 = pygame.transform.rotate(image, j*2)  
-            rect = image2.get_rect() 
-            pygame.draw.circle(image2 , (200,100,100),rect.center, 4)
-            pygame.draw.circle(image2 , (255,255,255),rect.center, 3)     
-            cur_list.append(image2)
-    slow_player_circle = cur_list
-    cur_list = []
-    for i in range(0,1):
-        image = pygame.Surface((64,64), pygame.SRCALPHA)
-        image.blit(bullet_image,(0,0),(128,0,64,64))
-        for j in range(0,180):
-            image2 = pygame.transform.rotate(image, j*2)  
-            rect = image2.get_rect()   
-            cur_list.append(image2)
-    magic_circle_sprite = cur_list
-
-    # 이미지 나눠 저장하기 
-    RIGHT_POS = [(WIDTH+64,-64),(WIDTH+64,HEIGHT/6-32),(WIDTH+64,HEIGHT/4),(WIDTH+64,HEIGHT/6*2+32),(WIDTH+64,HEIGHT/2),(WIDTH+64,HEIGHT/6+HEIGHT/2-32),(WIDTH+64,HEIGHT/4+HEIGHT/2),(WIDTH+64,HEIGHT/6*2+HEIGHT/2+32),(WIDTH+64,HEIGHT+64)]
-    RIGHT_POS2 = [(WIDTH+64,HEIGHT/6-32),(WIDTH+64,HEIGHT/4),(WIDTH+64,HEIGHT/6*2+32),(WIDTH+64,HEIGHT/2),(WIDTH+64,HEIGHT/6+HEIGHT/2-32),(WIDTH+64,HEIGHT/4+HEIGHT/2),(WIDTH+64,HEIGHT/6*2+HEIGHT/2+32)]
-    UP_POS = [(WIDTH/2,-64),(WIDTH/2+54,-64),(WIDTH/2+54*2,-64),(WIDTH/2+54*3,-64),(WIDTH/2+54*4,-64)]
-    DOWN_POS = [(WIDTH/2,HEIGHT+64),(WIDTH/2+54,HEIGHT+64),(WIDTH/2+54*2,HEIGHT+64),(WIDTH/2+54*3,HEIGHT+64),(WIDTH/2+54*4,HEIGHT+64)]
-
-    clock = pygame.time.Clock()
-    prev_time = time.time()
-    dt = 0
-    FPS = 60
-    TARGET_FPS = 60
-    keys = pygame.key.get_pressed() 
-
-    global score
-    score = 0
-
+    global WIDTH, HEIGHT, screen,prev_time,bkgd_list,boss_background, mmusic_volume, msfx_volume,music_volume, sfx_volume
+    start_fun = 0
+    practicing = False
     def music_and_sfx_volume():
         pygame.mixer.music.set_volume(music_volume)
         s_lazer1.set_volume(sfx_volume)
@@ -293,6 +311,10 @@ def play_game():
         s_boom.set_volume(sfx_volume)
         s_item0.set_volume(sfx_volume)
         s_enedead.set_volume(sfx_volume)
+        s_ok.set_volume(sfx_volume)
+        s_cancel.set_volume(sfx_volume)
+        s_select.set_volume(sfx_volume)
+        s_pause.set_volume(sfx_volume)
     # 플레이어
     music_and_sfx_volume()
     class Player(pygame.sprite.Sprite):
@@ -317,12 +339,14 @@ def play_game():
             self.max_godmod_count = 0
             self.hit_speed = 0
             self.hit_dir = 0
+            self.skill_list = []
+            self.skill_pointer = 0
         def update(self,collide):
             dx, dy = 0 , 0
             inum = self.img_num
             self.img_num = 0
             # 플레이어 이동 조종 SHIFT 를 누르면 느리게 움직이기
-            if keys[pygame.K_LSHIFT]:self.speed = 1
+            if keys[pygame.K_LSHIFT]:self.speed = 2
             else:self.speed = 4           
             # 화면 밖으로 안나감
             if keys[pygame.K_RIGHT]:dx += 0 if self.rect.centerx >= WIDTH-20 else self.speed            
@@ -372,16 +396,16 @@ def play_game():
             # 넉백
             if self.hit_speed > 0:
                 self.pos = calculate_new_xy(self.pos, self.hit_speed, self.hit_dir)
-                if self.pos[0] <= 20: self.pos = (20,self.pos[1])
-                if self.pos[0] >= WIDTH-20: self.pos = (WIDTH-20,self.pos[1])
-                if self.pos[1] <= 20: self.pos = (self.pos[0],20)
-                if self.pos[1] >= HEIGHT-20: self.pos = (self.pos[0],HEIGHT-20)
                 if self.hit_speed > 0:
                     self.hit_speed -= 0.1
                     if self.hit_speed <= 0: self.hit_speed = 0
             else:
                 # 키보드 먹히기
-                self.pos = (self.pos[0] + dx*dt, self.pos[1] + dy*dt)  
+                self.pos = (self.pos[0] + dx*dt, self.pos[1] + dy*dt) 
+            if self.pos[0] <= 20: self.pos = (20,self.pos[1])
+            if self.pos[0] >= WIDTH-20: self.pos = (WIDTH-20,self.pos[1])
+            if self.pos[1] <= 20: self.pos = (self.pos[0],20)
+            if self.pos[1] >= HEIGHT-20: self.pos = (self.pos[0],HEIGHT-20)
             self.real_pos = (self.pos[0]*2,self.pos[1]*2)
             
             self.rect.center = round(self.pos[0]), round(self.pos[1]) 
@@ -391,7 +415,6 @@ def play_game():
             self.image.blit(pokemons[num],(0,-5)) # 이미지 위치조정
             self.rect = self.image.get_rect(center = self.pos)
             self.image2 = self.image.copy()            
-
     class Player_hit(pygame.sprite.Sprite):
         def __init__(self):
             self.image = pygame.Surface((6,6)) # 이미지  
@@ -400,9 +423,7 @@ def play_game():
             self.radius = 3
         def update(self):
             self.pos = (player.pos[0]*2,player.pos[1]*2)
-            self.rect.center = self.pos
-
-
+            self.rect.center = self.pos    
     class Player_sub():
         def __init__(self,num):
             self.num = num
@@ -489,7 +510,6 @@ def play_game():
                 pygame.draw.circle(self.ball, (0, 145, 56), (16,16), 8)
                 pygame.draw.circle(self.ball, (0, 209, 81), (16,16), 6)  
             self.ballxy = [(-20,-20),(-20,-20),(-20,-20),(-20,-20)]          
-
     class Bomb(pygame.sprite.Sprite):
         def __init__(self, pos, num, col=0):
             pygame.sprite.Sprite.__init__(self) # 초기화?
@@ -565,8 +585,26 @@ def play_game():
 
             self.rect = self.image.get_rect(center = get_new_pos(self.pos))
             self.count += 1
-
-
+    class Skill():
+        def __init__(self,num,col,sub_msg,msg,pp,cool):
+            font2 = pygame.font.Font(FONT_1, 9)
+            self.image = pygame.Surface((200,37), SRCALPHA)
+            self.image.blit(skill_img,(0,0),(0,37*col,200,37))
+            self.image = pygame.transform.flip(self.image, True, True)
+            self.num = num
+            self.cool = cool
+            text = font1.render(msg, True, (255,255,255))
+            self.image.blit(text,(1,1))
+            text = font2.render(sub_msg, True, (255,255,255))
+            self.image.blit(text,(1,24))
+            self.max_pp = pp
+            self.pp = self.max_pp            
+        def draw(self):
+            sub_image = self.image.copy()    
+            text = font1.render(str(self.pp)+"/"+str(self.max_pp), True, (255,255,255))  
+            sub_image.blit(text,(123,1))
+            sub_image.fill((255, 255, 255, 100 if Rect(0,HEIGHT-74,250,74).collidepoint(player.pos) else 255), special_flags=pygame.BLEND_RGBA_MULT)
+            up_render_layer.blit(sub_image,(0,HEIGHT-37))
     class Tittle():
         def __init__(self,value):
             self.stage = value
@@ -596,7 +634,6 @@ def play_game():
             self.save = 1
             self.text = val
             self.name = name
-    # 플레이어 총
     class Beam(pygame.sprite.Sprite):
         def __init__(self, pos, num=0, dir=0):
             pygame.sprite.Sprite.__init__(self)
@@ -644,7 +681,6 @@ def play_game():
 
             self.pos = calculate_new_xy(self.pos, self.speed, -self.direction)
             self.rect = self.image.get_rect(center = get_new_pos(self.pos))  
-    # 적
     class Enemy(pygame.sprite.Sprite):
         def __init__(self, x, y, dir, speed, health, img, hit_cir, num):
             pygame.sprite.Sprite.__init__(self)
@@ -695,8 +731,6 @@ def play_game():
 
             self.count += 1
             self.rect.center = (int(self.pos[0]),int(self.pos[1]))    
-    
-    # 보스
     class Boss_Enemy(pygame.sprite.Sprite):
         def __init__(self,x,y):
             pygame.sprite.Sprite.__init__(self)
@@ -858,7 +892,41 @@ def play_game():
                     text.pause = False
                 
             self.rect.center = (int(self.pos[0]),int(self.pos[1])) 
-    
+
+        def reset(self):
+            self.image = pygame.Surface((128,128), pygame.SRCALPHA)      
+            self.rect = self.image.get_rect(center = (-99,-99))
+            self.image2 = self.image.copy()
+            self.radius = 0
+            self.pos = (-99,-99)
+            self.image_num = 0
+
+            self.count = 0
+            self.list = [0,0,0,0]
+            self.max_health = 0
+            self.health = 1
+            self.real_max_health = 0
+            self.real_health = 0
+            self.num = 0
+
+            # 적이동을 위한 값
+            self.move_dir = 0
+            self.move_speed = 0
+            self.move_point = (0,0)
+            self.move_time = 0
+            self.ready = False
+            self.move_ready = False # 스펠 시작시 움직이는중?
+            self.godmod = False
+            self.dieleft = False
+            self.spell = []
+            self.dies = False
+            self.died_next_stage = False
+            self.appear = False
+            self.real_appear = False
+            self.attack_start = False
+            self.box_disable = False
+            self.fire_field = [0,0]
+            self.fire_field_radius = 0            
     class Spell():
         def __init__(self,number,health,spellcard,col=0,sub_name="",name=""):
             self.health = health
@@ -880,6 +948,19 @@ def play_game():
                 up_render_layer.blit(self.image,(WIDTH-200,(self.count-60)**2))
             if self.count > 85: up_render_layer.blit(self.image,(WIDTH-200,320))
             self.count += 1
+
+    class Skill_Core():
+        def __init__(self, num, cool):
+            self.num = num
+            self.cool = cool
+        def update(self):
+            if self.num == 0:
+                player.pos = get_new_pos(player.pos,randint(-20,20),randint(-20,20))
+            if not self.cool == 0:self.cool -= 1
+    # class Spell_Obj(pygame.sprite.Sprite):
+    #     def __init__(self, pos, direction, speed, bul, col, mod, num=(0,0)):
+    #         pygame.sprite.Sprite.__init__(self)        
+    
     # 총알 
     ############################################
     class Bullet(pygame.sprite.Sprite):
@@ -1136,8 +1217,7 @@ def play_game():
             text = self.ui_font2.render(str(player.power), True, (255,255,255))
             self.power_pallete.blit(text,get_new_pos(self.power_xy,285/2,-15/2)) 
             text = self.ui_font.render("MP " + str(player.mp)+"/ 8", True, (255,255,255))
-            self.power_pallete.blit(text,self.skill_xy)
-            
+            self.power_pallete.blit(text,self.skill_xy)            
             self.power_pallete.fill((255, 255, 255, 50 if self.power_pallete_rect.collidepoint(player.pos) else 255), special_flags=pygame.BLEND_RGBA_MULT)
             up_render_layer.blit(self.power_pallete,(0,0))
 
@@ -1159,15 +1239,12 @@ def play_game():
                 render_layer.blit(self.slow_image, self.rect.topleft)
                 self.slow_count += 1
                 if self.slow_count >= len(slow_player_circle): self.slow_count = 0
-
-
             if starting and not read_end: # 원형 체력바 그리기
                 psi = player.pos if character == 0 else get_new_pos(player.pos,-2,-2)
                 if player.godmod: drawArc(render_layer, (0, 194, 247), psi, 58, 11, 360*player.godmod_count/player.max_godmod_count,255)
                 drawArc(render_layer, (0,0,0), psi, 56, 8, 360*100,120 if not player.godmod else 255)
                 if player.godmod: drawArc(render_layer, health_color(player.health/player.max_health), psi, 55, 5, 360*player.before_health/player.max_health,120)
                 drawArc(render_layer, health_color(player.health/player.max_health), psi, 55, 5, 360*player.health/player.max_health,120 if not player.godmod else 255)
-
 
     class TextBox():
         def __init__(self):
@@ -1740,6 +1817,7 @@ def play_game():
             boss.move_speed = 0
             boss.move_dir = 0
         return pos
+   
     # 개발자 전용
     
     global bkgd, time_stop
@@ -1772,13 +1850,10 @@ def play_game():
     stage_condition = 1
     stage_challenge = 0
 
+    skill_activating = []
     # 게임 시작전 메뉴 변수들
 
-    bullet_border_wide = 200
-    bullet_border = Rect(0-bullet_border_wide, 0-bullet_border_wide, WIDTH*2 + bullet_border_wide, HEIGHT*2 + bullet_border_wide)
-    small_border = Rect(0, 0, WIDTH*2, HEIGHT*2)
-    bullet_size = (10,6,8,8,6,6,6,9,6,7,7,4,5,15,15,20,10,10,10,20)
-    lazer_spawner = []
+
     spr = pygame.sprite.Group()
     big_spr = pygame.sprite.Group()
     magic_spr = pygame.sprite.Group()
@@ -1799,21 +1874,7 @@ def play_game():
     
     starting = True
     read_end = False
-    boss_movepoint = []
-    boss_movebox = Rect(300,35,204,292)
 
-    # 점수 코어
-    score_setting = (10,10,987650,10,0,0,0,0,0)
-    slow_img = 0
-
-    # 보스마다 기본설정
-    global bkgd_list,boss_background
-    bkgd_list = []
-    boss_background = pygame.Surface((1080,720))
-    # 폰트 불러오기
-    score_font = pygame.font.Font(FONT_1, 25)
-    
-    # 스펠카드 모음
     spells = [Spell(1,1000,False),Spell(2,1000,True),Spell(3,1000,False),Spell(4,1300,True),\
     Spell(5,1300,True),Spell(6,1300,False),Spell(7,1300,True),Spell(8,1300,False),Spell(9,2000,True),Spell(10,1300,False),\
         Spell(11,2800,True),Spell(12,2000,True),Spell(13,1000,False),Spell(14,1000,False),Spell(15,1000,False),Spell(16,2000,True),Spell(17,1000,False),Spell(18,2000,True),\
@@ -1823,6 +1884,10 @@ def play_game():
                         Spell(37,1200,False),Spell(38,1500,True,1,"승리를 향하는","V제너렉트"),Spell(39,1800,True,0,"목표없는 지름길","파괴광선"),\
                             Spell(40,1200,False),Spell(41,2000,True,1,"멀리서 보면 불꽃놀이","플레임드라이브"),Spell(42,1200,False),Spell(43,2400,True),\
                                 Spell(44,1200,False),Spell(45,2400,True),Spell(46,1200,False),Spell(47,2400,True),Spell(48,4000,True)]
+
+    player.skill_list.append(Skill(0,7,"두려움의","몸부림",30,60))
+    player.skill_list.append(Skill(0,7,"두려움의","몸부림",30,60))
+    player.skill_list.append(Skill(0,7,"두려움의","몸부림",30,60))
 
     # 소환 반복 (줄에 stage_line)
     def while_poke_spawn(time,repeat,line):
@@ -2312,6 +2377,14 @@ def play_game():
         boss.real_appear = False
         boss.died_next_stage = False
         boss.image_num = 0
+        if num == 0:
+            boss.pos = (WIDTH+64,HEIGHT)
+            boss.radius = 0
+            boss.image.blit(pokemons[1],(0,0))         
+            boss.num = 1
+            boss.spell = []
+            boss.dies = False
+            boss.attack_start = True            
         if num == 1: 
             boss.pos = (WIDTH+64,HEIGHT)
             boss.radius = 40
@@ -4114,8 +4187,8 @@ def play_game():
     while play:
         # 60 프레임
         clock.tick(FPS)
-        now = time.time()
-        dt = (now-prev_time)*TARGET_FPS
+        now = time.time()        
+        dt = (now-prev_time)*TARGET_FPS        
         prev_time = now
         keys = pygame.key.get_pressed() 
         if cur_screen == 1:
@@ -4123,19 +4196,64 @@ def play_game():
             print(len(spr.sprites()))
             for ev in pygame.event.get():
                 if ev.type == pygame.QUIT: # 게임끄기
-                    play = False
-                if ev.type == pygame.KEYDOWN:                    
-                    if ev.key == pygame.K_f:
-                        full_on = False if full_on == True else True
-                    if ev.key == pygame.K_ESCAPE:
-                        pause = False if pause == True else True
-                    if ev.key == pygame.K_z and text.started and text.count > 50 and not text.pause:
-                        text.next_text()
-                    if ev.key == pygame.K_x and player.mp > 0 and not bomb_activated:
-                        bomb_group.add(Bomb(player.pos,1))
-                        bomb_hit_group.add(Bomb_hit(player.pos,1))
-                        player.mp -= 1      
-                        bomb_activated = True
+                    pygame.quit()
+                    exit()
+                if ev.type == pygame.KEYDOWN:    
+                    if not pause:                
+                        if ev.key == pygame.K_f:
+                            full_on = False if full_on == True else True
+                        if ev.key == pygame.K_ESCAPE and not (text.started and not text.pause):
+                            s_pause.play()
+                            pause = True
+                            pygame.mixer.music.pause()
+                        if ev.key == pygame.K_z and text.started and text.count > 50 and not text.pause:
+                            text.next_text()
+                        if ev.key == pygame.K_x and player.mp > 0 and not bomb_activated:
+                            bomb_group.add(Bomb(player.pos,1))
+                            bomb_hit_group.add(Bomb_hit(player.pos,1))
+                            player.mp -= 1      
+                            bomb_activated = True
+                        if ev.key == pygame.K_c and player.skill_list[player.skill_pointer].pp > 0:
+                            player.skill_list[player.skill_pointer].pp -= 1    
+                            skill_activating.append(Skill_Core(player.skill_list[player.skill_pointer].num,player.skill_list[player.skill_pointer].cool))
+                        if ev.key == pygame.K_d:
+                            player.skill_list.append(player.skill_list.pop(0))
+                    else:
+                        if ev.key == pygame.K_UP:
+                            s_ok.play()
+                            curser = 2 if curser == 0 else curser-1
+                        if ev.key == pygame.K_DOWN:
+                            s_ok.play()
+                            curser = 0 if curser == 2 else curser+1
+                        if ev.key == pygame.K_z:
+                            s_select.play()
+                            if curser == 0: 
+                                if practicing and boss.died_next_stage:
+                                    pass
+                                else:
+                                    pause = False
+                                    pygame.mixer.music.unpause()
+                            if curser == 1:
+                                if practicing:practicing = False
+                                player.power = 0
+                                player.health = player.max_health
+                                stage_fun = start_fun
+                                stage_line = 0
+                                stage_cline = 0
+                                stage_repeat_count = 0
+                                stage_condition = 1
+                                stage_challenge = 0
+                                pause = False
+                                pygame.mixer.music.unpause()  
+                                enemy_group.empty()     
+                                spr.empty()     
+                                big_spr.empty() 
+                                item_group.empty()  
+                                boss.reset()                          
+                            if curser == 2: play_game()
+                        if ev.key == pygame.K_ESCAPE:
+                            pause = False
+                            pygame.mixer.music.unpause()
             # 탄에 박았는가
             hit_list = pygame.sprite.spritecollide(player_hitbox, spr, not player.godmod, pygame.sprite.collide_circle)
             beam_collide = pygame.sprite.groupcollide(beams_group, enemy_group, False, False, pygame.sprite.collide_circle)
@@ -4168,17 +4286,21 @@ def play_game():
             if not pause:      
                 if len(magic_spr.sprites()) != 0:magic_spr.update(screen)    
                 if boss.appear and boss.health <= 0: remove_allbullet()  
-                if lazer_spawner:
-                    for i in lazer_spawner:
-                        add_effect(i[0],2,i[3])
-                        if while_time(i[4],3):bullet(i[0],i[1],i[2],0,i[3])
-                        lazer_spawner[lazer_spawner.index(i)][4] -= 1
-                        if lazer_spawner[lazer_spawner.index(i)][4] == 0:
-                            del lazer_spawner[lazer_spawner.index(i)]
+                # if lazer_spawner:
+                #     for i in lazer_spawner:
+                #         add_effect(i[0],2,i[3])
+                #         if while_time(i[4],3):bullet(i[0],i[1],i[2],0,i[3])
+                #         lazer_spawner[lazer_spawner.index(i)][4] -= 1
+                #         if lazer_spawner[lazer_spawner.index(i)][4] == 0:
+                #             del lazer_spawner[lazer_spawner.index(i)]
                 if boss.fire_field_radius > 0:
                     for item in spr.sprites():
                         if distance(item.pos,(boss.pos[0]*2,boss.pos[1]*2)) <= boss.fire_field_radius*2 and not item.shape[1]==4:
                             item.speed += 0.1
+                if skill_activating:
+                    for skill in skill_activating[:]:
+                        skill.update()
+                        if skill.cool <= 0: skill_activating.remove(skill)
                 spr.update(screen)
                 if big_spr: big_spr.update(screen)
                 if not time_stop:
@@ -4195,6 +4317,8 @@ def play_game():
                         bomb_hit_group.update()
                     if text.started and not text.pause: text.update()
                     stage_manager()
+                    if practicing and boss.died_next_stage:
+                        pause = True
                     frame_count += 1
                     stage_count += 1
                     if not bkgd_list == []:
@@ -4222,7 +4346,8 @@ def play_game():
                 big_spr.draw(screen)
                 spr.draw(screen)
                 up_render_layer.fill((0,0,0,0))
-                effect_group.draw(up_render_layer)                     
+                effect_group.draw(up_render_layer)   
+                player.skill_list[player.skill_pointer].draw()                  
                 title.draw()
                 if text.started:text.draw()
                 ui.draw()
@@ -4236,8 +4361,16 @@ def play_game():
                 screen.blit(pygame.transform.scale2x(up_render_layer),(0,0))
                 pause_menu = pygame.Surface((WIDTH,HEIGHT), SRCALPHA)  
                 pause_menu.fill((255, 0, 85,100))
-                screen.blit(pygame.transform.scale2x(pause_menu),(0,0))            
-            pygame.display.flip()
+                pause_menu.blit(menu_img,(10,100),(160,48,160,32))
+                for i in range(0,3): # 메뉴 그리기
+                    menu = pygame.Surface((160,32), SRCALPHA)
+                    if curser == i: menu.fill((0,0,0,200))
+                    menu.blit(menu_img,(0,0),(160,80+32*i,160,32))
+                    if i == 0 and practicing and boss.died_next_stage: 
+                        pygame.draw.rect(menu, (0,0,0,100), (0,0,160,32))
+                    pause_menu.blit(menu,(0,200+32*i))
+                screen.blit(pygame.transform.scale2x(pause_menu),(0,0))     
+            pygame.display.flip()       
         if cur_screen == 0:
             for ev in pygame.event.get():
                 if ev.type == pygame.QUIT: # 게임끄기
@@ -4247,45 +4380,85 @@ def play_game():
                         full_on = False if full_on == True else True  
                     if ev.key == pygame.K_UP:
                         curser = curser_max if curser == 0 else curser - 1 # 커서위로
+                        s_ok.play()
                     if ev.key == pygame.K_DOWN:
                         curser = 0 if curser == curser_max else curser + 1 # 커서밑으로
+                        s_ok.play()
 
                     if select_mod == 0: # 시작화면
                         if ev.key == pygame.K_z or ev.key == pygame.K_RETURN:
+                            s_select.play()
                             if curser == 3: play = False # 게임끄기
                             if curser == 0: select_mod += 1 ############ 게임시작
+                            if curser == 1: select_mod += 1 ############ 게임시작
+                            if curser == 2: select_mod += 1 ############ 게임시작
                             menu_mod = curser # 현재 어떤 버튼 눌렀는지 저장
                             curser = 0
                             break
                     if select_mod == 1:
                         if menu_mod == 0:
                             if ev.key == pygame.K_z or ev.key == pygame.K_RETURN:
+                                s_select.play()
                                 character = 0 if curser == 0 else 41
                                 player.change_player(character)
                                 player_sub.change_color(character)
-                                cur_screen = 1                          
-                        # if ev.key == pygame.K_x or ev.key == pygame.K_ESCAPE:
-                            #if select_mod > 0: select_mod -= 1
-                            #menu_mod = -1
-                        # try:sfx_volume = msfx_volume/100
-                        # except:sfx_volume = 0
-                        # try:music_volume = mmusic_volume/100
-                        # except:music_volume = 0
-                        # music_and_sfx_volume()
-                    # if ev.key == pygame.K_RIGHT:
-                    #     if menu_mod == 2:
-                    #         if curser == 1:
-                    #             mmusic_volume = mmusic_volume + 5 if mmusic_volume < 100 else 100
-                    #         if curser == 2:
-                    #             msfx_volume = msfx_volume + 5 if msfx_volume < 100 else 100
-                    # if ev.key == pygame.K_LEFT:
-                    #     if menu_mod == 2:
-                    #         if curser == 1:
-                    #             mmusic_volume = mmusic_volume - 5 if mmusic_volume > 0 else 0
-                    #         if curser == 2:
-                    #             msfx_volume = msfx_volume - 5 if msfx_volume > 0 else 0
-            render_layer.blit(background_img,(0,0))
-            
+                                player.power = 0
+                                cur_screen = 1  
+                                stage_fun = 0
+                                start_fun = stage_fun  
+                                curser = 0
+                            if ev.key == pygame.K_x or ev.key == pygame.K_ESCAPE:
+                                s_cancel.play()
+                                curser = 0
+                                select_mod -= 1
+                                menu_mod = -1                     
+                        if menu_mod == 1:
+                            if ev.key == pygame.K_z or ev.key == pygame.K_RETURN:
+                                s_select.play()
+                                player.change_player(character)
+                                player_sub.change_color(character)
+                                player.power = 400
+                                stage_fun = curser                                 
+                                start_fun = stage_fun  
+                                cur_screen = 1 
+                                practicing = True
+                                curser = 0
+                            if ev.key == pygame.K_x or ev.key == pygame.K_ESCAPE:
+                                s_cancel.play()
+                                curser = 0
+                                select_mod -= 1
+                                menu_mod = -1
+                            if ev.key == pygame.K_RIGHT or ev.key == pygame.K_LEFT:
+                                s_select.play()
+                                character = 41 if character == 0 else 0      
+                        if menu_mod == 2:
+                            if ev.key == pygame.K_RIGHT:
+                                s_ok.play()
+                                if curser == 0:
+                                    full_on = 1 if full_on == 0 else 0
+                                if curser == 1:
+                                    mmusic_volume = mmusic_volume + 5 if mmusic_volume < 100 else 100
+                                if curser == 2:
+                                    msfx_volume = msfx_volume + 5 if msfx_volume < 100 else 100                                
+                            if ev.key == pygame.K_LEFT:
+                                s_ok.play()
+                                if curser == 0:
+                                    full_on = 1 if full_on == 0 else 0
+                                if curser == 1:
+                                    mmusic_volume = mmusic_volume - 5 if mmusic_volume > 0 else 0
+                                if curser == 2:
+                                    msfx_volume = msfx_volume - 5 if msfx_volume > 0 else 0
+                            if ev.key == pygame.K_x or ev.key == pygame.K_ESCAPE:
+                                s_cancel.play()
+                                try:sfx_volume = msfx_volume/100
+                                except:sfx_volume = 0
+                                try:music_volume = mmusic_volume/100
+                                except:music_volume = 0
+                                music_and_sfx_volume()
+                                curser = 0
+                                select_mod -= 1
+                                menu_mod = -1                             
+            render_layer.blit(background_img,(0,0))            
             ui_x = WIDTH - 180
             ui_y = HEIGHT - 200
             if select_mod == 0: # 시작화면
@@ -4305,8 +4478,23 @@ def play_game():
                         if curser == i: menu.fill((0,0,0,200))
                         menu.blit(menu_img,(0,0),(0,224+48*i,176,48))
                         render_layer.blit(menu,(int(WIDTH/2-240),int(HEIGHT/2-30+64*i-64*curser)))
+                if menu_mod == 1:
+                    curser_max = 5
+                    text_box = ["Stage1","Stage2","Stage3","Stage4","Stage5","Stage6"]
+                    for i in range(0,6):
+                        text_color = (255,0,255) if i == curser else (0,0,255)
+                        text1 = score_font.render(text_box[i], True, text_color)
+                        render_layer.blit(text1,(100,50+40*i))
+                    if character == 0:
+                        text_color = (255,0,255)
+                        text1 = score_font.render("MEW", True, text_color)                        
+                        render_layer.blit(text1,(300,100))  
+                    else:  
+                        text_color = (0,255,255)
+                        text1 = score_font.render("SELEBI", True, text_color)                        
+                        render_layer.blit(text1,(300,100))                      
                 if menu_mod == 2:
-                    curser_max = 3
+                    curser_max = 2
                     text_box = ["화면모드","음악","효과음"]
                     text_box[0] = "화면모드    창모드" if full_on == 0 else "화면모드    전체화면"
                     text_box[1] = "음악   " + str(mmusic_volume)
@@ -4324,9 +4512,6 @@ def play_game():
             else:
                 screen = pygame.display.set_mode((WIDTH*2, HEIGHT*2))
             cur_full_mod = full_on
-
-    pygame.quit()
-    exit()
 
 if __name__ == "__main__":
     play_game()
