@@ -270,6 +270,7 @@ clock = pygame.time.Clock()
 prev_time = time.time()
 dt = 0
 FPS = 60
+clock_fps = 60
 TARGET_FPS = 60
 keys = pygame.key.get_pressed() 
 boss_movebox = Rect(300,35,204,292)
@@ -692,7 +693,7 @@ def play_game():
                 self.kill()
             if self.num == 4:
                 self.speed += 1
-            
+                self.speed += 1
 
             self.pos = calculate_new_xy(self.pos, self.speed, -self.direction)
             self.rect = self.image.get_rect(center = get_new_pos(self.pos))  
@@ -758,6 +759,7 @@ def play_game():
             self.image_num = 0
 
             self.count = 0
+            self.death_count = 0
             self.list = [0,0,0,0]
             self.max_health = 0
             self.health = 1
@@ -785,7 +787,7 @@ def play_game():
             self.fire_field_radius = 0
 
         def update(self, collide):
-            global score
+            global score, screen_shake_count, clock_fps
             if self.appear:
                 if self.attack_start:
                     inum = self.image_num
@@ -798,7 +800,6 @@ def play_game():
                         self.health = self.max_health
                         self.godmod = True 
                     # 능력 살아있으면
-
                     if self.health > 0 and not self.dieleft:
                         if self.count >= 120 and self.move_ready and not self.ready:
                             self.count = 1
@@ -809,7 +810,6 @@ def play_game():
                             self.fire_field_radius += self.fire_field[0]//self.fire_field[1]
                         elif self.fire_field_radius == self.fire_field[0]:
                             self.fire_field=[0,0]
-
                     if self.move_speed == 0:self.image_num =0
                     else:
                         imgdir = self.move_dir
@@ -821,7 +821,6 @@ def play_game():
                         if self.image_num == 1:self.image = pygame.transform.rotate(self.image2, -10)
                         if self.image_num == 2:self.image = pygame.transform.rotate(self.image2, 10)                      
                         self.rect = self.image.get_rect(center = (round(self.pos[0]),round(self.pos[1])))
-
                     # 빔에 맞았을때
                     if len(collide) > 0 and not self.godmod:
                         if bomb_activated:
@@ -842,21 +841,19 @@ def play_game():
                                         s_damage0.play(loops=1, maxtime=50)
                                     self.real_health -= beam.damage
                                     beam.died = True
-
                     if self.health <= 0 and not self.dieleft and self.ready: # 체력다 닳음 죽은적이없고 스펠시전 중이였을때 실행
                         self.count = 0
-                        self.move_speed = 0
                         self.move_ready = False
                         self.ready = False
                         self.box_disable = False
                         self.move_time  = 0
                         self.fire_field = (0,0)
                         self.fire_field_radius = 0
+                        self.move_speed = 0
                         add_effect(self.pos,5)
-                        if len(self.spell) > 1: # 스펠카드가 남아있다면 안죽기
+                        if len(self.spell) > 1: # 스펠카드가 남아있다면 안죽기                            
                             del self.spell[0] # 사용한 스펠 삭제
-                            if self.spell[0].spellcard:
-                                s_cat1.play()
+                            if self.spell[0].spellcard:s_cat1.play()
                             else:
                                 s_tan1.play()
                                 for _ in range(0,20):
@@ -866,20 +863,20 @@ def play_game():
                         else:#퇴장(다음 스테이지로, 공격멈추기)
                             del self.spell[0]
                             s_enep1.play()
-                            self.image = self.image2
+                            self.image_num = 0
                             self.dieleft = True
                             self.move_point = (0,0)
                             self.attack_start = False
                             self.died_next_stage = True
                             self.count = 0
                             for _ in range(0,20):
-                                item_group.add(Item(get_new_pos(self.pos,randint(-100,100),randint(-100,100)),0))
+                                item_group.add(Item(get_new_pos((self.pos[0]*2,self.pos[1]*2),randint(-100,100),randint(-100,100)),0))
                             for _ in range(0,40):
-                                item_group.add(Item(get_new_pos(self.pos,randint(-200,200),randint(-200,200)),1))
+                                item_group.add(Item(get_new_pos((self.pos[0]*2,self.pos[1]*2),randint(-200,200),randint(-200,200)),1))
                     self.count += 1
 
                 # 처음등장시 중앙으로 오기
-                if self.real_appear and not self.attack_start:
+                if self.real_appear and not self.attack_start and not self.dieleft:
                     if distance(self.pos,(WIDTH-150,HEIGHT//2)) <= 2:
                         self.pos = (WIDTH-150,HEIGHT//2)
                         self.move_point = (0,0)
@@ -891,10 +888,28 @@ def play_game():
             if self.dieleft: # 죽었을때 이벤트
                 remove_allbullet()
                 if self.dies: 
-                    self.pos = (-128,-128) 
-                    self.dieleft = False
-                    self.real_appear = False
-                    self.appear = False
+                    if self.num == 2 or self.num == 4 or self.num == 6 or self.num == 8 or self.num == 10 or self.num == 11:
+                        if self.num == 11:clock_fps = 40
+                        self.death_count += 1
+                        self.pos = calculate_new_xy(self.pos,1,self.move_dir)
+                        if self.death_count == 140:
+                            screen_shake_count = 90
+                            s_enep1.play()
+                            add_effect(self.pos,5)                           
+                            self.pos = (-128,-128)                            
+                            self.real_appear = False
+                        if self.death_count == 180:
+                            clock_fps = 60
+                            text.pause = False
+                            self.dieleft = False
+                            self.appear = False
+                            self.death_count = 0
+                    else:
+                        text.pause = False
+                        self.pos = (-128,-128) 
+                        self.dieleft = False
+                        self.real_appear = False
+                        self.appear = False
                 else:
                     self.count += 1
                     if self.count > 60:
@@ -904,10 +919,8 @@ def play_game():
                             self.real_appear = False
                             self.appear = False 
                             self.count = 0                          
-                if self.num == 2 or self.num == 4 or self.num == 6 or self.num == 8 or self.num == 10 or self.num == 11:
-                    text.pause = False
                 
-            self.rect.center = (int(self.pos[0]),int(self.pos[1])) 
+            self.rect.center = self.pos
 
         def reset(self):
             self.image = pygame.Surface((128,128), pygame.SRCALPHA)      
@@ -1651,8 +1664,8 @@ def play_game():
                     pass
 
         def re_start(self):
-            self.image1 =  pygame.Surface((200,400), pygame.SRCALPHA)
-            self.image2 =  pygame.Surface((200,400), pygame.SRCALPHA)
+            self.image1 =  pygame.Surface((100,200), pygame.SRCALPHA)
+            self.image2 =  pygame.Surface((100,200), pygame.SRCALPHA)
             self.image1.fill((255,255,255))
             self.image2.fill((255,255,255))
             self.stat = 0
@@ -1661,11 +1674,12 @@ def play_game():
             self.started = False
             self.pause = False
             self.count = 0
-            self.font = pygame.font.Font(FONT_1, 40)
-            self.textbox = pygame.Surface((980,1), pygame.SRCALPHA)
+            self.font = pygame.font.Font(FONT_1, 20)
+            self.textbox = pygame.Surface((490,1), pygame.SRCALPHA)
             self.textbox.fill((0,0,0,150))
             self.turn = 0
             self.char_move = [-80,-80]
+            self.boss_appear_img = False
     class Back_Ground():
         def __init__(self, img, rect, speed, num, y=0,not_appear=False):
             image = pygame.Surface((rect[2],rect[3]), pygame.SRCALPHA)
@@ -1907,7 +1921,7 @@ def play_game():
     # 개발자 전용
     
     global bkgd, time_stop
-    global stage_count, boss_group 
+    global stage_count, boss_group, screen_shake_count
     # 초기 설정
     enemy_group = pygame.sprite.Group()
     boss = Boss_Enemy(-99,-99)
@@ -1919,6 +1933,7 @@ def play_game():
     frame_count = 0
     time_stop = False
     stage_count = 0
+    screen_shake_count = 0
     
     global character
     curser = 0
@@ -1928,13 +1943,14 @@ def play_game():
     character = 0
     cur_screen = 0
 
-    global stage_line, stage_cline, stage_repeat_count, stage_condition, stage_challenge, stage_fun
+    global stage_line, stage_cline, stage_repeat_count, stage_condition, stage_challenge, stage_fun, stage_end
     stage_fun = 0
     stage_line = 0
     stage_cline = 0
     stage_repeat_count = 0
     stage_condition = 1
     stage_challenge = 0
+    stage_end = 0
 
     skill_activating = []
     # 게임 시작전 메뉴 변수들
@@ -2480,7 +2496,7 @@ def play_game():
             boss.radius = 40
             boss.image.blit(pokemons[1],(0,0))         
             boss.num = 2
-            boss.spell = [spells[0],spells[1],spells[2],spells[4]]
+            boss.spell = [spells[0]]
             boss.dies = True
             boss_background.blit(bg2_image,(0,0),(0,0,1080,720))
             text.started = True
@@ -2553,7 +2569,7 @@ def play_game():
             boss.radius = 40
             boss.image.blit(pokemons[6],(0,0))         
             boss.num = num
-            boss.spell = [spells[35],spells[33],spells[34],spells[35],spells[36],spells[37],spells[38]]
+            boss.spell = [spells[34],spells[33],spells[34],spells[35],spells[36],spells[37],spells[38]]
             boss.dies = True
             boss_background.blit(bg2_image,(0,0),(0,0,540,360))
             boss_background.blit(bg2_image,(0,0),(0,360,540,360))
@@ -2795,11 +2811,11 @@ def play_game():
                 pos = set_bossmove_point((WIDTH-150,HEIGHT//2,0),120,3)
                 if ready:
                     if when_time(count,60):
-                        magic_bullet((1080,pos[1]),180,10,1)
-                        magic_bullet((1090,pos[1]+100),180,10,1)
-                        magic_bullet((1100,pos[1]-100),180,10,1)
-                        magic_bullet((1110,pos[1]+200),180,10,1)
-                        magic_bullet((1120,pos[1]-200),180,10,1)
+                        magic_bullet((WIDTH,pos[1]),180,10,1)
+                        magic_bullet((WIDTH+15,pos[1]+100),180,10,1)
+                        magic_bullet((WIDTH+20,pos[1]-100),180,10,1)
+                        magic_bullet((WIDTH+25,pos[1]+200),180,10,1)
+                        magic_bullet((WIDTH+30,pos[1]-200),180,10,1)
                     if count == 180:
                         s_ch0.play()
                     if count == 240:
@@ -2864,13 +2880,13 @@ def play_game():
                     if while_time(count,3) and count< 120:
                         sub = -(count * 3.2 + 45 )
                         for i in range(1,6):
-                            bullet_effect(s_tan1,4,calculate_new_xy(pos,60*i,sub))
-                            bullet(calculate_new_xy(pos,60*i,sub),-sub-90,5,1,4,0.1)
+                            bullet_effect(s_tan1,4,calculate_new_xy(pos,60*i,sub,True))
+                            bullet(calculate_new_xy(pos,60*i,sub,True),-sub-90,5,1,4,0.1)
                     if while_time(count,3) and count> 120:
                         sub = count * 3.2 + 45
                         for i in range(1,6):
-                            bullet_effect(s_tan1,4,calculate_new_xy(pos,60*i,sub))
-                            bullet(calculate_new_xy(pos,60*i,sub),-sub-90,5,1,4,0.1)
+                            bullet_effect(s_tan1,4,calculate_new_xy(pos,60*i,sub,True))
+                            bullet(calculate_new_xy(pos,60*i,sub,True),-sub-90,5,1,4,0.1)
                     if count == 240:
                         count = 0
                     if while_time(count,120):
@@ -2892,22 +2908,22 @@ def play_game():
                 pos = set_bossmove_point((WIDTH-150,HEIGHT//2,0),120,3)
                 if ready:
                     if while_time(count,20):
-                        bullet_effect(s_tan1,7,get_new_pos(pos,0,100))
-                        bullet_effect(s_tan1,7,get_new_pos(pos,0,-100))
-                        bullet(get_new_pos(pos,0,100),180,8,15,7)
-                        bullet(get_new_pos(pos,-30,100),180,8,18,7)
-                        bullet(get_new_pos(pos,-60,100),180,8,17,7)
-                        bullet(get_new_pos(pos,-90,100),180,8,5,7)
-                        bullet(get_new_pos(pos,0,-100),180,8,15,7)
-                        bullet(get_new_pos(pos,-30,-100),180,8,18,7)
-                        bullet(get_new_pos(pos,-60,-100),180,8,17,7)
-                        bullet(get_new_pos(pos,-90,-100),180,8,5,7)
+                        bullet_effect(s_tan1,7,get_new_pos(pos,0,50))
+                        bullet_effect(s_tan1,7,get_new_pos(pos,0,-50))
+                        bullet(get_new_pos(pos,0,50),180,8,15,7)
+                        bullet(get_new_pos(pos,-30,50),180,8,18,7)
+                        bullet(get_new_pos(pos,-60,50),180,8,17,7)
+                        bullet(get_new_pos(pos,-90,50),180,8,5,7)
+                        bullet(get_new_pos(pos,0,-50),180,8,15,7)
+                        bullet(get_new_pos(pos,-30,-50),180,8,18,7)
+                        bullet(get_new_pos(pos,-60,-50),180,8,17,7)
+                        bullet(get_new_pos(pos,-90,-50),180,8,5,7)
                     if while_time(count,10):
                         bullet_effect(s_tan1,0,pos)
                         bullet(pos,look_at_player(pos),5,17,0)
                     if while_time(count,60):
                         count = 0
-                        set_go_boss(5,-look_at_point(pos,(780,player.pos[1]))+randint(-30,30),60)         
+                        set_go_boss(5,-look_at_point(pos,(pos[0],player.pos[1]))+randint(-20,20),60)         
             if num == 27:
                 pos = set_bossmove_point((WIDTH-150,HEIGHT//2,0),120,3)
                 boss.box_disable = True
@@ -2923,7 +2939,7 @@ def play_game():
                             bullet(calculate_new_xy(pos,60*i,sub,True),-sub-90,4,1,7)                       
                     if while_time(count,60):
                         set_go_boss(20,-look_at_point(pos,(0,player.pos[1])),999)                
-                    if pos[0] < 64 and not boss.list[0]:
+                    if pos[0] < 32 and not boss.list[0]:
                         boss.move_speed = 5
                         boss.list[0] = True
                         s_enep2.play()
@@ -2932,7 +2948,7 @@ def play_game():
                             bullet(get_new_pos(pos),i,4,9,7)   
                     if boss.list[0]:
                         boss.move_dir = 0
-                        if pos[0] >= 880:
+                        if pos[0] >= WIDTH-100:
                             boss.move_speed = 0
                             boss.move_time = 0
                             boss.list[0] = False
@@ -3622,651 +3638,656 @@ def play_game():
                 bullet(self.pos,self.count*2.1,0,4,3,20)
 
     def stage_manager():
-        global stage_cline, stage_line, stage_repeat_count, stage_count, stage_condition, stage_challenge,stage_fun
+        global stage_cline, stage_line, stage_repeat_count, stage_count, stage_condition, stage_challenge,stage_fun, stage_end
         
-        if True:
-            if stage_condition == 1:
-                add_effect((WIDTH/2,HEIGHT/2),99)
-                stage_fun += 1
-                stage_count = 0
-                stage_condition += 1
-            if stage_condition == 2:
-                stage_count += 1
-                if stage_count >= 60:
+        if stage_end <= 0:
+            if True:
+                if stage_condition == 1:
+                    add_effect((WIDTH/2,HEIGHT/2),99)
+                    stage_fun += 1
+                    stage_count = 0
                     stage_condition += 1
-            if stage_condition == 3:
-                game_defalt_setting(stage_fun)
-                player.pos = (WIDTH/4,HEIGHT/2)
-                stage_condition += 1
-            if stage_condition == 4:
-                stage_count += 1
-                if stage_count >= 180:
+                if stage_condition == 2:
+                    stage_count += 1
+                    if stage_count >= 60:
+                        stage_condition += 1
+                if stage_condition == 3:
+                    game_defalt_setting(stage_fun)
+                    player.pos = (WIDTH/4,HEIGHT/2)
                     stage_condition += 1
-            if stage_condition == 5:
-                pygame.mixer.music.play(-1)
-                stage_condition += 1
-                stage_count = 0
-        if stage_condition == 6:
-            if stage_fun == 1:
-                if stage_challenge == 0:
-                    pokemon_spawn(1,(506,-30),120)
-                    pokemon_spawn(1,(456,-30),0)
-
-                    if while_poke_spawn(30,10,2):
-                        pokemon_spawn(1,(506,-30),30)
+                if stage_condition == 4:
+                    stage_count += 1
+                    if stage_count >= 180:
+                        stage_condition += 1
+                if stage_condition == 5:
+                    pygame.mixer.music.play(-1)
+                    stage_condition += 1
+                    stage_count = 0
+            if stage_condition == 6:
+                if stage_fun == 1:
+                    if stage_challenge == 0:
+                        pokemon_spawn(1,(506,-30),120)
                         pokemon_spawn(1,(456,-30),0)
-                        end_while_poke_spawn(2,10)
 
-                    pokemon_spawn(2,(506,HEIGHT+30),0)
-                    pokemon_spawn(2,(456,HEIGHT+30),0)
+                        if while_poke_spawn(30,10,2):
+                            pokemon_spawn(1,(506,-30),30)
+                            pokemon_spawn(1,(456,-30),0)
+                            end_while_poke_spawn(2,10)
 
-                    if while_poke_spawn(30,10,2):
-                        pokemon_spawn(2,(506,HEIGHT+30),30)
+                        pokemon_spawn(2,(506,HEIGHT+30),0)
                         pokemon_spawn(2,(456,HEIGHT+30),0)
-                        end_while_poke_spawn(2,10)
 
-                    pokemon_spawn(1,(506,-30),0)
-                    pokemon_spawn(1,(456,-30),0)
-                    pokemon_spawn(2,(506,HEIGHT+30),0)
-                    pokemon_spawn(2,(456,HEIGHT+30),0)
+                        if while_poke_spawn(30,10,2):
+                            pokemon_spawn(2,(506,HEIGHT+30),30)
+                            pokemon_spawn(2,(456,HEIGHT+30),0)
+                            end_while_poke_spawn(2,10)
 
-                    if while_poke_spawn(30,10,4):
-                        pokemon_spawn(1,(506,-30),30)
+                        pokemon_spawn(1,(506,-30),0)
                         pokemon_spawn(1,(456,-30),0)
                         pokemon_spawn(2,(506,HEIGHT+30),0)
-                        pokemon_spawn(2,(456,HEIGHT+30),0) 
-                        end_while_poke_spawn(4,10)    
+                        pokemon_spawn(2,(456,HEIGHT+30),0)
 
-                    pokemon_spawn(1,(556,-30),60)
-                    pokemon_spawn(2,(556,HEIGHT+30),10)
-                    pokemon_spawn(1,(556,-30),10)
-                    pokemon_spawn(2,(556,HEIGHT+30),10)
-                    title_spawn(1,240)
+                        if while_poke_spawn(30,10,4):
+                            pokemon_spawn(1,(506,-30),30)
+                            pokemon_spawn(1,(456,-30),0)
+                            pokemon_spawn(2,(506,HEIGHT+30),0)
+                            pokemon_spawn(2,(456,HEIGHT+30),0) 
+                            end_while_poke_spawn(4,10)    
 
-                    next_challenge(260)
-                if stage_challenge == 1:
-                    bground_spawn(1,1)
-                    if while_poke_spawn(40,10,2):
-                        pokemon_spawn(3,(WIDTH+64,HEIGHT-stage_repeat_count*HEIGHT/10-20),40)
-                        pokemon_spawn(3,(WIDTH+64,stage_repeat_count*HEIGHT/10+20),0)
-                        if while_time(stage_repeat_count,3):
-                            pokemon_spawn(4,(WIDTH+64,HEIGHT-stage_repeat_count*HEIGHT/10-20),0,180,4,True)
-                        end_while_poke_spawn(2,10)
+                        pokemon_spawn(1,(556,-30),60)
+                        pokemon_spawn(2,(556,HEIGHT+30),10)
+                        pokemon_spawn(1,(556,-30),10)
+                        pokemon_spawn(2,(556,HEIGHT+30),10)
+                        title_spawn(1,240)
 
-                    if while_poke_spawn(40,10,2):
-                        pokemon_spawn(3,(WIDTH+64,HEIGHT-stage_repeat_count*HEIGHT/10-20),40)
-                        pokemon_spawn(3,(WIDTH+64,stage_repeat_count*HEIGHT/10+20),0)
-                        if while_time(stage_repeat_count,3):
-                            pokemon_spawn(4,(WIDTH+64,stage_repeat_count*HEIGHT/10+20),0,180,4,True)
-                        end_while_poke_spawn(2,10)
+                        next_challenge(260)
+                    if stage_challenge == 1:
+                        bground_spawn(1,1)
+                        if while_poke_spawn(40,10,2):
+                            pokemon_spawn(3,(WIDTH+64,HEIGHT-stage_repeat_count*HEIGHT/10-20),40)
+                            pokemon_spawn(3,(WIDTH+64,stage_repeat_count*HEIGHT/10+20),0)
+                            if while_time(stage_repeat_count,3):
+                                pokemon_spawn(4,(WIDTH+64,HEIGHT-stage_repeat_count*HEIGHT/10-20),0,180,4,True)
+                            end_while_poke_spawn(2,10)
 
-                    if while_poke_spawn(10,15,2):
-                        pokemon_spawn(5,(WIDTH,20),10)
-                        pokemon_spawn(6,(WIDTH,HEIGHT-20),0)
-                        end_while_poke_spawn(2,15)
+                        if while_poke_spawn(40,10,2):
+                            pokemon_spawn(3,(WIDTH+64,HEIGHT-stage_repeat_count*HEIGHT/10-20),40)
+                            pokemon_spawn(3,(WIDTH+64,stage_repeat_count*HEIGHT/10+20),0)
+                            if while_time(stage_repeat_count,3):
+                                pokemon_spawn(4,(WIDTH+64,stage_repeat_count*HEIGHT/10+20),0,180,4,True)
+                            end_while_poke_spawn(2,10)
 
-                    if while_poke_spawn(40,10,2):
-                        pokemon_spawn(3,(WIDTH+64,HEIGHT-stage_repeat_count*HEIGHT/10-20),40)
-                        pokemon_spawn(3,(WIDTH+64,stage_repeat_count*HEIGHT/10+20),0)
-                        if while_time(stage_repeat_count,2):
-                            pokemon_spawn(4,(WIDTH+64,HEIGHT-stage_repeat_count*HEIGHT/10-20),0,180,4,True)
-                            pokemon_spawn(4,(WIDTH+64,stage_repeat_count*HEIGHT/10+20),0,180,4,True)
-                        end_while_poke_spawn(2,10)
-                    
-                    next_challenge(240)
-                if stage_challenge == 2:
-                    if not boss.appear and not boss.died_next_stage: 
-                        boss_spawn(1)
-                    if boss.died_next_stage:
-                        stage_count = 0
-                        boss.died_next_stage = False
-                        next_challenge(0)
-                if stage_challenge == 3:
-                    bground_spawn(2,1)
-                    if while_poke_spawn(10,5,2):
-                        pokemon_spawn(5,(WIDTH,20),10)
-                        pokemon_spawn(6,(WIDTH,HEIGHT-20),0)
-                        end_while_poke_spawn(2,5)
+                        if while_poke_spawn(10,15,2):
+                            pokemon_spawn(5,(WIDTH,20),10)
+                            pokemon_spawn(6,(WIDTH,HEIGHT-20),0)
+                            end_while_poke_spawn(2,15)
 
-                    pokemon_spawn(4,(WIDTH,HEIGHT/2),60)
-                    pokemon_spawn(4,(WIDTH,HEIGHT/2+20),60)
-                    pokemon_spawn(4,(WIDTH,HEIGHT/2+60),60)
-                    pokemon_spawn(4,(WIDTH,HEIGHT/2-20),60)
-                    pokemon_spawn(4,(WIDTH,HEIGHT/2-60),60)
+                        if while_poke_spawn(40,10,2):
+                            pokemon_spawn(3,(WIDTH+64,HEIGHT-stage_repeat_count*HEIGHT/10-20),40)
+                            pokemon_spawn(3,(WIDTH+64,stage_repeat_count*HEIGHT/10+20),0)
+                            if while_time(stage_repeat_count,2):
+                                pokemon_spawn(4,(WIDTH+64,HEIGHT-stage_repeat_count*HEIGHT/10-20),0,180,4,True)
+                                pokemon_spawn(4,(WIDTH+64,stage_repeat_count*HEIGHT/10+20),0,180,4,True)
+                            end_while_poke_spawn(2,10)
+                        
+                        next_challenge(240)
+                    if stage_challenge == 2:
+                        if not boss.appear and not boss.died_next_stage: 
+                            boss_spawn(1)
+                        if boss.died_next_stage:
+                            stage_count = 0
+                            boss.died_next_stage = False
+                            next_challenge(0)
+                    if stage_challenge == 3:
+                        bground_spawn(2,1)
+                        if while_poke_spawn(10,5,2):
+                            pokemon_spawn(5,(WIDTH,20),10)
+                            pokemon_spawn(6,(WIDTH,HEIGHT-20),0)
+                            end_while_poke_spawn(2,5)
 
-                    if while_poke_spawn(20,10,4):
-                        pokemon_spawn(1,(506,-15),20)
-                        pokemon_spawn(1,(912//2,-15),0)
-                        pokemon_spawn(2,(506,HEIGHT+15),0)
-                        pokemon_spawn(2,(912//2,HEIGHT+15),0) 
-                        end_while_poke_spawn(4,10)
+                        pokemon_spawn(4,(WIDTH,HEIGHT/2),60)
+                        pokemon_spawn(4,(WIDTH,HEIGHT/2+20),60)
+                        pokemon_spawn(4,(WIDTH,HEIGHT/2+60),60)
+                        pokemon_spawn(4,(WIDTH,HEIGHT/2-20),60)
+                        pokemon_spawn(4,(WIDTH,HEIGHT/2-60),60)
 
-                    if while_poke_spawn(10,5,2):
-                        pokemon_spawn(5,(WIDTH,10),10)
-                        pokemon_spawn(6,(WIDTH,HEIGHT-10),0)
-                        end_while_poke_spawn(2,5)
+                        if while_poke_spawn(20,10,4):
+                            pokemon_spawn(1,(506,-15),20)
+                            pokemon_spawn(1,(912//2,-15),0)
+                            pokemon_spawn(2,(506,HEIGHT+15),0)
+                            pokemon_spawn(2,(912//2,HEIGHT+15),0) 
+                            end_while_poke_spawn(4,10)
 
-                    pokemon_spawn(4,(WIDTH,HEIGHT/2),30)
-                    pokemon_spawn(4,(WIDTH,HEIGHT/2+20),30)
-                    pokemon_spawn(4,(WIDTH,HEIGHT/2-20),0)
-                    pokemon_spawn(4,(WIDTH,HEIGHT/2+40),30)
-                    pokemon_spawn(4,(WIDTH,HEIGHT/2),0)
-                    pokemon_spawn(4,(WIDTH,HEIGHT/2-40),0)
-                    next_challenge(360)
-                if stage_challenge == 4:
-                    bground_spawn(3,1)
-                    pokemon_spawn(7,(WIDTH-120,-30),60,90)
-                    pokemon_spawn(7,(WIDTH-120,-30),60,90)
-                    pokemon_spawn(7,(WIDTH-120,-30),60,90)
-                    pokemon_spawn(7,(WIDTH-120,-30),120,90)
-                    pokemon_spawn(7,(WIDTH-120,HEIGHT+30),60,-90)
-                    pokemon_spawn(7,(WIDTH-120,-30),60,90)
-                    pokemon_spawn(7,(WIDTH-120,HEIGHT+30),60,-90)
-                    pokemon_spawn(7,(WIDTH-120,-30),60,90)
-                    pokemon_spawn(7,(WIDTH-120,HEIGHT+30),60,-90)
+                        if while_poke_spawn(10,5,2):
+                            pokemon_spawn(5,(WIDTH,10),10)
+                            pokemon_spawn(6,(WIDTH,HEIGHT-10),0)
+                            end_while_poke_spawn(2,5)
 
-                    if while_poke_spawn(40,10,2):
-                        pokemon_spawn(3,(WIDTH+64,HEIGHT-stage_repeat_count*HEIGHT/10-20),40)
-                        pokemon_spawn(3,(WIDTH+64,stage_repeat_count*HEIGHT/10+20),0)
-                        if while_time(stage_repeat_count,3):
-                            pokemon_spawn(4,(WIDTH+64,HEIGHT-stage_repeat_count*HEIGHT/10-20),0,180,4,True)
-                        if while_time(stage_repeat_count,2):
-                            pokemon_spawn(7,(WIDTH-120,HEIGHT+30),0,-90,4,True)
-                        end_while_poke_spawn(2,10)
-                    if while_poke_spawn(40,10,2):
-                        pokemon_spawn(3,(WIDTH+64,HEIGHT-stage_repeat_count*HEIGHT/10-20),40)
-                        pokemon_spawn(3,(WIDTH+64,stage_repeat_count*HEIGHT/10+20),0)
-                        if while_time(stage_repeat_count,3):
-                            pokemon_spawn(4,(WIDTH+64,stage_repeat_count*HEIGHT/10+20),0,180,4,True)
-                        if while_time(stage_repeat_count,2):
-                            pokemon_spawn(7,(WIDTH-120,-30),0,-90,4,True)
-                        end_while_poke_spawn(2,10)
-                    next_challenge(360)
-                if stage_challenge == 5:
-                    if not boss.appear and not boss.died_next_stage: 
-                        boss_spawn(2)
-                    if boss.died_next_stage:
-                        stage_count = 0
-                        if not text.started:
-                            stage_challenge = 0
-                            stage_line = 0
-                            text.re_start()
-                            stage_condition = 1
-            if stage_fun == 2:
-                if stage_challenge == 0:
-                    pokemon_spawn(8,(WIDTH,HEIGHT),120,-135,4)
-                    pokemon_spawn(8,(WIDTH,0),0,135,4)
-                    if while_poke_spawn(10,10,2):
-                        pokemon_spawn(8,(WIDTH,HEIGHT),10,-135,4)
+                        pokemon_spawn(4,(WIDTH,HEIGHT/2),30)
+                        pokemon_spawn(4,(WIDTH,HEIGHT/2+20),30)
+                        pokemon_spawn(4,(WIDTH,HEIGHT/2-20),0)
+                        pokemon_spawn(4,(WIDTH,HEIGHT/2+40),30)
+                        pokemon_spawn(4,(WIDTH,HEIGHT/2),0)
+                        pokemon_spawn(4,(WIDTH,HEIGHT/2-40),0)
+                        next_challenge(360)
+                    if stage_challenge == 4:
+                        bground_spawn(3,1)
+                        pokemon_spawn(7,(WIDTH-120,-30),60,90)
+                        pokemon_spawn(7,(WIDTH-120,-30),60,90)
+                        pokemon_spawn(7,(WIDTH-120,-30),60,90)
+                        pokemon_spawn(7,(WIDTH-120,-30),120,90)
+                        pokemon_spawn(7,(WIDTH-120,HEIGHT+30),60,-90)
+                        pokemon_spawn(7,(WIDTH-120,-30),60,90)
+                        pokemon_spawn(7,(WIDTH-120,HEIGHT+30),60,-90)
+                        pokemon_spawn(7,(WIDTH-120,-30),60,90)
+                        pokemon_spawn(7,(WIDTH-120,HEIGHT+30),60,-90)
+
+                        if while_poke_spawn(40,10,2):
+                            pokemon_spawn(3,(WIDTH+64,HEIGHT-stage_repeat_count*HEIGHT/10-20),40)
+                            pokemon_spawn(3,(WIDTH+64,stage_repeat_count*HEIGHT/10+20),0)
+                            if while_time(stage_repeat_count,3):
+                                pokemon_spawn(4,(WIDTH+64,HEIGHT-stage_repeat_count*HEIGHT/10-20),0,180,4,True)
+                            if while_time(stage_repeat_count,2):
+                                pokemon_spawn(7,(WIDTH-120,HEIGHT+30),0,-90,4,True)
+                            end_while_poke_spawn(2,10)
+                        if while_poke_spawn(40,10,2):
+                            pokemon_spawn(3,(WIDTH+64,HEIGHT-stage_repeat_count*HEIGHT/10-20),40)
+                            pokemon_spawn(3,(WIDTH+64,stage_repeat_count*HEIGHT/10+20),0)
+                            if while_time(stage_repeat_count,3):
+                                pokemon_spawn(4,(WIDTH+64,stage_repeat_count*HEIGHT/10+20),0,180,4,True)
+                            if while_time(stage_repeat_count,2):
+                                pokemon_spawn(7,(WIDTH-120,-30),0,-90,4,True)
+                            end_while_poke_spawn(2,10)
+                        next_challenge(360)
+                    if stage_challenge == 5:
+                        if not boss.appear and not boss.died_next_stage: 
+                            boss_spawn(2)
+                        if boss.died_next_stage:
+                            stage_count = 0
+                            if not text.started:
+                                stage_challenge = 0
+                                stage_line = 0
+                                text.re_start()
+                                stage_end = 120
+                                stage_condition = 1
+                if stage_fun == 2:
+                    if stage_challenge == 0:
+                        pokemon_spawn(8,(WIDTH,HEIGHT),120,-135,4)
                         pokemon_spawn(8,(WIDTH,0),0,135,4)
-                        end_while_poke_spawn(2,10)
-                    
-                    pokemon_spawn(8,(WIDTH,HEIGHT),120,-110,6)
-                    pokemon_spawn(8,(WIDTH,0),0,110,6)
-                    if while_poke_spawn(10,10,2):
-                        pokemon_spawn(8,(WIDTH,HEIGHT),10,-110,6)
+                        if while_poke_spawn(10,10,2):
+                            pokemon_spawn(8,(WIDTH,HEIGHT),10,-135,4)
+                            pokemon_spawn(8,(WIDTH,0),0,135,4)
+                            end_while_poke_spawn(2,10)
+                        
+                        pokemon_spawn(8,(WIDTH,HEIGHT),120,-110,6)
                         pokemon_spawn(8,(WIDTH,0),0,110,6)
-                        end_while_poke_spawn(2,10)
+                        if while_poke_spawn(10,10,2):
+                            pokemon_spawn(8,(WIDTH,HEIGHT),10,-110,6)
+                            pokemon_spawn(8,(WIDTH,0),0,110,6)
+                            end_while_poke_spawn(2,10)
 
-                    pokemon_spawn(8,(WIDTH-100,HEIGHT),120,-90,6)
-                    pokemon_spawn(8,(WIDTH-100,0),0,90,6)
-                    if while_poke_spawn(15,10,2):
-                        pokemon_spawn(8,(WIDTH-50,HEIGHT),15,-90,6)
-                        pokemon_spawn(8,(WIDTH-50,0),0,90,6)
-                        end_while_poke_spawn(2,10)
+                        pokemon_spawn(8,(WIDTH-100,HEIGHT),120,-90,6)
+                        pokemon_spawn(8,(WIDTH-100,0),0,90,6)
+                        if while_poke_spawn(15,10,2):
+                            pokemon_spawn(8,(WIDTH-50,HEIGHT),15,-90,6)
+                            pokemon_spawn(8,(WIDTH-50,0),0,90,6)
+                            end_while_poke_spawn(2,10)
 
-                    pokemon_spawn(9,(WIDTH,HEIGHT//2-60),30)
-                    pokemon_spawn(9,(WIDTH,HEIGHT//2+60),0)
+                        pokemon_spawn(9,(WIDTH,HEIGHT//2-60),30)
+                        pokemon_spawn(9,(WIDTH,HEIGHT//2+60),0)
 
-                    pokemon_spawn(8,(WIDTH-100,HEIGHT),240,-90,6)
-                    pokemon_spawn(8,(WIDTH-100,0),0,90,6)
-                    if while_poke_spawn(15,10,2):
-                        pokemon_spawn(8,(WIDTH-50,HEIGHT),15,-90,6)
-                        pokemon_spawn(8,(WIDTH-50,0),0,90,6)
-                        end_while_poke_spawn(2,10)                    
+                        pokemon_spawn(8,(WIDTH-100,HEIGHT),240,-90,6)
+                        pokemon_spawn(8,(WIDTH-100,0),0,90,6)
+                        if while_poke_spawn(15,10,2):
+                            pokemon_spawn(8,(WIDTH-50,HEIGHT),15,-90,6)
+                            pokemon_spawn(8,(WIDTH-50,0),0,90,6)
+                            end_while_poke_spawn(2,10)                    
 
-                    pokemon_spawn(8,(WIDTH,HEIGHT),120,-135,4)
-                    pokemon_spawn(8,(WIDTH,0),0,135,4)
-                    if while_poke_spawn(10,10,2):
-                        pokemon_spawn(8,(WIDTH,HEIGHT),10,-135,4)
+                        pokemon_spawn(8,(WIDTH,HEIGHT),120,-135,4)
                         pokemon_spawn(8,(WIDTH,0),0,135,4)
-                        end_while_poke_spawn(2,10)
+                        if while_poke_spawn(10,10,2):
+                            pokemon_spawn(8,(WIDTH,HEIGHT),10,-135,4)
+                            pokemon_spawn(8,(WIDTH,0),0,135,4)
+                            end_while_poke_spawn(2,10)
 
-                    title_spawn(2,120)
+                        title_spawn(2,120)
 
-                    next_challenge(260)
-                if stage_challenge == 1:
+                        next_challenge(260)
+                    if stage_challenge == 1:
 
-                    if while_poke_spawn(40,10,1):
-                        pokemon_spawn(10,(WIDTH+32,randint(25,HEIGHT-25)),40)
-                        end_while_poke_spawn(1,10)
-                    if while_poke_spawn(40,10,2):
-                        pokemon_spawn(11,(WIDTH+32,randint(100,HEIGHT-50)),40)
-                        pokemon_spawn(10,(WIDTH+32,randint(25,HEIGHT-14)),0)
-                        end_while_poke_spawn(2,10)
-                    bground_spawn(8,1)
-                    bground_spawn(9,0)
-                    pokemon_spawn(9,(WIDTH+16,HEIGHT//2-60),60)
-                    pokemon_spawn(9,(WIDTH+16,HEIGHT//2+60),0)                    
+                        if while_poke_spawn(40,10,1):
+                            pokemon_spawn(10,(WIDTH+32,randint(25,HEIGHT-25)),40)
+                            end_while_poke_spawn(1,10)
+                        if while_poke_spawn(40,10,2):
+                            pokemon_spawn(11,(WIDTH+32,randint(100,HEIGHT-50)),40)
+                            pokemon_spawn(10,(WIDTH+32,randint(25,HEIGHT-14)),0)
+                            end_while_poke_spawn(2,10)
+                        bground_spawn(8,1)
+                        bground_spawn(9,0)
+                        pokemon_spawn(9,(WIDTH+16,HEIGHT//2-60),60)
+                        pokemon_spawn(9,(WIDTH+16,HEIGHT//2+60),0)                    
 
-                    next_challenge(480)
-                if stage_challenge == 2:
-                    if not boss.appear and not boss.died_next_stage: 
-                        boss_spawn(3)
-                    if boss.died_next_stage:
-                        stage_count = 0
-                        boss.died_next_stage = False
-                        next_challenge(0)
-                if stage_challenge == 3:
-                    pokemon_spawn(9,(WIDTH+32,HEIGHT//2+60),30)
-                    pokemon_spawn(9,(WIDTH+32,HEIGHT//2-60),0)
-                    if while_poke_spawn(40,10,1):
-                        pokemon_spawn(11,(WIDTH+32,randint(100,HEIGHT-100)),40)
-                        end_while_poke_spawn(1,10)
+                        next_challenge(480)
+                    if stage_challenge == 2:
+                        if not boss.appear and not boss.died_next_stage: 
+                            boss_spawn(3)
+                        if boss.died_next_stage:
+                            stage_count = 0
+                            boss.died_next_stage = False
+                            next_challenge(0)
+                    if stage_challenge == 3:
+                        pokemon_spawn(9,(WIDTH+32,HEIGHT//2+60),30)
+                        pokemon_spawn(9,(WIDTH+32,HEIGHT//2-60),0)
+                        if while_poke_spawn(40,10,1):
+                            pokemon_spawn(11,(WIDTH+32,randint(100,HEIGHT-100)),40)
+                            end_while_poke_spawn(1,10)
 
-                    pokemon_spawn(10,(WIDTH+32,HEIGHT/10*stage_repeat_count),120)
-                    if while_poke_spawn(20,10,1):
-                        pokemon_spawn(10,(WIDTH+32,HEIGHT/10*stage_repeat_count),20)
-                        end_while_poke_spawn(1,10)
-                    if while_poke_spawn(20,10,1):
-                        pokemon_spawn(10,(WIDTH+32,HEIGHT-HEIGHT/10*stage_repeat_count),20)
-                        end_while_poke_spawn(1,10)
-                    pokemon_spawn(8,(WIDTH,HEIGHT),30,-135,4)
-                    pokemon_spawn(8,(WIDTH,0),0,135,4)
-                    if while_poke_spawn(10,10,2):
-                        pokemon_spawn(8,(WIDTH,HEIGHT),10,-135,4)
+                        pokemon_spawn(10,(WIDTH+32,HEIGHT/10*stage_repeat_count),120)
+                        if while_poke_spawn(20,10,1):
+                            pokemon_spawn(10,(WIDTH+32,HEIGHT/10*stage_repeat_count),20)
+                            end_while_poke_spawn(1,10)
+                        if while_poke_spawn(20,10,1):
+                            pokemon_spawn(10,(WIDTH+32,HEIGHT-HEIGHT/10*stage_repeat_count),20)
+                            end_while_poke_spawn(1,10)
+                        pokemon_spawn(8,(WIDTH,HEIGHT),30,-135,4)
                         pokemon_spawn(8,(WIDTH,0),0,135,4)
-                        end_while_poke_spawn(2,10)
-                    pokemon_spawn(10,(WIDTH+32,HEIGHT//2-240),180)
-                    pokemon_spawn(10,(WIDTH+32,HEIGHT//2+240),0)                        
-                    if while_poke_spawn(20,10,2):
-                        pokemon_spawn(10,(WIDTH+32,HEIGHT/10*stage_repeat_count),20)
-                        pokemon_spawn(10,(WIDTH+32,HEIGHT-HEIGHT/10*stage_repeat_count),0)
-                        end_while_poke_spawn(2,10)
+                        if while_poke_spawn(10,10,2):
+                            pokemon_spawn(8,(WIDTH,HEIGHT),10,-135,4)
+                            pokemon_spawn(8,(WIDTH,0),0,135,4)
+                            end_while_poke_spawn(2,10)
+                        pokemon_spawn(10,(WIDTH+32,HEIGHT//2-240),180)
+                        pokemon_spawn(10,(WIDTH+32,HEIGHT//2+240),0)                        
+                        if while_poke_spawn(20,10,2):
+                            pokemon_spawn(10,(WIDTH+32,HEIGHT/10*stage_repeat_count),20)
+                            pokemon_spawn(10,(WIDTH+32,HEIGHT-HEIGHT/10*stage_repeat_count),0)
+                            end_while_poke_spawn(2,10)
 
-                    pokemon_spawn(11,(WIDTH+32,randint(100,HEIGHT-100)),60)
-                    if while_poke_spawn(10,10,5):
-                        pokemon_spawn(8,(WIDTH+32,randint(100,HEIGHT-100)),10,180,5)
-                        pokemon_spawn(8,(WIDTH+32,randint(100,HEIGHT-100)),0,180,5)
-                        pokemon_spawn(8,(WIDTH+32,randint(100,HEIGHT-100)),0,180,5)
-                        pokemon_spawn(8,(WIDTH+32,randint(100,HEIGHT-100)),0,180,5)
-                        pokemon_spawn(8,(WIDTH+32,randint(100,HEIGHT-100)),0,180,5)
-                        end_while_poke_spawn(5,10)
-                    next_challenge(480)
-                if stage_challenge == 4:
-                    if not boss.appear and not boss.died_next_stage: 
-                        boss_spawn(4)
-                    if boss.died_next_stage:
-                        stage_count = 0
-                        if not text.started:
-                            stage_challenge = 0
-                            stage_line = 0
-                            text.re_start()
-                            stage_condition = 1   
-            if stage_fun == 3:
-                if stage_challenge == 0:
+                        pokemon_spawn(11,(WIDTH+32,randint(100,HEIGHT-100)),60)
+                        if while_poke_spawn(10,10,5):
+                            pokemon_spawn(8,(WIDTH+32,randint(100,HEIGHT-100)),10,180,5)
+                            pokemon_spawn(8,(WIDTH+32,randint(100,HEIGHT-100)),0,180,5)
+                            pokemon_spawn(8,(WIDTH+32,randint(100,HEIGHT-100)),0,180,5)
+                            pokemon_spawn(8,(WIDTH+32,randint(100,HEIGHT-100)),0,180,5)
+                            pokemon_spawn(8,(WIDTH+32,randint(100,HEIGHT-100)),0,180,5)
+                            end_while_poke_spawn(5,10)
+                        next_challenge(480)
+                    if stage_challenge == 4:
+                        if not boss.appear and not boss.died_next_stage: 
+                            boss_spawn(4)
+                        if boss.died_next_stage:
+                            stage_count = 0
+                            if not text.started:
+                                stage_challenge = 0
+                                stage_line = 0
+                                text.re_start()
+                                stage_condition = 1   
+                if stage_fun == 3:
+                    if stage_challenge == 0:
 
-                    pokemon_spawn(12,RIGHT_POS[1],120,-135,4)
-                    pokemon_spawn(12,RIGHT_POS[2],10,-135,4)
-                    pokemon_spawn(12,RIGHT_POS[3],10,-135,4)
-                    pokemon_spawn(12,RIGHT_POS[4],10,-135,4)
-                    pokemon_spawn(12,RIGHT_POS[5],10,-135,4)
-                    pokemon_spawn(12,RIGHT_POS[6],10,-135,4)
-                    pokemon_spawn(12,RIGHT_POS[7],10,-135,4)
+                        pokemon_spawn(12,RIGHT_POS[1],120,-135,4)
+                        pokemon_spawn(12,RIGHT_POS[2],10,-135,4)
+                        pokemon_spawn(12,RIGHT_POS[3],10,-135,4)
+                        pokemon_spawn(12,RIGHT_POS[4],10,-135,4)
+                        pokemon_spawn(12,RIGHT_POS[5],10,-135,4)
+                        pokemon_spawn(12,RIGHT_POS[6],10,-135,4)
+                        pokemon_spawn(12,RIGHT_POS[7],10,-135,4)
 
-                    title_spawn(3,120)
+                        title_spawn(3,120)
 
-                    next_challenge(260)
-                if stage_challenge == 1:
-                    pokemon_spawn(13,RIGHT_POS[randint(3,5)],60,180+randint(-20,20),4)
+                        next_challenge(260)
+                    if stage_challenge == 1:
+                        pokemon_spawn(13,RIGHT_POS[randint(3,5)],60,180+randint(-20,20),4)
 
-                    if while_poke_spawn(120,3,1):
-                        pokemon_spawn(13,RIGHT_POS[randint(3,5)],120,180+randint(-20,20),4)
-                        end_while_poke_spawn(1,3)
+                        if while_poke_spawn(120,3,1):
+                            pokemon_spawn(13,RIGHT_POS[randint(3,5)],120,180+randint(-20,20),4)
+                            end_while_poke_spawn(1,3)
 
-                    if while_poke_spawn(80,6,3):
-                        pokemon_spawn(13,RIGHT_POS[randint(3,5)],80,180+randint(-20,20),4)
-                        pokemon_spawn(12,RIGHT_POS[randint(2,6)],0,180,5)
-                        pokemon_spawn(12,RIGHT_POS[randint(2,6)],0,180,5)
-                        end_while_poke_spawn(3,6)
-                    next_challenge(120)
-                if stage_challenge == 2:
-                    pokemon_spawn(14,RIGHT_POS[4],120,180,5)
-                    pokemon_spawn(14,RIGHT_POS[5],300,180,5)
-                    pokemon_spawn(14,RIGHT_POS[3],0,180,5)
-                    pokemon_spawn(14,RIGHT_POS[6],300,180,5)
-                    pokemon_spawn(14,RIGHT_POS[4],0,180,5)
-                    pokemon_spawn(14,RIGHT_POS[2],0,180,5)
-                    if while_poke_spawn(20,10,1):
-                        pokemon_spawn(12,RIGHT_POS[2],20,-135,5)
-                        end_while_poke_spawn(1,10)
-   
-                    next_challenge(120,True)
-                if stage_challenge == 3:
-                    if while_poke_spawn(80,6,2):
-                        pokemon_spawn(15,RIGHT_POS[1+stage_repeat_count],80,180,5)
-                        pokemon_spawn(15,RIGHT_POS[7-stage_repeat_count],0,180,5)
-                        end_while_poke_spawn(2,6)
-                    if while_poke_spawn(20,10,1):
-                        pokemon_spawn(12,RIGHT_POS[6],20,-135,5)
-                        end_while_poke_spawn(1,10)
-                    next_challenge(120,True)
-                if stage_challenge == 4:
-                    if not boss.appear and not boss.died_next_stage: 
-                        boss_spawn(5)
-                    if boss.died_next_stage:
-                        stage_count = 0
-                        boss.died_next_stage = False
-                        next_challenge(0)   
-                if stage_challenge == 5:
-                    if while_poke_spawn(80,8,1):
-                        if stage_repeat_count % 2 == 0:
-                            pokemon_spawn(13,RIGHT_POS[2],80,180,5)
-                        else:
-                            pokemon_spawn(13,RIGHT_POS[6],80,180,5)
-                        if stage_repeat_count > 4:
-                            pokemon_spawn(15,RIGHT_POS[4],0,180,5,True)
-                        end_while_poke_spawn(1,8)  
-                    next_challenge(120)          
-                if stage_challenge == 6:
-                    pokemon_spawn(14,RIGHT_POS[1],60,180,4)  
-                    pokemon_spawn(14,RIGHT_POS[2],0,180,4)
-                    pokemon_spawn(14,RIGHT_POS[4],0,180,4)
-                    pokemon_spawn(14,RIGHT_POS[6],0,180,4)
-                    pokemon_spawn(14,RIGHT_POS[7],0,180,4) 
-                    pokemon_spawn(15,RIGHT_POS[1],120,180,4)  
-                    pokemon_spawn(15,RIGHT_POS[2],0,180,4)
-                    pokemon_spawn(15,RIGHT_POS[3],0,180,4)
-                    pokemon_spawn(15,RIGHT_POS[4],0,180,4)
-                    pokemon_spawn(15,RIGHT_POS[5],0,180,4)
-                    pokemon_spawn(15,RIGHT_POS[6],0,180,4)
-                    pokemon_spawn(15,RIGHT_POS[7],0,180,4)
-                    next_challenge(120, True)
-                if stage_challenge == 7:
-                    pokemon_spawn(16,RIGHT_POS[4],120,180,6)  
-                    pokemon_spawn(16,RIGHT_POS[5],180,180,6)
-                    pokemon_spawn(16,RIGHT_POS[3],0,180,6)
-                    pokemon_spawn(16,RIGHT_POS[1],180,180,6)           
-                    pokemon_spawn(16,RIGHT_POS[7],0,180,6)
-                    pokemon_spawn(16,RIGHT_POS[4],180,180,6)
-                    pokemon_spawn(13,RIGHT_POS[4],0,180,6)  
-                    pokemon_spawn(16,RIGHT_POS[5],180,180,6)
-                    pokemon_spawn(16,RIGHT_POS[3],0,180,6)
-                    pokemon_spawn(13,RIGHT_POS[4],0,180,6) 
-                    pokemon_spawn(16,RIGHT_POS[1],180,180,6)          
-                    pokemon_spawn(16,RIGHT_POS[7],0,180,6)
-                    pokemon_spawn(13,RIGHT_POS[4],0,180,6)
-                    next_challenge(240)   
-                if stage_challenge == 8:
-                    if not boss.appear and not boss.died_next_stage: 
-                        boss_spawn(6)
-                    if boss.died_next_stage:
-                        stage_count = 0
-                        if not text.started:
-                            stage_challenge = 0
-                            stage_line = 0
-                            text.re_start()
-                            stage_condition = 1 
-            if stage_fun == 4:
-                if stage_challenge == 0:
-                    if while_poke_spawn(10,24,1):
-                        pokemon_spawn(17,choice(UP_POS),10,randint(90,110),4)
-                        end_while_poke_spawn(1,24)
+                        if while_poke_spawn(80,6,3):
+                            pokemon_spawn(13,RIGHT_POS[randint(3,5)],80,180+randint(-20,20),4)
+                            pokemon_spawn(12,RIGHT_POS[randint(2,6)],0,180,5)
+                            pokemon_spawn(12,RIGHT_POS[randint(2,6)],0,180,5)
+                            end_while_poke_spawn(3,6)
+                        next_challenge(120)
+                    if stage_challenge == 2:
+                        pokemon_spawn(14,RIGHT_POS[4],120,180,5)
+                        pokemon_spawn(14,RIGHT_POS[5],300,180,5)
+                        pokemon_spawn(14,RIGHT_POS[3],0,180,5)
+                        pokemon_spawn(14,RIGHT_POS[6],300,180,5)
+                        pokemon_spawn(14,RIGHT_POS[4],0,180,5)
+                        pokemon_spawn(14,RIGHT_POS[2],0,180,5)
+                        if while_poke_spawn(20,10,1):
+                            pokemon_spawn(12,RIGHT_POS[2],20,-135,5)
+                            end_while_poke_spawn(1,10)
+    
+                        next_challenge(120,True)
+                    if stage_challenge == 3:
+                        if while_poke_spawn(80,6,2):
+                            pokemon_spawn(15,RIGHT_POS[1+stage_repeat_count],80,180,5)
+                            pokemon_spawn(15,RIGHT_POS[7-stage_repeat_count],0,180,5)
+                            end_while_poke_spawn(2,6)
+                        if while_poke_spawn(20,10,1):
+                            pokemon_spawn(12,RIGHT_POS[6],20,-135,5)
+                            end_while_poke_spawn(1,10)
+                        next_challenge(120,True)
+                    if stage_challenge == 4:
+                        if not boss.appear and not boss.died_next_stage: 
+                            boss_spawn(5)
+                        if boss.died_next_stage:
+                            stage_count = 0
+                            boss.died_next_stage = False
+                            next_challenge(0)   
+                    if stage_challenge == 5:
+                        if while_poke_spawn(80,8,1):
+                            if stage_repeat_count % 2 == 0:
+                                pokemon_spawn(13,RIGHT_POS[2],80,180,5)
+                            else:
+                                pokemon_spawn(13,RIGHT_POS[6],80,180,5)
+                            if stage_repeat_count > 4:
+                                pokemon_spawn(15,RIGHT_POS[4],0,180,5,True)
+                            end_while_poke_spawn(1,8)  
+                        next_challenge(120)          
+                    if stage_challenge == 6:
+                        pokemon_spawn(14,RIGHT_POS[1],60,180,4)  
+                        pokemon_spawn(14,RIGHT_POS[2],0,180,4)
+                        pokemon_spawn(14,RIGHT_POS[4],0,180,4)
+                        pokemon_spawn(14,RIGHT_POS[6],0,180,4)
+                        pokemon_spawn(14,RIGHT_POS[7],0,180,4) 
+                        pokemon_spawn(15,RIGHT_POS[1],120,180,4)  
+                        pokemon_spawn(15,RIGHT_POS[2],0,180,4)
+                        pokemon_spawn(15,RIGHT_POS[3],0,180,4)
+                        pokemon_spawn(15,RIGHT_POS[4],0,180,4)
+                        pokemon_spawn(15,RIGHT_POS[5],0,180,4)
+                        pokemon_spawn(15,RIGHT_POS[6],0,180,4)
+                        pokemon_spawn(15,RIGHT_POS[7],0,180,4)
+                        next_challenge(120, True)
+                    if stage_challenge == 7:
+                        pokemon_spawn(16,RIGHT_POS[4],120,180,6)  
+                        pokemon_spawn(16,RIGHT_POS[5],180,180,6)
+                        pokemon_spawn(16,RIGHT_POS[3],0,180,6)
+                        pokemon_spawn(16,RIGHT_POS[1],180,180,6)           
+                        pokemon_spawn(16,RIGHT_POS[7],0,180,6)
+                        pokemon_spawn(16,RIGHT_POS[4],180,180,6)
+                        pokemon_spawn(13,RIGHT_POS[4],0,180,6)  
+                        pokemon_spawn(16,RIGHT_POS[5],180,180,6)
+                        pokemon_spawn(16,RIGHT_POS[3],0,180,6)
+                        pokemon_spawn(13,RIGHT_POS[4],0,180,6) 
+                        pokemon_spawn(16,RIGHT_POS[1],180,180,6)          
+                        pokemon_spawn(16,RIGHT_POS[7],0,180,6)
+                        pokemon_spawn(13,RIGHT_POS[4],0,180,6)
+                        next_challenge(240)   
+                    if stage_challenge == 8:
+                        if not boss.appear and not boss.died_next_stage: 
+                            boss_spawn(6)
+                        if boss.died_next_stage:
+                            stage_count = 0
+                            if not text.started:
+                                stage_challenge = 0
+                                stage_line = 0
+                                text.re_start()
+                                stage_condition = 1 
+                if stage_fun == 4:
+                    if stage_challenge == 0:
+                        if while_poke_spawn(10,24,1):
+                            pokemon_spawn(17,choice(UP_POS),10,randint(90,110),4)
+                            end_while_poke_spawn(1,24)
 
-                    title_spawn(4,120)
-                    next_challenge(260)
-                if stage_challenge == 1:
-                    if while_poke_spawn(10,24,1):
-                        pokemon_spawn(17,RIGHT_POS[2],10,170,5)
-                        if stage_repeat_count == 0:
-                            pokemon_spawn(18,RIGHT_POS[6],0,200,4,True)
-                        if stage_repeat_count == 12:
-                            pokemon_spawn(18,RIGHT_POS[5],0,200,4,True)
-                        end_while_poke_spawn(1,24) 
-                    waiting(120)                   
-                    if while_poke_spawn(10,24,1):
-                        pokemon_spawn(17,RIGHT_POS[6],10,190,5)
-                        if stage_repeat_count == 0:
-                            pokemon_spawn(18,RIGHT_POS[2],0,160,4,True)
-                        if stage_repeat_count == 12:
-                            pokemon_spawn(18,RIGHT_POS[3],0,160,4,True)
-                        end_while_poke_spawn(1,24)
-                    waiting(120) 
-                    if while_poke_spawn(10,24,2):
-                        pokemon_spawn(17,RIGHT_POS[6],10,190,5)
-                        pokemon_spawn(17,RIGHT_POS[2],0,170,5)
-                        if stage_repeat_count == 0:
-                            pokemon_spawn(18,RIGHT_POS[4],0,180,4,True)
-                        if stage_repeat_count == 12:
-                            pokemon_spawn(18,RIGHT_POS[4],0,180,4,True)
-                        end_while_poke_spawn(2,24)
-                    next_challenge(60,True)
-                if stage_challenge == 2:
-                    pokemon_spawn(19,RIGHT_POS[4],60,180,5)
-                    pokemon_spawn(19,RIGHT_POS[3],420,180,5)
-                    pokemon_spawn(19,RIGHT_POS[5],0,180,5)
-                    pokemon_spawn(19,RIGHT_POS[2],420,180,5)
-                    pokemon_spawn(19,RIGHT_POS[6],0,180,5)
-                    next_challenge(660,True)
-                if stage_challenge == 3:
-                    if while_poke_spawn(30,7,1):
-                        pokemon_spawn(20,choice([DOWN_POS[2],DOWN_POS[3],DOWN_POS[4]]),30,-90,0)
-                        if stage_repeat_count>3:
-                            pokemon_spawn(17,choice([RIGHT_POS[5],RIGHT_POS[3],RIGHT_POS[4]]),60,180,7,True)
-                            pokemon_spawn(17,choice([RIGHT_POS[5],RIGHT_POS[3],RIGHT_POS[4]]),60,180,7,True)
-                        end_while_poke_spawn(1,7)
-                    waiting(120)
-                    if while_poke_spawn(30,7,1):
-                        pokemon_spawn(20,choice([UP_POS[2],UP_POS[3],UP_POS[4]]),30,90,0)
-                        if stage_repeat_count>3:
-                            pokemon_spawn(17,choice([RIGHT_POS[5],RIGHT_POS[3],RIGHT_POS[4]]),60,180,7,True)
-                            pokemon_spawn(17,choice([RIGHT_POS[5],RIGHT_POS[3],RIGHT_POS[4]]),60,180,7,True)
-                        end_while_poke_spawn(1,7)
-                    next_challenge(240)
-                if stage_challenge == 4:
-                    if not boss.appear and not boss.died_next_stage: 
-                        boss_spawn(7)
-                    if boss.died_next_stage:
-                        stage_count = 0
-                        boss.died_next_stage = False
-                        next_challenge(0) 
-                if stage_challenge == 5:
-                    if while_poke_spawn(10,60,1):
-                        pokemon_spawn(17,choice([RIGHT_POS[1],RIGHT_POS[2],RIGHT_POS[3],RIGHT_POS[4]]),10,randint(150,170),7)
-                        if while_time(stage_repeat_count,10):
-                            pokemon_spawn(18,RIGHT_POS[4],0,180,6,True)
-                        end_while_poke_spawn(1,30)    
-                    waiting(120)                            
-                    if while_poke_spawn(10,60,1):
-                        pokemon_spawn(17,choice([RIGHT_POS[7],RIGHT_POS[6],RIGHT_POS[5],RIGHT_POS[4]]),10,randint(190,210),7)
-                        if while_time(stage_repeat_count,10):
-                            pokemon_spawn(18,RIGHT_POS[4],0,180,6,True)
-                        end_while_poke_spawn(1,30)    
-                    waiting(120) 
-                    if while_poke_spawn(10,60,1):
-                        pokemon_spawn(17,choice([RIGHT_POS[1],RIGHT_POS[2],RIGHT_POS[3],RIGHT_POS[4]]),10,randint(150,170),7)
-                        if while_time(stage_repeat_count,29):
-                            pokemon_spawn(19,RIGHT_POS[5],0,180,6,True)
-                        end_while_poke_spawn(1,30)    
-                    waiting(120) 
-                    if while_poke_spawn(10,60,1):
-                        pokemon_spawn(17,choice([RIGHT_POS[7],RIGHT_POS[6],RIGHT_POS[5],RIGHT_POS[4]]),10,randint(190,210),7)
-                        if while_time(stage_repeat_count,29):
-                            pokemon_spawn(19,RIGHT_POS[3],0,180,6,True)
-                        end_while_poke_spawn(1,30)    
-                    next_challenge(240)
-                if stage_challenge == 6:
-                    if while_poke_spawn(100,8,1):
-                        pokemon_spawn(20,(player.pos[0],HEIGHT+64),100,-90,0)
-                        if stage_repeat_count > 3:
-                            pokemon_spawn(17,(WIDTH + 64,player.pos[1]),0,172,7,True)
-                            pokemon_spawn(17,(WIDTH + 64,player.pos[1]),0,174,6,True)
-                            pokemon_spawn(17,(WIDTH + 64,player.pos[1]),0,176,5,True)
-                            pokemon_spawn(17,(WIDTH + 64,player.pos[1]),0,178,4,True)
-                            pokemon_spawn(17,(WIDTH + 64,player.pos[1]),0,180,3,True)
-                        end_while_poke_spawn(1,8)     
-                    next_challenge(120)  
-                if stage_challenge == 7:
-                    if not boss.appear and not boss.died_next_stage: 
-                        boss_spawn(8)
-                    if boss.died_next_stage:
-                        stage_count = 0
-                        if not text.started:
-                            stage_challenge = 0
-                            stage_line = 0
-                            text.re_start()
-                            stage_condition = 1                                              
-            if stage_fun == 5:
-                if stage_challenge == 0:
-                    if while_poke_spawn(10,24,1):
-                        pokemon_spawn(21,choice(RIGHT_POS2),10,180,4)
-                        end_while_poke_spawn(1,24)
-                    title_spawn(5,120)
-                    next_challenge(240)                
-                if stage_challenge == 1:
-                    pokemon_spawn(22,RIGHT_POS[5],1,180,4)   
-                    pokemon_spawn(22,RIGHT_POS[3],180,180,4)  
-                    pokemon_spawn(22,RIGHT_POS[4],180,180,4)        
-                    pokemon_spawn(22,RIGHT_POS[3],180,180,4)  
-                    pokemon_spawn(22,RIGHT_POS[5],0,180,4)              
-                    pokemon_spawn(22,RIGHT_POS[2],180,180,4)  
-                    pokemon_spawn(22,RIGHT_POS[6],0,180,4)
+                        title_spawn(4,120)
+                        next_challenge(260)
+                    if stage_challenge == 1:
+                        if while_poke_spawn(10,24,1):
+                            pokemon_spawn(17,RIGHT_POS[2],10,170,5)
+                            if stage_repeat_count == 0:
+                                pokemon_spawn(18,RIGHT_POS[6],0,200,4,True)
+                            if stage_repeat_count == 12:
+                                pokemon_spawn(18,RIGHT_POS[5],0,200,4,True)
+                            end_while_poke_spawn(1,24) 
+                        waiting(120)                   
+                        if while_poke_spawn(10,24,1):
+                            pokemon_spawn(17,RIGHT_POS[6],10,190,5)
+                            if stage_repeat_count == 0:
+                                pokemon_spawn(18,RIGHT_POS[2],0,160,4,True)
+                            if stage_repeat_count == 12:
+                                pokemon_spawn(18,RIGHT_POS[3],0,160,4,True)
+                            end_while_poke_spawn(1,24)
+                        waiting(120) 
+                        if while_poke_spawn(10,24,2):
+                            pokemon_spawn(17,RIGHT_POS[6],10,190,5)
+                            pokemon_spawn(17,RIGHT_POS[2],0,170,5)
+                            if stage_repeat_count == 0:
+                                pokemon_spawn(18,RIGHT_POS[4],0,180,4,True)
+                            if stage_repeat_count == 12:
+                                pokemon_spawn(18,RIGHT_POS[4],0,180,4,True)
+                            end_while_poke_spawn(2,24)
+                        next_challenge(60,True)
+                    if stage_challenge == 2:
+                        pokemon_spawn(19,RIGHT_POS[4],60,180,5)
+                        pokemon_spawn(19,RIGHT_POS[3],420,180,5)
+                        pokemon_spawn(19,RIGHT_POS[5],0,180,5)
+                        pokemon_spawn(19,RIGHT_POS[2],420,180,5)
+                        pokemon_spawn(19,RIGHT_POS[6],0,180,5)
+                        next_challenge(660,True)
+                    if stage_challenge == 3:
+                        if while_poke_spawn(30,7,1):
+                            pokemon_spawn(20,choice([DOWN_POS[2],DOWN_POS[3],DOWN_POS[4]]),30,-90,0)
+                            if stage_repeat_count>3:
+                                pokemon_spawn(17,choice([RIGHT_POS[5],RIGHT_POS[3],RIGHT_POS[4]]),60,180,7,True)
+                                pokemon_spawn(17,choice([RIGHT_POS[5],RIGHT_POS[3],RIGHT_POS[4]]),60,180,7,True)
+                            end_while_poke_spawn(1,7)
+                        waiting(120)
+                        if while_poke_spawn(30,7,1):
+                            pokemon_spawn(20,choice([UP_POS[2],UP_POS[3],UP_POS[4]]),30,90,0)
+                            if stage_repeat_count>3:
+                                pokemon_spawn(17,choice([RIGHT_POS[5],RIGHT_POS[3],RIGHT_POS[4]]),60,180,7,True)
+                                pokemon_spawn(17,choice([RIGHT_POS[5],RIGHT_POS[3],RIGHT_POS[4]]),60,180,7,True)
+                            end_while_poke_spawn(1,7)
+                        next_challenge(240)
+                    if stage_challenge == 4:
+                        if not boss.appear and not boss.died_next_stage: 
+                            boss_spawn(7)
+                        if boss.died_next_stage:
+                            stage_count = 0
+                            boss.died_next_stage = False
+                            next_challenge(0) 
+                    if stage_challenge == 5:
+                        if while_poke_spawn(10,60,1):
+                            pokemon_spawn(17,choice([RIGHT_POS[1],RIGHT_POS[2],RIGHT_POS[3],RIGHT_POS[4]]),10,randint(150,170),7)
+                            if while_time(stage_repeat_count,10):
+                                pokemon_spawn(18,RIGHT_POS[4],0,180,6,True)
+                            end_while_poke_spawn(1,30)    
+                        waiting(120)                            
+                        if while_poke_spawn(10,60,1):
+                            pokemon_spawn(17,choice([RIGHT_POS[7],RIGHT_POS[6],RIGHT_POS[5],RIGHT_POS[4]]),10,randint(190,210),7)
+                            if while_time(stage_repeat_count,10):
+                                pokemon_spawn(18,RIGHT_POS[4],0,180,6,True)
+                            end_while_poke_spawn(1,30)    
+                        waiting(120) 
+                        if while_poke_spawn(10,60,1):
+                            pokemon_spawn(17,choice([RIGHT_POS[1],RIGHT_POS[2],RIGHT_POS[3],RIGHT_POS[4]]),10,randint(150,170),7)
+                            if while_time(stage_repeat_count,29):
+                                pokemon_spawn(19,RIGHT_POS[5],0,180,6,True)
+                            end_while_poke_spawn(1,30)    
+                        waiting(120) 
+                        if while_poke_spawn(10,60,1):
+                            pokemon_spawn(17,choice([RIGHT_POS[7],RIGHT_POS[6],RIGHT_POS[5],RIGHT_POS[4]]),10,randint(190,210),7)
+                            if while_time(stage_repeat_count,29):
+                                pokemon_spawn(19,RIGHT_POS[3],0,180,6,True)
+                            end_while_poke_spawn(1,30)    
+                        next_challenge(240)
+                    if stage_challenge == 6:
+                        if while_poke_spawn(100,8,1):
+                            pokemon_spawn(20,(player.pos[0],HEIGHT+64),100,-90,0)
+                            if stage_repeat_count > 3:
+                                pokemon_spawn(17,(WIDTH + 64,player.pos[1]),0,172,7,True)
+                                pokemon_spawn(17,(WIDTH + 64,player.pos[1]),0,174,6,True)
+                                pokemon_spawn(17,(WIDTH + 64,player.pos[1]),0,176,5,True)
+                                pokemon_spawn(17,(WIDTH + 64,player.pos[1]),0,178,4,True)
+                                pokemon_spawn(17,(WIDTH + 64,player.pos[1]),0,180,3,True)
+                            end_while_poke_spawn(1,8)     
+                        next_challenge(120)  
+                    if stage_challenge == 7:
+                        if not boss.appear and not boss.died_next_stage: 
+                            boss_spawn(8)
+                        if boss.died_next_stage:
+                            stage_count = 0
+                            if not text.started:
+                                stage_challenge = 0
+                                stage_line = 0
+                                text.re_start()
+                                stage_condition = 1                                              
+                if stage_fun == 5:
+                    if stage_challenge == 0:
+                        if while_poke_spawn(10,24,1):
+                            pokemon_spawn(21,choice(RIGHT_POS2),10,180,4)
+                            end_while_poke_spawn(1,24)
+                        title_spawn(5,120)
+                        next_challenge(240)                
+                    if stage_challenge == 1:
+                        pokemon_spawn(22,RIGHT_POS[5],1,180,4)   
+                        pokemon_spawn(22,RIGHT_POS[3],180,180,4)  
+                        pokemon_spawn(22,RIGHT_POS[4],180,180,4)        
+                        pokemon_spawn(22,RIGHT_POS[3],180,180,4)  
+                        pokemon_spawn(22,RIGHT_POS[5],0,180,4)              
+                        pokemon_spawn(22,RIGHT_POS[2],180,180,4)  
+                        pokemon_spawn(22,RIGHT_POS[6],0,180,4)
 
-                    if while_poke_spawn(10,24,1):
-                        pokemon_spawn(21,RIGHT_POS[7],10,randint(25,65)+180,4)    
-                        end_while_poke_spawn(1,24) 
-                    next_challenge(60)
-                if stage_challenge == 2:
-                    pokemon_spawn(23,RIGHT_POS[2],1,160,5)   
-                    pokemon_spawn(23,RIGHT_POS[6],300,-160,5)  
-                    pokemon_spawn(23,RIGHT_POS[4],200,-160,5) 
-                    waiting(280)
-                    if while_poke_spawn(10,140,1):
-                        pokemon_spawn(21,choice(DOWN_POS),10,-90,randint(4,5)) 
-                        if when_time(stage_repeat_count,24):
-                            pokemon_spawn(22,RIGHT_POS2[1],0,170,5,True) 
-                        if when_time(stage_repeat_count,48):
-                            pokemon_spawn(22,RIGHT_POS2[2],0,170,5,True) 
-                        if when_time(stage_repeat_count,72):
-                            pokemon_spawn(22,RIGHT_POS2[3],0,170,5,True) 
-                        if when_time(stage_repeat_count,96):
-                            pokemon_spawn(22,RIGHT_POS2[4],0,170,5,True) 
-                        end_while_poke_spawn(1,92)      
+                        if while_poke_spawn(10,24,1):
+                            pokemon_spawn(21,RIGHT_POS[7],10,randint(25,65)+180,4)    
+                            end_while_poke_spawn(1,24) 
+                        next_challenge(60)
+                    if stage_challenge == 2:
+                        pokemon_spawn(23,RIGHT_POS[2],1,160,5)   
+                        pokemon_spawn(23,RIGHT_POS[6],300,-160,5)  
+                        pokemon_spawn(23,RIGHT_POS[4],200,-160,5) 
+                        waiting(280)
+                        if while_poke_spawn(10,140,1):
+                            pokemon_spawn(21,choice(DOWN_POS),10,-90,randint(4,5)) 
+                            if when_time(stage_repeat_count,24):
+                                pokemon_spawn(22,RIGHT_POS2[1],0,170,5,True) 
+                            if when_time(stage_repeat_count,48):
+                                pokemon_spawn(22,RIGHT_POS2[2],0,170,5,True) 
+                            if when_time(stage_repeat_count,72):
+                                pokemon_spawn(22,RIGHT_POS2[3],0,170,5,True) 
+                            if when_time(stage_repeat_count,96):
+                                pokemon_spawn(22,RIGHT_POS2[4],0,170,5,True) 
+                            end_while_poke_spawn(1,92)      
 
-                    pokemon_spawn(23,RIGHT_POS[3],60,160,5)  
-                    pokemon_spawn(23,RIGHT_POS[5],0,-160,5)
-                    next_challenge(360)
-                if stage_challenge == 3:
-                    waiting(120)
-                    pokemon_spawn(24,RIGHT_POS[6],20,180,5) 
-                    if while_poke_spawn(20,16,1):
-                        pokemon_spawn(26,RIGHT_POS[6],20,180,5)  
-                        end_while_poke_spawn(1,16)  
-                    pokemon_spawn(24,RIGHT_POS[2],20,180,5) 
-                    if while_poke_spawn(20,16,1):
-                        pokemon_spawn(26,RIGHT_POS[2],20,180,5)  
-                        end_while_poke_spawn(1,16)   
+                        pokemon_spawn(23,RIGHT_POS[3],60,160,5)  
+                        pokemon_spawn(23,RIGHT_POS[5],0,-160,5)
+                        next_challenge(360)
+                    if stage_challenge == 3:
+                        waiting(120)
+                        pokemon_spawn(24,RIGHT_POS[6],20,180,5) 
+                        if while_poke_spawn(20,16,1):
+                            pokemon_spawn(26,RIGHT_POS[6],20,180,5)  
+                            end_while_poke_spawn(1,16)  
+                        pokemon_spawn(24,RIGHT_POS[2],20,180,5) 
+                        if while_poke_spawn(20,16,1):
+                            pokemon_spawn(26,RIGHT_POS[2],20,180,5)  
+                            end_while_poke_spawn(1,16)   
 
-                    pokemon_spawn(24,RIGHT_POS[4],60,180,5)
-                    if while_poke_spawn(20,8,2):
-                        pokemon_spawn(26,RIGHT_POS[3],20,160,5)  
-                        pokemon_spawn(26,RIGHT_POS[5],0,-160,5)  
-                        end_while_poke_spawn(2,8) 
-                    pokemon_spawn(24,RIGHT_POS[2],60,180,5)
-                    pokemon_spawn(24,RIGHT_POS[6],0,180,5)
-                    if while_poke_spawn(20,8,2):
-                        pokemon_spawn(26,RIGHT_POS[2],20,135,5)  
-                        pokemon_spawn(26,RIGHT_POS[6],0,-135,5)  
-                        end_while_poke_spawn(2,8) 
-                    next_challenge(120)
-                if stage_challenge == 4:
-                    if not boss.appear and not boss.died_next_stage: 
-                        boss_spawn(9)
-                    if boss.died_next_stage:
-                        stage_count = 0
-                        boss.died_next_stage = False
-                        next_challenge(0) 
-                if stage_challenge == 5:
-                    pokemon_spawn(25,RIGHT_POS[4],60,180,12) 
-                    pokemon_spawn(25,RIGHT_POS[4],120,180,12)
-                    pokemon_spawn(25,RIGHT_POS[4],60,180,12)
-                    if while_poke_spawn(20,32,2): 
-                        pokemon_spawn(26,RIGHT_POS[7],20,180,5) 
-                        pokemon_spawn(21,RIGHT_POS[4],0,randint(170,190),5) 
-                        if while_time(stage_repeat_count,14):
-                            pokemon_spawn(22,RIGHT_POS[4],0,180,5,True) 
-                        if when_time(stage_repeat_count,16):
-                            pokemon_spawn(23,RIGHT_POS[2],0,160,6,True)
-                        end_while_poke_spawn(2,32)
-                    next_challenge(300) 
-                if stage_challenge == 6:
-                    if not boss.appear and not boss.died_next_stage: 
-                        boss_spawn(10)
-                    if boss.died_next_stage:
-                        stage_count = 0
-                        if not text.started:
-                            stage_challenge = 0
-                            stage_line = 0
-                            text.re_start()
-                            stage_condition = 1                      
-            if stage_fun == 6:              
-                if stage_challenge == 0:
-                    title_spawn(6,120)
-                    waiting(60*4)
-                    if while_poke_spawn(20,20,1):
-                        pokemon_spawn(27,(WIDTH+64,16+stage_repeat_count*15),20,180,6)
-                        end_while_poke_spawn(1,20)
-                    if while_poke_spawn(20,20,1):
-                        pokemon_spawn(27,(WIDTH+64,HEIGHT-16-stage_repeat_count*15),20,180,6)
-                        end_while_poke_spawn(1,20)            
+                        pokemon_spawn(24,RIGHT_POS[4],60,180,5)
+                        if while_poke_spawn(20,8,2):
+                            pokemon_spawn(26,RIGHT_POS[3],20,160,5)  
+                            pokemon_spawn(26,RIGHT_POS[5],0,-160,5)  
+                            end_while_poke_spawn(2,8) 
+                        pokemon_spawn(24,RIGHT_POS[2],60,180,5)
+                        pokemon_spawn(24,RIGHT_POS[6],0,180,5)
+                        if while_poke_spawn(20,8,2):
+                            pokemon_spawn(26,RIGHT_POS[2],20,135,5)  
+                            pokemon_spawn(26,RIGHT_POS[6],0,-135,5)  
+                            end_while_poke_spawn(2,8) 
+                        next_challenge(120)
+                    if stage_challenge == 4:
+                        if not boss.appear and not boss.died_next_stage: 
+                            boss_spawn(9)
+                        if boss.died_next_stage:
+                            stage_count = 0
+                            boss.died_next_stage = False
+                            next_challenge(0) 
+                    if stage_challenge == 5:
+                        pokemon_spawn(25,RIGHT_POS[4],60,180,12) 
+                        pokemon_spawn(25,RIGHT_POS[4],120,180,12)
+                        pokemon_spawn(25,RIGHT_POS[4],60,180,12)
+                        if while_poke_spawn(20,32,2): 
+                            pokemon_spawn(26,RIGHT_POS[7],20,180,5) 
+                            pokemon_spawn(21,RIGHT_POS[4],0,randint(170,190),5) 
+                            if while_time(stage_repeat_count,14):
+                                pokemon_spawn(22,RIGHT_POS[4],0,180,5,True) 
+                            if when_time(stage_repeat_count,16):
+                                pokemon_spawn(23,RIGHT_POS[2],0,160,6,True)
+                            end_while_poke_spawn(2,32)
+                        next_challenge(300) 
+                    if stage_challenge == 6:
+                        if not boss.appear and not boss.died_next_stage: 
+                            boss_spawn(10)
+                        if boss.died_next_stage:
+                            stage_count = 0
+                            if not text.started:
+                                stage_challenge = 0
+                                stage_line = 0
+                                text.re_start()
+                                stage_condition = 1                      
+                if stage_fun == 6:              
+                    if stage_challenge == 0:
+                        title_spawn(6,120)
+                        waiting(60*4)
+                        if while_poke_spawn(20,20,1):
+                            pokemon_spawn(27,(WIDTH+64,16+stage_repeat_count*15),20,180,6)
+                            end_while_poke_spawn(1,20)
+                        if while_poke_spawn(20,20,1):
+                            pokemon_spawn(27,(WIDTH+64,HEIGHT-16-stage_repeat_count*15),20,180,6)
+                            end_while_poke_spawn(1,20)            
 
-                    pokemon_spawn(28,RIGHT_POS[4],360,180,6)   
-                    pokemon_spawn(28,RIGHT_POS[3],240,180,6)    
-                    pokemon_spawn(28,RIGHT_POS[5],240,180,6)
-                    pokemon_spawn(28,RIGHT_POS[2],240,180,6)
-                    pokemon_spawn(28,RIGHT_POS[6],240,180,6)
-                    pokemon_spawn(28,RIGHT_POS[4],240,180,6)
+                        pokemon_spawn(28,RIGHT_POS[4],360,180,6)   
+                        pokemon_spawn(28,RIGHT_POS[3],240,180,6)    
+                        pokemon_spawn(28,RIGHT_POS[5],240,180,6)
+                        pokemon_spawn(28,RIGHT_POS[2],240,180,6)
+                        pokemon_spawn(28,RIGHT_POS[6],240,180,6)
+                        pokemon_spawn(28,RIGHT_POS[4],240,180,6)
 
-                    pokemon_spawn(29,RIGHT_POS[1],360,180,6)
-                    pokemon_spawn(29,RIGHT_POS[7],0,180,6)     
-                    pokemon_spawn(29,RIGHT_POS[1],300,180,6)
-                    pokemon_spawn(29,RIGHT_POS[7],0,180,6)  
-                    pokemon_spawn(29,RIGHT_POS[1],300,180,6)
-                    pokemon_spawn(29,RIGHT_POS[7],0,180,6) 
-                    next_challenge(360)
-                if stage_challenge == 1:
-                    pokemon_spawn(30,RIGHT_POS[4],180,180,2)
-                    pokemon_spawn(30,RIGHT_POS[1],120,180,2)
-                    pokemon_spawn(30,RIGHT_POS[5],120,180,2)
-                    pokemon_spawn(30,RIGHT_POS[6],120,180,2)
-                    pokemon_spawn(30,RIGHT_POS[2],120,180,2)
-                    pokemon_spawn(30,RIGHT_POS[3],120,180,2)
-                    waiting(360)
-                    if while_poke_spawn(20,20,1):
-                        pokemon_spawn(27,(WIDTH+64,16+stage_repeat_count*15),20,180,6)
-                        end_while_poke_spawn(1,20)
-                    pokemon_spawn(29,RIGHT_POS[4],90,180,6)
-                    waiting(90)
-                    if while_poke_spawn(20,20,1):
-                        pokemon_spawn(27,(WIDTH+64,HEIGHT-16-stage_repeat_count*15),20,180,6)
-                        end_while_poke_spawn(1,20) 
-                    next_challenge(60*12)
-                if stage_challenge == 2:
-                    if not boss.appear and not boss.died_next_stage: 
-                        boss_spawn(11)
-                    if boss.died_next_stage:
-                        stage_count = 0
-                        if not text.started:
-                            stage_challenge = 0
-                            stage_line = 0
-                            text.re_start()
-                            stage_condition = 1 
-                
-            stage_cline = 0
+                        pokemon_spawn(29,RIGHT_POS[1],360,180,6)
+                        pokemon_spawn(29,RIGHT_POS[7],0,180,6)     
+                        pokemon_spawn(29,RIGHT_POS[1],300,180,6)
+                        pokemon_spawn(29,RIGHT_POS[7],0,180,6)  
+                        pokemon_spawn(29,RIGHT_POS[1],300,180,6)
+                        pokemon_spawn(29,RIGHT_POS[7],0,180,6) 
+                        next_challenge(360)
+                    if stage_challenge == 1:
+                        pokemon_spawn(30,RIGHT_POS[4],180,180,2)
+                        pokemon_spawn(30,RIGHT_POS[1],120,180,2)
+                        pokemon_spawn(30,RIGHT_POS[5],120,180,2)
+                        pokemon_spawn(30,RIGHT_POS[6],120,180,2)
+                        pokemon_spawn(30,RIGHT_POS[2],120,180,2)
+                        pokemon_spawn(30,RIGHT_POS[3],120,180,2)
+                        waiting(360)
+                        if while_poke_spawn(20,20,1):
+                            pokemon_spawn(27,(WIDTH+64,16+stage_repeat_count*15),20,180,6)
+                            end_while_poke_spawn(1,20)
+                        pokemon_spawn(29,RIGHT_POS[4],90,180,6)
+                        waiting(90)
+                        if while_poke_spawn(20,20,1):
+                            pokemon_spawn(27,(WIDTH+64,HEIGHT-16-stage_repeat_count*15),20,180,6)
+                            end_while_poke_spawn(1,20) 
+                        next_challenge(360)
+                    if stage_challenge == 2:
+                        if not boss.appear and not boss.died_next_stage: 
+                            boss_spawn(11)
+                        if boss.died_next_stage:
+                            stage_count = 0
+                            if not text.started:
+                                stage_challenge = 0
+                                stage_line = 0
+                                text.re_start()
+                                stage_condition = 1 
+                    
+                stage_cline = 0
+        else:
+            stage_end -= 1
+    
     ################################################# 
     while play:
         # 60 프레임
-        clock.tick(FPS)
+        clock.tick(clock_fps)
         now = time.time()        
         dt = (now-prev_time)*TARGET_FPS        
         prev_time = now
@@ -4421,7 +4442,11 @@ def play_game():
                 if not starting or read_end: enemy_group.draw(render_layer)
                 if boss.appear: boss_group.draw(render_layer)
                 under_ui.draw()
-                screen.blit(pygame.transform.scale2x(render_layer),(0,0))
+                scaled = pygame.transform.scale2x(render_layer)
+                screen.blit(scaled,(0,0))
+                if screen_shake_count > 0:
+                    screen.blit(scaled,(randint(-20,20),randint(-20,20)))
+                    screen_shake_count -= 1
                 spr.draw(screen)
                 up_render_layer.fill((0,0,0,0))
                 effect_group.draw(up_render_layer)   
@@ -4483,6 +4508,7 @@ def play_game():
                                 cur_screen = 1  
                                 stage_fun = 0
                                 start_fun = stage_fun  
+                                stage_challenge = 5
                                 curser = 0
                             if ev.key == pygame.K_x or ev.key == pygame.K_ESCAPE:
                                 s_cancel.play()
