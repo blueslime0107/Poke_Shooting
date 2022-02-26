@@ -1,12 +1,10 @@
-from cv2 import add
+from cv2 import circle
 import pygame, math
 from random import randint, uniform, choice
 from pygame.locals import *
 import cv2
 import numpy
 import time
-
-from soupsieve import select
 
 # 게임에 핵심적인 기능만 주석을 넣었습니다 ##
 pygame.init()
@@ -62,7 +60,7 @@ for line in lines:
     s_text_scroll.append(line)
 mew_text.close()
 celebi_text.close()
-msfx_volume = 10
+msfx_volume = 20
 mmusic_volume = 0
 try:sfx_volume = msfx_volume/100
 except:sfx_volume = 0
@@ -111,6 +109,8 @@ kira_channel = pygame.mixer.Channel(1)
 kira2_channel = pygame.mixer.Channel(3)
 tan2_channel = pygame.mixer.Channel(4)
 enemy_boom_channel = pygame.mixer.Channel(2)
+item_channel = pygame.mixer.Channel(5)
+bossdam_channel = pygame.mixer.Channel(6)
 
 a_list = []
 cur_list = []
@@ -309,6 +309,8 @@ score_setting = (10,10,987650,10,0,0,0,0,0)
 bullet_border_wide = 200
 bullet_border = Rect(0-bullet_border_wide, 0-bullet_border_wide, WIDTH*2 + bullet_border_wide, HEIGHT*2 + bullet_border_wide)
 small_border = Rect(0, 0, WIDTH*2, HEIGHT*2)
+near_border= Rect(0, 0, WIDTH, HEIGHT)
+far_border= Rect(-50, -50, WIDTH+100, HEIGHT+100)
 bullet_size = (10,6,8,8,6,6,6,9,6,7,7,4,5,15,15,20,10,10,10,20)
 lazer_spawner = []
 def play_game():
@@ -319,18 +321,18 @@ def play_game():
     def music_and_sfx_volume():
         pygame.mixer.music.set_volume(music_volume)
         s_lazer1.set_volume(sfx_volume)
-        s_tan1.set_volume(sfx_volume/2)
-        s_tan2.set_volume(sfx_volume/2)
+        s_tan1.set_volume(sfx_volume)
+        s_tan2.set_volume(sfx_volume)
         s_ch2.set_volume(sfx_volume)
-        s_ch0.set_volume(sfx_volume+0.3)
-        s_cat1.set_volume(sfx_volume*1.5)
+        s_ch0.set_volume(sfx_volume)
+        s_cat1.set_volume(sfx_volume)
         s_enep1.set_volume(sfx_volume)
         s_enep2.set_volume(sfx_volume)
         s_slash.set_volume(sfx_volume)
         s_pldead.set_volume(sfx_volume)
-        s_plst0.set_volume(sfx_volume/5)
-        s_damage0.set_volume(sfx_volume/5)
-        s_damage1.set_volume(sfx_volume/5)
+        s_plst0.set_volume(sfx_volume)
+        s_damage0.set_volume(sfx_volume)
+        s_damage1.set_volume(sfx_volume)
         s_graze.set_volume(sfx_volume)
         s_kira0.set_volume(sfx_volume)
         s_kira1.set_volume(sfx_volume)
@@ -371,7 +373,7 @@ def play_game():
             self.gatcha_max = 70
             self.died = False
         def update(self,collide):
-            global screen_shake_count, pause
+            global screen_shake_count, pause, drilling
             if not self.died:
                 dx, dy = 0 , 0
                 inum = self.img_num
@@ -389,16 +391,17 @@ def play_game():
                     dy = 0
                 
                 # 총 쏘기 이벤트
-                if keys[pygame.K_z] and frame_count % 4 == 0 and not player.godmod:
-                    s_plst0.play(loops=1, maxtime=50)
-                    if character == 0:
-                        beams_group.add(Beam(get_new_pos(player.pos,5,15)))
-                        beams_group.add(Beam(get_new_pos(player.pos,5,-15)))
-                    if character == 41:
-                        beams_group.add(Beam(get_new_pos(player.pos,5,15),2))
-                        beams_group.add(Beam(get_new_pos(player.pos,5,-15),2))
-                if keys[K_KP_0] and self.gatcha >= self.gatcha_max:
-                    beams_group.add(Beam(get_new_pos(player.pos,5),4))
+                if not drilling:
+                    if keys[pygame.K_z] and frame_count % 4 == 0 and not player.godmod:
+                        s_plst0.play(loops=1, maxtime=50)
+                        if character == 0:
+                            beams_group.add(Beam(get_new_pos(player.pos,5,15)))
+                            beams_group.add(Beam(get_new_pos(player.pos,5,-15)))
+                        if character == 41:
+                            beams_group.add(Beam(get_new_pos(player.pos,5,15),2))
+                            beams_group.add(Beam(get_new_pos(player.pos,5,-15),2))
+                    if keys[K_KP_0] and self.gatcha >= self.gatcha_max:
+                        beams_group.add(Beam(get_new_pos(player.pos,5),4))
                 # 모양이 바꼈을 때만 모양 업데이트
                 self.img_num = self.img_num + keys[pygame.K_RIGHT] + keys[pygame.K_LEFT]*2
                 if inum != self.img_num:
@@ -484,64 +487,66 @@ def play_game():
             self.count = 0
         
         def update(self):
-            keys = pygame.key.get_pressed()
-            if keys[pygame.K_z] and while_time(self.count,6) and player.power >= 100:
-                for i in range(0,int(player.power/100)):
-                    if character == 0:beams_group.add(Beam(get_new_pos(self.ballxy[i],16,16),1))
-                    else:
-                        if int(player.power/100) == 1 and i == 0:
-                            beams_group.add(Beam(get_new_pos(self.ballxy[0],16,16),3,15))
-                            beams_group.add(Beam(get_new_pos(self.ballxy[0],16,16),3,-15))
-                        elif int(player.power/100) == 3 and i == 2:
-                            beams_group.add(Beam(get_new_pos(self.ballxy[2],16,16),3,6))
-                            beams_group.add(Beam(get_new_pos(self.ballxy[2],16,16),3,-6))
+            global drilling
+            if not drilling:
+                keys = pygame.key.get_pressed()
+                if keys[pygame.K_z] and while_time(self.count,6) and player.power >= 100:
+                    for i in range(0,int(player.power/100)):
+                        if character == 0:beams_group.add(Beam(get_new_pos(self.ballxy[i],16,16),1))
                         else:
-                            beams_group.add(Beam(get_new_pos(self.ballxy[i],16,16),3))
-            if character == 0:
-                if keys[pygame.K_LSHIFT] and self.adddir <= 30:
-                    self.adddir += 2
-                    self.radi -= 0.6
-                elif self.adddir > 0 and not keys[pygame.K_LSHIFT]:
-                    self.adddir -= 2
-                    self.radi += 0.6
+                            if int(player.power/100) == 1 and i == 0:
+                                beams_group.add(Beam(get_new_pos(self.ballxy[0],16,16),3,15))
+                                beams_group.add(Beam(get_new_pos(self.ballxy[0],16,16),3,-15))
+                            elif int(player.power/100) == 3 and i == 2:
+                                beams_group.add(Beam(get_new_pos(self.ballxy[2],16,16),3,6))
+                                beams_group.add(Beam(get_new_pos(self.ballxy[2],16,16),3,-6))
+                            else:
+                                beams_group.add(Beam(get_new_pos(self.ballxy[i],16,16),3))
+                if character == 0:
+                    if keys[pygame.K_LSHIFT] and self.adddir <= 30:
+                        self.adddir += 2
+                        self.radi -= 0.6
+                    elif self.adddir > 0 and not keys[pygame.K_LSHIFT]:
+                        self.adddir -= 2
+                        self.radi += 0.6
 
-                if int(player.power/100) == 1:
-                    self.ballxy[0] = move_circle(get_new_pos(player.pos,-16,-16),0,self.radi)
-                if int(player.power/100) == 2:
-                    self.ballxy[0] = move_circle(get_new_pos(player.pos,-16,-16),45-self.adddir,self.radi)
-                    self.ballxy[1] = move_circle(get_new_pos(player.pos,-16,-16),-45+self.adddir,self.radi)
-                if int(player.power/100) == 3:
-                    self.ballxy[0] = move_circle(get_new_pos(player.pos,-16,-16),55-self.adddir,self.radi)
-                    self.ballxy[1] = move_circle(get_new_pos(player.pos,-16,-16),-55+self.adddir,self.radi)
-                    self.ballxy[2] = move_circle(get_new_pos(player.pos,-16,-16),0,self.radi)
-                if int(player.power/100) == 4:
-                    self.ballxy[0] = move_circle(get_new_pos(player.pos,-16,-16),45-self.adddir,self.radi)
-                    self.ballxy[1] = move_circle(get_new_pos(player.pos,-16,-16),-45+self.adddir,self.radi)
-                    self.ballxy[2] = move_circle(get_new_pos(player.pos,-16,-16),105-self.adddir*2,self.radi)
-                    self.ballxy[3] = move_circle(get_new_pos(player.pos,-16,-16),-105+self.adddir*2,self.radi)
-            if character == 41:
-                if keys[pygame.K_LSHIFT] and self.adddir <= 30:
-                    self.adddir += 2
-                    self.radi -= 0.6
-                elif self.adddir > 0 and not keys[pygame.K_LSHIFT]:
-                    self.adddir -= 2
-                    self.radi += 0.6
+                    if int(player.power/100) == 1:
+                        self.ballxy[0] = move_circle(get_new_pos(player.pos,-16,-16),0,self.radi)
+                    if int(player.power/100) == 2:
+                        self.ballxy[0] = move_circle(get_new_pos(player.pos,-16,-16),45-self.adddir,self.radi)
+                        self.ballxy[1] = move_circle(get_new_pos(player.pos,-16,-16),-45+self.adddir,self.radi)
+                    if int(player.power/100) == 3:
+                        self.ballxy[0] = move_circle(get_new_pos(player.pos,-16,-16),55-self.adddir,self.radi)
+                        self.ballxy[1] = move_circle(get_new_pos(player.pos,-16,-16),-55+self.adddir,self.radi)
+                        self.ballxy[2] = move_circle(get_new_pos(player.pos,-16,-16),0,self.radi)
+                    if int(player.power/100) == 4:
+                        self.ballxy[0] = move_circle(get_new_pos(player.pos,-16,-16),45-self.adddir,self.radi)
+                        self.ballxy[1] = move_circle(get_new_pos(player.pos,-16,-16),-45+self.adddir,self.radi)
+                        self.ballxy[2] = move_circle(get_new_pos(player.pos,-16,-16),105-self.adddir*2,self.radi)
+                        self.ballxy[3] = move_circle(get_new_pos(player.pos,-16,-16),-105+self.adddir*2,self.radi)
+                if character == 41:
+                    if keys[pygame.K_LSHIFT] and self.adddir <= 30:
+                        self.adddir += 2
+                        self.radi -= 0.6
+                    elif self.adddir > 0 and not keys[pygame.K_LSHIFT]:
+                        self.adddir -= 2
+                        self.radi += 0.6
 
-                if int(player.power/100) == 1:
-                    self.ballxy[0] = move_circle(get_new_pos(player.pos,-16,-16),180,self.radi*2)
-                if int(player.power/100) == 2:
-                    self.ballxy[0] = move_circle(get_new_pos(player.pos,-16,-16),-135-self.adddir,self.radi*2)
-                    self.ballxy[1] = move_circle(get_new_pos(player.pos,-16,-16),135+self.adddir,self.radi*2)
-                if int(player.power/100) == 3:
-                    self.ballxy[0] = move_circle(get_new_pos(player.pos,-16,-16),-135-self.adddir,self.radi*2)
-                    self.ballxy[1] = move_circle(get_new_pos(player.pos,-16,-16),135+self.adddir,self.radi*2)
-                    self.ballxy[2] = move_circle(get_new_pos(player.pos,-16,-16),180,self.radi*2)
-                if int(player.power/100) == 4:
-                    self.ballxy[0] = move_circle(get_new_pos(player.pos,-16,-16),-115-self.adddir,self.radi*2.5)
-                    self.ballxy[1] = move_circle(get_new_pos(player.pos,-16,-16),115+self.adddir,self.radi*2.5)
-                    self.ballxy[2] = move_circle(get_new_pos(player.pos,-16,-16),-150-self.adddir*2,self.radi*2)
-                    self.ballxy[3] = move_circle(get_new_pos(player.pos,-16,-16),150+self.adddir*2,self.radi*2)
-            self.count += 1
+                    if int(player.power/100) == 1:
+                        self.ballxy[0] = move_circle(get_new_pos(player.pos,-16,-16),180,self.radi*2)
+                    if int(player.power/100) == 2:
+                        self.ballxy[0] = move_circle(get_new_pos(player.pos,-16,-16),-135-self.adddir,self.radi*2)
+                        self.ballxy[1] = move_circle(get_new_pos(player.pos,-16,-16),135+self.adddir,self.radi*2)
+                    if int(player.power/100) == 3:
+                        self.ballxy[0] = move_circle(get_new_pos(player.pos,-16,-16),-135-self.adddir,self.radi*2)
+                        self.ballxy[1] = move_circle(get_new_pos(player.pos,-16,-16),135+self.adddir,self.radi*2)
+                        self.ballxy[2] = move_circle(get_new_pos(player.pos,-16,-16),180,self.radi*2)
+                    if int(player.power/100) == 4:
+                        self.ballxy[0] = move_circle(get_new_pos(player.pos,-16,-16),-115-self.adddir,self.radi*2.5)
+                        self.ballxy[1] = move_circle(get_new_pos(player.pos,-16,-16),115+self.adddir,self.radi*2.5)
+                        self.ballxy[2] = move_circle(get_new_pos(player.pos,-16,-16),-150-self.adddir*2,self.radi*2)
+                        self.ballxy[3] = move_circle(get_new_pos(player.pos,-16,-16),150+self.adddir*2,self.radi*2)
+                self.count += 1
 
         def draw(self):
             if player.power >= 100:render_layer.blit(self.ball,get_new_pos(self.ballxy[0]))
@@ -698,6 +703,7 @@ def play_game():
             self.name = name
     class Beam(pygame.sprite.Sprite):
         def __init__(self, pos, num=0, dir=0):
+            global add_dam
             pygame.sprite.Sprite.__init__(self)
             self.image = pygame.Surface((20,16), pygame.SRCALPHA)                   
             self.rect = self.image.get_rect(center = get_new_pos(pos))            
@@ -707,6 +713,7 @@ def play_game():
             self.direction = dir           
             self.damage = 0
             self.radius = 20
+            self.appear = True
             self.died = False
             if self.num == 0: # 뮤 메인
                 self.image.fill((255, 0, 222))
@@ -737,19 +744,42 @@ def play_game():
                 self.speed = 0
                 self.damage = 100
                 player.gatcha = 0
+            if self.num == 5:
+                self.image = pygame.Surface((40, 24), pygame.SRCALPHA)
+                self.image.fill((randint(0,100),randint(0,100),255))
+                self.speed = 50
+                self.damage = 10
+                self.rect = self.image.get_rect(center = get_new_pos(self.pos))  
+            if self.num == 6:
+                pygame.draw.circle(self.image, (255, 255, 0,100), (10,8), 8,4)
+                self.speed = 30
+                self.damage = 2
+            if self.num == 7:
+                self.image = pygame.Surface((40, 24), pygame.SRCALPHA)
+                self.image.fill((255,randint(0,100),randint(0,100)))
+                self.speed = 50
+                self.damage = 4
+                self.rect = self.image.get_rect(center = get_new_pos(self.pos)) 
+            if not small_border.colliderect(self.rect):self.appear = False
+            
+            self.damage += add_dam
+            print(add_dam)
             self.image = pygame.transform.rotate(self.image, self.direction)
         def update(self):
             # 화면 나가면 삭제
-            if self.pos[0] >= WIDTH:
-                if self.num == 4:
-                    player.gatcha = player.gatcha_max//2
-                self.kill()
-            if self.died:
-                self.kill()
+            if not near_border.colliderect(self.rect):
+                if self.appear:
+                    if self.num == 4:
+                        player.gatcha = player.gatcha_max//2
+                    self.kill()
+            else:
+                self.appear = True
             if self.num == 4:
                 self.speed += 1
-                self.speed += 1
-
+            if not far_border.colliderect(self.rect):
+                self.kill()
+            if self.died and not self.num == 7:
+                self.kill()
             self.pos = calculate_new_xy(self.pos, self.speed, -self.direction)
             self.rect = self.image.get_rect(center = get_new_pos(self.pos))  
     class Enemy(pygame.sprite.Sprite):
@@ -881,10 +911,8 @@ def play_game():
                         if bomb_activated:
                             for beam in collide:
                                 self.health -= beam.damage
-                                if self.health/self.max_health < 0.25:
-                                    s_damage1.play(loops=1, maxtime=50)  
-                                else: 
-                                    s_damage0.play(loops=1, maxtime=50)
+                                if self.health/self.max_health < 0.25:bossdam_channel.play(s_damage1) 
+                                else: bossdam_channel.play(s_damage0)
                                 self.real_health -= beam.damage
                         else:                                
                             for beam in collide:
@@ -929,7 +957,6 @@ def play_game():
                             for _ in range(0,40):
                                 item_group.add(Item(get_new_pos((self.pos[0]*2,self.pos[1]*2),randint(-200,200),randint(-200,200)),1))
                     self.count += 1
-
                 # 처음등장시 중앙으로 오기
                 if self.real_appear and not self.attack_start and not self.dieleft:
                     if distance(self.pos,(WIDTH-150,HEIGHT//2)) <= 2:
@@ -938,8 +965,7 @@ def play_game():
                     elif self.move_point == (0,0):
                         self.move_point = ((WIDTH-150-self.pos[0])/60,(HEIGHT//2-self.pos[1])/60)
                     self.pos = (self.pos[0]+self.move_point[0],self.pos[1] + self.move_point[1])
-            
-            
+                        
             if self.dieleft: # 죽었을때 이벤트
                 remove_allbullet()
                 if self.dies: 
@@ -1043,6 +1069,14 @@ def play_game():
             self.image = pygame.Surface((80,80),SRCALPHA)
             if mod == 4:
                 pygame.draw.circle(self.image, (255,255,255,150), (40,40), 40)
+            if mod == 5:
+                pygame.draw.circle(self.image, (0,0,255,150), (40,40), 40)
+            if mod == 6:
+                pygame.draw.circle(self.image, (143, 255, 255,150), (40,40), 20)
+            if mod == 10:
+                pygame.draw.circle(self.image, (204, 204, 204,200), (40,40), 10)
+            if mod == 12:
+                pygame.draw.circle(self.image, (170, 0, 232,230), (40,40), 5)
             self.rect = self.image.get_rect(center = pos)
             self.num = mod
             self.pos = pos
@@ -1050,6 +1084,7 @@ def play_game():
             self.speed = speed
             self.count = 0
         def update(self,screen):
+
             if self.num == 4:
                 for enemy in enemy_group.sprites():
                     if distance(self.pos,enemy.pos) <= 40:
@@ -1060,6 +1095,42 @@ def play_game():
                         boss.move_speed /= 1.05
                 if self.count >= 80:
                     self.kill()
+            if self.num ==5:
+                if self.count == 0:
+                    for enemy in enemy_group.sprites():
+                        if distance(self.pos,enemy.pos) <= 40:
+                            enemy.health -= 5
+                if self.count >= 50:
+                    self.kill()
+            if self.num == 6:
+                for enemy in enemy_group.sprites():
+                    if distance(self.pos,enemy.pos) <= 20:
+                        self.speed = 0
+                        self.pos = enemy.pos
+                if self.count >= 80:
+                    for enemy in enemy_group.sprites():
+                        if distance(self.pos,enemy.pos) <= 20:
+                            enemy.health -= 20                   
+                    self.kill()
+            if self.num == 10:
+                for bulls in spr.sprites():
+                    if distance((self.pos[0]*2,self.pos[1]*2),bulls.pos) <= 10:
+                        bulls.kill()
+                        self.kill()
+                if self.count >= 240:
+                    self.kill()
+            if self.num == 12:
+                if self.speed == 0:
+                    for enemy in enemy_group.sprites():
+                        if distance(self.pos,enemy.pos) <= 2:
+                            enemy.health -= 3
+                            if enemy.health <= 0: self.kill()     
+                for enemy in enemy_group.sprites():
+                    if distance(self.pos,enemy.pos) <= 20:
+                        self.speed = 0
+                        self.pos = enemy.pos 
+                
+            if self.pos[0] >= WIDTH:self.kill()
             self.count += 1
             if not small_border.colliderect(self.rect): self.kill()
             self.pos = calculate_new_xy(self.pos, self.speed, -self.direction)
@@ -1073,6 +1144,7 @@ def play_game():
             self.draw_cool = cool
             self.pos = (0,0)
         def update(self):
+            global add_dam, drilling, screen_shake_count
             if self.cool > 0:
                 if self.num == 0: # 몸부림
                     player.pos = get_new_pos(player.pos,randint(-20,20),randint(-20,20))
@@ -1104,17 +1176,172 @@ def play_game():
                         skillobj_group.add(Spell_Obj(player.pos,0,10,4))
                         skillobj_group.add(Spell_Obj(player.pos,-30,10,4))
                         skillobj_group.add(Spell_Obj(player.pos,30,10,4))
+                if self.num == 5: # 물놀이
+                    if while_time(self.cool,10):
+                        self.pos = get_new_pos(player.pos,randint(-30,30),randint(-30,30))
+                        skillobj_group.add(Spell_Obj(self.pos,0,0,5))
+                if self.num == 6: # 쉘블레이드
+                    self.pos = player.pos
+                    hit_rect = Rect(0,player.pos[1]-20,WIDTH,40)
+                    for enemy in enemy_group.sprites():
+                        if hit_rect.colliderect(enemy.rect):
+                            enemy.health -= 50
+                if self.num == 7: # 거품발사
+                    if while_time(self.cool,5):
+                        self.pos = player.pos
+                        skillobj_group.add(Spell_Obj(self.pos,randint(-30,30),10,6))
+                if self.num == 8:
+                    if while_time(self.cool,2):
+                        beams_group.add(Beam(get_new_pos(player.pos,5),5))
+                if self.num == 9: # 씨앗심기
+                    if self.cool == self.max_cool:self.pos = get_new_pos(player.pos,200)
+                    if while_time(self.cool,4):
+                        for enemy in enemy_group.sprites():
+                            if distance(self.pos,enemy.pos) <= 40:
+                                enemy.health -= 2 
+                                if player.health < player.max_health:player.health += 2
+                        if distance(self.pos,boss.pos) <= 40: 
+                            boss.health -= 2
+                            if player.health < player.max_health:player.health += 2
+                if self.num == 10: # 코튼가드
+                    skillobj_group.add(Spell_Obj(player.pos,-45,3,10))
+                    skillobj_group.add(Spell_Obj(player.pos,-30,3,10))
+                    skillobj_group.add(Spell_Obj(player.pos,-15,3,10))
+                    skillobj_group.add(Spell_Obj(player.pos,0,3,10))
+                    skillobj_group.add(Spell_Obj(player.pos,45,3,10))
+                    skillobj_group.add(Spell_Obj(player.pos,30,3,10))
+                    skillobj_group.add(Spell_Obj(player.pos,15,3,10))
+                    self.cool = 0
+                if self.num == 11: # 마비가루
+                    self.pos = player.pos
+                    for bulls in spr.sprites():
+                        if distance((self.pos[0]*2,self.pos[1]*2),bulls.pos) <= 160:
+                            bulls.speed = 1
+                    self.cool = 0
+                if self.num == 12: # 독침
+                    skillobj_group.add(Spell_Obj(player.pos,0,18,12))
+                    self.cool = 0
+                if self.num == 13:
+                    if player.godmod: 
+                        self.cool = 0
+                        self.draw_cool = 0
+                    if self.cool == 1:
+                        player.health += 100
+                        if player.health > player.max_health: player.health = player.max_health
+                if self.num == 14:
+                    if self.cool == self.max_cool:add_dam = 2
+                    if self.cool == 1:add_dam = 0
+                if self.num == 15:
+                    if self.cool == self.max_cool:self.pos = player.pos
+                    if while_time(self.cool,4):
+                        beams_group.add(Beam(self.pos,0))
+                if self.num == 16: # 방전
+                    if while_time(self.cool,4):
+                        for i in range(0,360,15):
+                            beams_group.add(Beam(player.pos,6,self.cool*1.4+i))
+                if self.num ==17:
+                    if self.cool == self.max_cool:
+                        drilling = True
+                        player.godmod = True
+                        player.godmod_count = 60
+                        player.max_godmod_count = player.godmod_count
+                    if self.cool == self.max_cool//2:drilling = False
+                if self.num == 18:
+                    if player.godmod:
+                        bullet_clear()
+                        self.cool = 0
+                        self.draw_cool = 0
+                if self.num == 19:
+                    self.pos = player.pos
+                    for enemy in enemy_group.sprites():
+                        enemy.pos = (enemy.pos[0]+200 if enemy.pos[0]+200 < WIDTH else WIDTH,enemy.pos[1])
+                        enemy.health -= 10
+                    self.cool = 0
+                if self.num == 20:
+                    if while_time(self.cool,2):
+                        beams_group.add(Beam(get_new_pos(player.pos,5),7,randint(-30,30)))      
+                        beams_group.add(Beam(get_new_pos(player.pos,5),7,randint(-30,30)))    
+                if self.num == 21:
+                    if while_time(self.cool,2):
+                        for enemy in enemy_group.sprites():
+                            if boss_movebox.collidepoint(enemy.pos):
+                                enemy.health -= 1
+                if self.num == 22: # 쪼기
+                    self.pos = get_new_pos(player.pos,-180)
+                    for enemy in enemy_group.sprites():
+                        if distance(self.pos,enemy.pos) <= 50:
+                            enemy.health -= 5  
+                    if distance(self.pos,boss.pos) <= 50: 
+                        boss.health -= 5
+                    self.cool = 0
+                if self.num == 23: # 몸통박치기
+                    self.pos = player.pos
+                    for enemy in enemy_group.sprites():
+                        if player.rect.collidepoint(enemy.pos):
+                            enemy.health -= 500
+                    if player.rect.collidepoint(boss.pos): 
+                        boss.health -= 500
+                    self.cool = 0
+                if self.num == 24:
+                    if self.cool == self.max_cool:screen_shake_count = 600
+                    for enemy in enemy_group.sprites():
+                        if Rect(player.pos[0]-100,player.pos[1]-100,WIDTH*2,200).collidepoint(enemy.pos):
+                            enemy.health -= 4
+                    for enemy in spr.sprites():
+                        if Rect(player.pos[0]-100,player.pos[1]-100,WIDTH*2,200).collidepoint(enemy.pos):
+                            item_group.add(Item(enemy.pos,1))
+                            enemy.kill()
+                if self.num == 25:
+                    if player.godmod:
+                        player.health = player.before_health
+                        player.power += 30
+                        self.cool = 0
+                        self.draw_cool = 0
+
             if not self.cool == 0:self.cool -= 1
             if not self.draw_cool == 0:self.draw_cool -= 1
         def draw(self,screen):
-            if self.num == 1:
+            if self.num == 1 or  self.num == 23:
                 pygame.draw.circle(screen, (255,0,0,self.draw_cool*3),self.pos, 64)
             if self.num == 2:
                 pygame.draw.circle(screen, (255,0,0,self.draw_cool*3),self.pos, 50)
             if self.num == 3:
                 pygame.draw.circle(screen, (0,0,255,self.draw_cool*1),self.pos, 200)
-            if self.num == 4:
-                pygame.draw.circle(screen, (255,255,255,self.draw_cool*3),self.pos, 50)
+            if self.num == 6:
+                pygame.draw.rect(screen, (0,0,255,self.draw_cool*3), Rect(0,self.pos[1]-20+(60-self.draw_cool)//3,WIDTH,10+self.draw_cool//2), width=0)
+            if self.num == 9:
+                pygame.draw.circle(screen, (0,255,0,150),self.pos, 40)
+            if self.num == 11:
+                pygame.draw.circle(screen, (255,255,0,self.draw_cool*3),self.pos, 80)
+            if self.num == 13:
+                pygame.draw.circle(screen, (0,255,0,100),player.pos, self.draw_cool)
+            if self.num == 14:
+                pygame.draw.circle(screen, (255,0,255,210),player.pos, round(self.draw_cool/2),2)
+            if self.num == 15:
+                pygame.draw.circle(screen, (255,0,255,100),self.pos, 9)
+                pygame.draw.circle(screen, (255,0,255,210),self.pos, round(self.draw_cool/8),1)
+            if self.num == 16:
+                pygame.draw.circle(screen, (255,255,0,210),player.pos, round(self.draw_cool/2),2)
+            if self.num == 17: 
+                if drilling:pygame.draw.circle(screen, (255,255,0,210-self.draw_cool),player.pos, 240-self.draw_cool*2,4)   
+            if self.num == 18:
+                pygame.draw.circle(screen, (0,0,0,50),player.pos, 300) 
+                pygame.draw.circle(screen, (0,0,0,100),player.pos, 400,100) 
+            if self.num == 19:
+                pygame.draw.circle(screen, (255,0,255,200),player.pos, 50,25)  
+                pygame.draw.circle(screen, (255,0,255,100),player.pos, 100,50)  
+                pygame.draw.circle(screen, (255,0,255,50),player.pos, 200,100)  
+                pygame.draw.circle(screen, (255,0,255,25),player.pos, 400,200)
+            if self.num == 21:
+                if while_time(self.cool,2):
+                    pygame.draw.rect(screen, (125, 87, 22,200), boss_movebox)  
+            if self.num == 22:
+                pygame.draw.circle(screen, (255,0,0,self.draw_cool*3),self.pos, 50)
+            if self.num == 24:
+                pygame.draw.rect(screen, (255,255,255,200), Rect(player.pos[0]-100,player.pos[1]-100,WIDTH*2,200))
+                pygame.draw.rect(screen, (255, 248, 115,200), Rect(player.pos[0]-50,player.pos[1]-50,WIDTH*2,100))
+            if self.num == 25:
+                pygame.draw.circle(screen, (0, 166, 255,180), player.pos, 50)
     # 총알     ############################################
     class Bullet(pygame.sprite.Sprite):
         
@@ -1167,7 +1394,7 @@ def play_game():
             if not self.move_fun and not time_stop:
                 self.pos = calculate_new_xy(self.pos, self.speed*2, -self.direction)
             self.rect.center = self.pos
-            dist = distance(self.pos,player.pos)
+            dist = distance(self.pos,(player.pos[0]*2,player.pos[1]*2))
 
             # 플레이어가 탄을 스치면 추가점수
             if self.grazed and dist <= 25 and not player.godmod:
@@ -1324,7 +1551,7 @@ def play_game():
                     score += 2000
                 if self.num == 1:
                     score += 1000
-                s_item0.play()
+                item_channel.play(s_item0)
                 self.kill()
             # 좌표 600이상이면 플레이어 다라가기
             if player.pos[0] >= 300 and not self.lock:
@@ -1752,7 +1979,7 @@ def play_game():
     # 개발자 전용
     
     global bkgd, time_stop
-    global stage_count, boss_group, screen_shake_count, pause
+    global stage_count, boss_group, screen_shake_count, pause, add_dam, drilling
     # 초기 설정
     enemy_group = pygame.sprite.Group()
     boss = Boss_Enemy(-99,-99)
@@ -1765,6 +1992,10 @@ def play_game():
     time_stop = False
     stage_count = 0
     screen_shake_count = 0
+
+    add_dam = 0
+    drilling = False
+
     
     global character
     curser = 0
@@ -1787,7 +2018,7 @@ def play_game():
     # 게임 시작전 메뉴 변수들
     spr = pygame.sprite.Group()
     magic_spr = pygame.sprite.Group()
-    player = Player(-125,-125,5,100)
+    player = Player(-125,-125,5,500)
     player_group = pygame.sprite.Group(player)
     player_hitbox = Player_hit()
     player_sub = Player_sub(1)
@@ -1816,9 +2047,9 @@ def play_game():
                             Spell(40,1200,False),Spell(41,2000,True,1,"멀리서 보면 불꽃놀이","플레임드라이브"),Spell(42,1200,False),Spell(43,2400,True),\
                                 Spell(44,1200,False),Spell(45,2400,True),Spell(46,1200,False),Spell(47,2400,True),Spell(48,4000,True)]
 
-    player.skill_list.append(Skill(0,7,"두려움의","몸부림",30,60))
-    player.skill_list.append(Skill(0,7,"두려움의","몸부림",30,60))
-    player.skill_list.append(Skill(0,7,"두려움의","몸부림",30,60))
+    player.skill_list.append(Skill(13,3,"완벽을 추구하는","HP필드",5,180))
+    player.skill_list.append(Skill(19,4,"전부 멀리 가버려!","사이코키네시스",5,5))
+    player.skill_list.append(Skill(14,4,"소음따위는 안들린다","명상",3,240))
 
     # 소환 반복 (줄에 stage_line)
     def while_poke_spawn(time,repeat,line):
@@ -1855,6 +2086,7 @@ def play_game():
         
         # x, y, dir, speed, health, img, hit_cir, num = val
         if time == stage_count and stage_line == stage_cline:
+            title.count = 0
             stage_count = 0
             stage_line += 1
             if val == 1:
@@ -1868,7 +2100,7 @@ def play_game():
             if val == 5:    
                 title.title_start("Stage 5","고대의 성")
             if val == 6:    
-                title.title_start("Stage 5","화가 존재하는 현실")
+                title.title_start("Stage 6","화가 존재하는 현실")
         stage_cline += 1
     # 뒷배경 소환
     def bground_spawn(val,time):
@@ -1964,47 +2196,47 @@ def play_game():
             ##################### 2 스테이지 #################
             if stage_fun == 2:
                 if val == 8:
-                    enemy_group.add(Enemy(x,y,dir,speed,7,19,30,val,Skill(5,0,"조금 위협적인","물놀이",10,60)))
+                    enemy_group.add(Enemy(x,y,dir,speed,7,19,30,val,Skill(5,2,"조금 위협적인","물놀이",10,60)))
                 if val == 9:
-                    enemy_group.add(Enemy(x,y,180,5,240,17,40,val,Skill(6,0,"아마도 모든걸 베는","셸블레이드",10,60)))
+                    enemy_group.add(Enemy(x,y,180,5,240,17,40,val,Skill(6,2,"아마도 모든걸 베는","셸블레이드",10,60)))
                 if val == 10:
-                    enemy_group.add(Enemy(x,y,180,4,20,18,30,val,Skill(7,0,"모양은 원모양","거품발사",10,5)))
+                    enemy_group.add(Enemy(x,y,180,4,20,18,30,val,Skill(7,2,"모양은 원모양","거품발사",20,50)))
                 if val == 11:
                     enemy_group.add(Enemy(x,y,180+randint(-10,10),4,20,16,30,val,Skill(8,0,"불끌때 제법인","물대포",10,90)))
             ##################### 3 스테이지 $$$$$$$$$$$$$$$$$
             if stage_fun == 3:
                 if val == 12:
-                    enemy_group.add(Enemy(x,y,180,speed,30,21,30,val,Skill(9,0,"어떻게 보면 잔인한","씨앗심기",10,90)))    
+                    enemy_group.add(Enemy(x,y,180,speed,30,21,30,val,Skill(9,3,"어떻게 보면 잔인한","씨앗심기",3,120)))    
                 if val == 13:
-                    enemy_group.add(Enemy(x,y,dir,speed,80,22,40,val,Skill(10,0,"충격 흡수량 최대","코튼가드",10,90)))   
+                    enemy_group.add(Enemy(x,y,dir,speed,80,22,40,val,Skill(10,0,"충격 흡수량 최대","코튼가드",10,5)))   
                 if val == 14:
-                    enemy_group.add(Enemy(x,y,dir,speed,100,23,40,val,Skill(11,0,"생물에게 위협적","마비가루",10,90)))   
+                    enemy_group.add(Enemy(x,y,dir,speed,100,23,40,val,Skill(11,8,"뭔 이상한거에만 효과있는","마비가루",7,60)))   
                 if val == 15:
-                    enemy_group.add(Enemy(x,y,dir,speed,30,24,40,val,Skill(12,0,"날카로운 확인사살","독침",10,90))) 
+                    enemy_group.add(Enemy(x,y,dir,speed,30,24,40,val,Skill(12,9,"날카로운 확인사살","독침",10,90))) 
                 if val == 16:
-                    enemy_group.add(Enemy(x,y,dir,speed,120,25,40,val,Skill(13,0,"근거는 없는","HP필드",10,90)))
+                    enemy_group.add(Enemy(x,y,dir,speed,120,25,40,val,Skill(13,3,"완벽을 추구하는","HP필드",5,180)))
             if stage_fun == 4:
                 if val == 17:
-                    enemy_group.add(Enemy(x,y,dir,speed,15,30,40,val,Skill(14,0,"소음따위는 안들린다","명상",10,90)))
+                    enemy_group.add(Enemy(x,y,dir,speed,15,30,40,val,Skill(14,4,"소음따위는 안들린다","명상",3,240)))
                 if val == 18:
-                    enemy_group.add(Enemy(x,y,dir,speed,100,27,40,val,Skill(15,0,"저격한다!","사이코리모트",10,90)))
+                    enemy_group.add(Enemy(x,y,dir,speed,100,27,40,val,Skill(15,4,"저격한다!","사이코리모트",5,500)))
                 if val == 19:
-                    enemy_group.add(Enemy(x,y,dir,speed,250,29,50,val,Skill(16,0,"시간이 멈춘 비슷한거","방전",10,90)))
+                    enemy_group.add(Enemy(x,y,dir,speed,250,29,50,val,Skill(16,6,"마비는 안걸리는 안전한","방전",5,300)))
                 if val == 20:
-                    enemy_group.add(Enemy(x,y,dir,speed,150,28,50,val,Skill(17,0,"경계를 뚫는?!","땅굴파기",10,90)))               
+                    enemy_group.add(Enemy(x,y,dir,speed,150,28,50,val,Skill(17,10,"경계를 뚫는?!","땅굴파기",10,120)))               
             if stage_fun == 5:
                 if val == 21:
-                    enemy_group.add(Enemy(x,y,dir,speed,15,31,30,val,Skill(14,0,"이야 이건 쫌 심한데?","좌절",10,90)))
+                    enemy_group.add(Enemy(x,y,dir,speed,15,31,30,val,Skill(18,5,"물리를 행사하는","흑안개",30,60*20)))
                 if val == 22:
-                    enemy_group.add(Enemy(x,y,dir,speed,210,34,60,val,Skill(14,0,"정신을 망가뜨리는","사이코키네시스",10,90)))
+                    enemy_group.add(Enemy(x,y,dir,speed,210,34,60,val,Skill(19,4,"전부 멀리 가버려!","사이코키네시스",5,5)))
                 if val == 23:
-                    enemy_group.add(Enemy(x,y,dir,speed,300,33,30,val,Skill(14,0,"눈앞이 불지옥","화염방사",10,90)))        
+                    enemy_group.add(Enemy(x,y,dir,speed,300,33,30,val,Skill(20,1,"눈앞이 불지옥","화염방사",5,240)))        
                 if val == 24:
-                    enemy_group.add(Enemy(x,y,dir,speed,100,35,30,val,Skill(14,0,"돌속에 묻히는 관","암석봉인",10,90)))
+                    enemy_group.add(Enemy(x,y,dir,speed,100,35,30,val,Skill(21,10,"불안전지대","스텔스록",10,300)))
                 if val == 25:
-                    enemy_group.add(Enemy(x,y,dir,speed,100,32,30,val,Skill(14,0,"상대를 속이진 않는","속이다",10,90)))
+                    enemy_group.add(Enemy(x,y,dir,speed,100,32,30,val,Skill(22,0,"상대를 속이진 않는","속이다",10,60)))
                 if val == 26:
-                    enemy_group.add(Enemy(x,y,dir,speed,20,36,30,val,Skill(14,0,"불꽃펀치","불꽃펀치",10,90)))      
+                    enemy_group.add(Enemy(x,y,dir,speed,20,36,30,val,Skill(23,1,"불꽃펀치","불꽃펀치",3,60)))      
             if stage_fun == 6:
                 if val == 27:
                     enemy_group.add(Enemy(x,y,dir,speed,30,37,30,val,Skill(14,0,"아마도 누구든지 배울 수 있는","파괴광선",10,90)))       
@@ -4131,7 +4363,6 @@ def play_game():
         keys = pygame.key.get_pressed() 
         if cur_screen == 1:
             # 키 이벤트
-            print(len(spr.sprites()))
             for ev in pygame.event.get():
                 if ev.type == pygame.QUIT: # 게임끄기
                     pygame.quit()
@@ -4202,13 +4433,13 @@ def play_game():
             hit_list = pygame.sprite.spritecollide(player_hitbox, spr, not player.godmod, pygame.sprite.collide_circle)
             beam_collide = pygame.sprite.groupcollide(beams_group, enemy_group, False, False, pygame.sprite.collide_circle)
             if beam_collide.items():
-                for beam, enemy in beam_collide.items():                   
+                for beam, enemy in beam_collide.items():                 
                     for i in range(0,len(enemy)): 
-                        if not beam.died: 
+                        if not beam.died:
                             enemy[i].health -= beam.damage
                             if beam.num == 4 and enemy[i].health <= 0:
-                                player.skill_list[player.skill_pointer] = enemy[i].skill                                
-                            beam.died = True
+                                player.skill_list[player.skill_pointer] = enemy[i].skill      
+                            beam.died = True                       
             if boss.appear: boss_collide = pygame.sprite.spritecollide(boss, beams_group, False, pygame.sprite.collide_circle)
         
             if bomb_activated:
@@ -4280,8 +4511,8 @@ def play_game():
                 item_group.draw(render_layer)
                 magic_spr.draw(render_layer)      
                 beams_group.draw(render_layer)  
-                if not player.died:player_group.draw(render_layer) 
-                if not player.died:player_sub.draw()
+                if not player.died and not drilling:player_group.draw(render_layer) 
+                if not player.died and not drilling:player_sub.draw()
                 enemy_group.draw(render_layer)            
                 if not starting or read_end: enemy_group.draw(render_layer)
                 if boss.appear: boss_group.draw(render_layer)
