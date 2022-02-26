@@ -37,8 +37,31 @@ menu_img = pygame.image.load('resources\Image\Menus.png').convert_alpha()
 item_img = pygame.image.load('resources\Image\item.png').convert_alpha()
 skill_img = pygame.image.load('resources\Image\skill.png').convert_alpha()
 ui_img = pygame.image.load('resources\Image\player_ui.png').convert_alpha()
+mew_text = open("resources\mew.txt", 'r', encoding="UTF-8")
+celebi_text = open("resources\celebi.txt", 'r', encoding="UTF-8")
 background_img = pygame.transform.scale(background_img, (WIDTH, HEIGHT))
-
+m_text_scroll = []
+m_text_start = [0]
+s_text_scroll = []
+s_text_start = [0]
+lines = mew_text.readlines()
+a = 0
+for line in lines:
+    a += 1
+    line = line.strip()
+    if line == '#E:#####################################':
+        m_text_start.append(a)
+    m_text_scroll.append(line)
+lines = celebi_text.readlines()
+a = 0
+for line in lines:
+    a += 1
+    line = line.strip()
+    if line == '#E:#####################################':
+        s_text_start.append(a)
+    s_text_scroll.append(line)
+mew_text.close()
+celebi_text.close()
 msfx_volume = 10
 mmusic_volume = 0
 try:sfx_volume = msfx_volume/100
@@ -346,77 +369,95 @@ def play_game():
             self.skill_pointer = 0
             self.gatcha = 70
             self.gatcha_max = 70
+            self.died = False
         def update(self,collide):
-            dx, dy = 0 , 0
-            inum = self.img_num
-            self.img_num = 0
-            # 플레이어 이동 조종 SHIFT 를 누르면 느리게 움직이기
-            if keys[pygame.K_LSHIFT]:self.speed = 2
-            else:self.speed = 4           
-            # 화면 밖으로 안나감
-            if keys[pygame.K_RIGHT]:dx += 0 if self.rect.centerx >= WIDTH-20 else self.speed            
-            if keys[pygame.K_LEFT]:dx -= 0 if self.rect.centerx <= 0 + 20 else self.speed            
-            if keys[pygame.K_DOWN]:dy += 0 if self.rect.centery >= HEIGHT-20 else self.speed               
-            if keys[pygame.K_UP]:dy -= 0 if self.rect.centery <= 0+20 else self.speed
-            if self.rect.centerx <= -100: 
-                dx = 0
-                dy = 0
-            
-            # 총 쏘기 이벤트
-            if keys[pygame.K_z] and frame_count % 4 == 0 and not player.godmod and not pause:
-                s_plst0.play(loops=1, maxtime=50)
-                if character == 0:
-                    beams_group.add(Beam(get_new_pos(player.pos,5,15)))
-                    beams_group.add(Beam(get_new_pos(player.pos,5,-15)))
-                if character == 41:
-                    beams_group.add(Beam(get_new_pos(player.pos,5,15),2))
-                    beams_group.add(Beam(get_new_pos(player.pos,5,-15),2))
-            if keys[K_KP_0] and self.gatcha >= self.gatcha_max:
-                beams_group.add(Beam(get_new_pos(player.pos,5),4))
-            # 모양이 바꼈을 때만 모양 업데이트
-            self.img_num = self.img_num + keys[pygame.K_RIGHT] + keys[pygame.K_LEFT]*2
-            if inum != self.img_num:
-                if self.img_num == 0:self.image = self.image2                
-                if self.hit_speed == 0:
-                    if self.img_num == 1:self.image = pygame.transform.rotate(self.image2, -10)
-                    if self.img_num == 2:self.image = pygame.transform.rotate(self.image2, 10)                      
-                self.rect = self.image.get_rect(center = (round(self.pos[0]),round(self.pos[1])))
+            global screen_shake_count, pause
+            if not self.died:
+                dx, dy = 0 , 0
+                inum = self.img_num
+                self.img_num = 0
+                # 플레이어 이동 조종 SHIFT 를 누르면 느리게 움직이기
+                if keys[pygame.K_LSHIFT]:self.speed = 2
+                else:self.speed = 4           
+                # 화면 밖으로 안나감
+                if keys[pygame.K_RIGHT]:dx += 0 if self.rect.centerx >= WIDTH-20 else self.speed            
+                if keys[pygame.K_LEFT]:dx -= 0 if self.rect.centerx <= 0 + 20 else self.speed            
+                if keys[pygame.K_DOWN]:dy += 0 if self.rect.centery >= HEIGHT-20 else self.speed               
+                if keys[pygame.K_UP]:dy -= 0 if self.rect.centery <= 0+20 else self.speed
+                if self.rect.centerx <= -100: 
+                    dx = 0
+                    dy = 0
+                
+                # 총 쏘기 이벤트
+                if keys[pygame.K_z] and frame_count % 4 == 0 and not player.godmod:
+                    s_plst0.play(loops=1, maxtime=50)
+                    if character == 0:
+                        beams_group.add(Beam(get_new_pos(player.pos,5,15)))
+                        beams_group.add(Beam(get_new_pos(player.pos,5,-15)))
+                    if character == 41:
+                        beams_group.add(Beam(get_new_pos(player.pos,5,15),2))
+                        beams_group.add(Beam(get_new_pos(player.pos,5,-15),2))
+                if keys[K_KP_0] and self.gatcha >= self.gatcha_max:
+                    beams_group.add(Beam(get_new_pos(player.pos,5),4))
+                # 모양이 바꼈을 때만 모양 업데이트
+                self.img_num = self.img_num + keys[pygame.K_RIGHT] + keys[pygame.K_LEFT]*2
+                if inum != self.img_num:
+                    if self.img_num == 0:self.image = self.image2                
+                    if self.hit_speed == 0:
+                        if self.img_num == 1:self.image = pygame.transform.rotate(self.image2, -10)
+                        if self.img_num == 2:self.image = pygame.transform.rotate(self.image2, 10)                      
+                    self.rect = self.image.get_rect(center = (round(self.pos[0]),round(self.pos[1])))
 
-            # 탄에 닿았을때
-            if len(collide) > 0 and not self.godmod:
-                s_pldead.play()
-                self.godmod = True
-                self.count = 0
-                self.before_health = self.health
-                self.health -= round(collide[0].radius/2 * 7 * collide[0].speed/2)
-                self.hit_speed = collide[0].speed
-                self.hit_dir = -collide[0].direction
-                self.godmod_count = 60
-                self.max_godmod_count = self.godmod_count
-            
-            # 무적이면 2초뒤 풀리기
-            if self.godmod and self.hit_speed <= 0:
-                self.godmod_count -= 1
-                if 0 >= self.godmod_count:
-                    self.godmod = False
-            
-            # 넉백
-            if self.hit_speed > 0:
-                self.pos = calculate_new_xy(self.pos, self.hit_speed, self.hit_dir)
+                # 탄에 닿았을때
+                if len(collide) > 0 and not self.godmod:
+                    s_pldead.play()
+                    self.godmod = True
+                    self.before_health = self.health
+                    self.health -= round(collide[0].radius/2 * 7 * collide[0].speed/2)
+                    self.hit_speed = collide[0].speed
+                    self.hit_dir = -collide[0].direction
+                    self.godmod_count = 60
+                    self.max_godmod_count = self.godmod_count
+                    if self.power >= 100:
+                        self.power -= 50
+                        for i in range(0,50,2):
+                            item_group.add(Item(calculate_new_xy((self.pos[0]*2,self.pos[1]*2),200,-i*2+50),0))
+                
+                # 무적이면 2초뒤 풀리기
+                if self.godmod and self.hit_speed <= 0:
+                    self.godmod_count -= 1
+                    if 0 >= self.godmod_count:
+                        self.godmod = False
+
+                
+                # 넉백
                 if self.hit_speed > 0:
-                    self.hit_speed -= 0.1
-                    if self.hit_speed <= 0: self.hit_speed = 0
-            else:
-                # 키보드 먹히기
-                self.pos = (self.pos[0] + dx*dt, self.pos[1] + dy*dt) 
-            if self.pos[0] <= 20: self.pos = (20,self.pos[1])
-            if self.pos[0] >= WIDTH-20: self.pos = (WIDTH-20,self.pos[1])
-            if self.pos[1] <= 20: self.pos = (self.pos[0],20)
-            if self.pos[1] >= HEIGHT-20: self.pos = (self.pos[0],HEIGHT-20)
-            self.real_pos = (self.pos[0]*2,self.pos[1]*2)
-            
-            self.rect.center = round(self.pos[0]), round(self.pos[1]) 
-            self.count += 1
+                    self.pos = calculate_new_xy(self.pos, self.hit_speed, self.hit_dir)
+                    if self.hit_speed > 0:
+                        self.hit_speed -= 0.1
+                        if self.hit_speed <= 0: 
+                            self.hit_speed = 0
+                            if self.health <= 0:
+                                screen_shake_count = 90
+                                s_enep1.play()
+                                add_effect(get_new_pos(self.pos,100,0),5)         
+                                add_effect(get_new_pos(self.pos,-100,0),5)      
+                                add_effect(get_new_pos(self.pos,0,100),5)      
+                                add_effect(get_new_pos(self.pos,0,-100),5)    
+                                add_effect(self.pos,5)                                             
+                                self.died = True
+                else:
+                    # 키보드 먹히기
+                    self.pos = (self.pos[0] + dx*dt, self.pos[1] + dy*dt) 
+                if self.pos[0] <= 20: self.pos = (20,self.pos[1])
+                if self.pos[0] >= WIDTH-20: self.pos = (WIDTH-20,self.pos[1])
+                if self.pos[1] <= 20: self.pos = (self.pos[0],20)
+                if self.pos[1] >= HEIGHT-20: self.pos = (self.pos[0],HEIGHT-20)
+                self.real_pos = (self.pos[0]*2,self.pos[1]*2)            
+                self.rect.center = round(self.pos[0]), round(self.pos[1]) 
+            if self.died:
+                if self.count < 120:self.count += 1
+                else:pause = True
         def change_player(self,num):
             self.image = pygame.Surface((128, 128), pygame.SRCALPHA) # 이미지          
             self.image.blit(pokemons[num],(0,-5)) # 이미지 위치조정
@@ -619,23 +660,37 @@ def play_game():
             self.save = 1
             self.text = "Stage 1"
             self.name = "드넓은 초원"
+            self.pos = [WIDTH//2+50,HEIGHT//2]
+            self.pos_stage = [WIDTH//2+10,HEIGHT//2-20]
         def draw(self):
-            if self.count < 460: 
-                if self.count > 31:
-                    x_move = (self.count - 16)/5+WIDTH//4
-                    if self.count > 300: 
-                        self.save = self.save * 1.1
-                        x_move -= self.save
-                    
-                    pygame.draw.rect(up_render_layer, 'red', (get_new_pos((WIDTH//2-93-x_move,HEIGHT//2-13)),(130,45)))
-                    pygame.draw.rect(up_render_layer, 'red', (get_new_pos((WIDTH//2-30-x_move,HEIGHT//2-1)),(200,45)))
-                    title_text = score_font.render(self.text, True, (255,255,255))
-                    up_render_layer.blit(title_text,get_new_pos((WIDTH//2+5-x_move,HEIGHT//2+10)))
-                    title_text = score_font.render(self.name, True, (0,0,0))
-                    up_render_layer.blit(title_text,get_new_pos((WIDTH//2+100-x_move,HEIGHT//2+4)))
-                if self.count < 64:
-                    pygame.draw.rect(render_layer, (255,255,255), (get_new_pos((WIDTH//2-250,HEIGHT//2-1)),(700,round(-abs(math.sin(self.count/20)*100)))))
+            if self.count < 600: 
+                title_text = score_font.render(self.text, True, (0, 176, 26))
+                up_render_layer.blit(title_text,get_new_pos(self.pos_stage,1,-1))
+                up_render_layer.blit(title_text,get_new_pos(self.pos_stage,-1,1))
+                up_render_layer.blit(title_text,get_new_pos(self.pos_stage,-1,-1))
+                up_render_layer.blit(title_text,get_new_pos(self.pos_stage,1,1))
+                title_text = score_font.render(self.text, True, (0, 130, 19))
+                up_render_layer.blit(title_text,self.pos_stage)
+                title_text = score_font.render(self.name, True, (255,255,255))
+                up_render_layer.blit(title_text,get_new_pos(self.pos,1,-1))
+                up_render_layer.blit(title_text,get_new_pos(self.pos,-1,1))
+                up_render_layer.blit(title_text,get_new_pos(self.pos,-1,-1))
+                up_render_layer.blit(title_text,get_new_pos(self.pos,1,1))
+                title_text = score_font.render(self.name, True, (0,0,0))
+                up_render_layer.blit(title_text,self.pos)
                 self.count += 1
+                if self.count < 240:
+                    if while_time(self.count,2):
+                        self.pos[0] -= 1
+                        self.pos_stage[0] -= 1
+                else:
+                    self.pos[0] += self.count-240
+                    self.pos_stage[0] += self.count-240
+            if self.count < 300:
+                if self.count*3 < 255:
+                    pygame.draw.rect(up_render_layer, (255,255,255,0+self.count*3), (get_new_pos(self.pos,-45,-25),(500,53)))
+                else:
+                    pygame.draw.rect(up_render_layer, (255,255,255), (get_new_pos(self.pos,-45+(self.count-85)**1.8,-25),(500,53)))
         def title_start(self,val,name):
             self.count = 0
             self.save = 1
@@ -892,13 +947,17 @@ def play_game():
                         if self.num == 11:clock_fps = 40
                         self.death_count += 1
                         self.pos = calculate_new_xy(self.pos,1,self.move_dir)
-                        if self.death_count == 140:
+                        if self.death_count == 90:
                             screen_shake_count = 90
                             s_enep1.play()
-                            add_effect(self.pos,5)                           
+                            add_effect(get_new_pos(self.pos,100,0),5)         
+                            add_effect(get_new_pos(self.pos,-100,0),5)      
+                            add_effect(get_new_pos(self.pos,0,100),5)      
+                            add_effect(get_new_pos(self.pos,0,-100),5)    
+                            add_effect(self.pos,5)                     
                             self.pos = (-128,-128)                            
                             self.real_appear = False
-                        if self.death_count == 180:
+                        if self.death_count == 130:
                             clock_fps = 60
                             text.pause = False
                             self.dieleft = False
@@ -1056,11 +1115,7 @@ def play_game():
                 pygame.draw.circle(screen, (0,0,255,self.draw_cool*1),self.pos, 200)
             if self.num == 4:
                 pygame.draw.circle(screen, (255,255,255,self.draw_cool*3),self.pos, 50)
-
-
-    
-    # 총알 
-    ############################################
+    # 총알     ############################################
     class Bullet(pygame.sprite.Sprite):
         
         def __init__(self, x, y, direction, speed, bul, col, mod, num=(0,0)):
@@ -1078,7 +1133,7 @@ def play_game():
             
             self.direction = direction
             self.speed = speed
-            self.radius = bullet_size[bul]//2
+            self.radius = bullet_size[bul]
             self.count = 0
             self.mod = mod
             self.num = num
@@ -1336,7 +1391,7 @@ def play_game():
                 render_layer.blit(self.slow_image, self.rect.topleft)
                 self.slow_count += 1
                 if self.slow_count >= len(slow_player_circle): self.slow_count = 0
-            if starting and not read_end: # 원형 체력바 그리기
+            if starting and not read_end and player.health > 0: # 원형 체력바 그리기
                 psi = player.pos if character == 0 else get_new_pos(player.pos,-2,-2)
                 drawArc(render_layer, (100, 194, 247), psi, 45, 2, 360*player.gatcha/player.gatcha_max,150)
                 if player.godmod: drawArc(render_layer, (0, 194, 247), psi, 58, 11, 360*player.godmod_count/player.max_godmod_count,255)
@@ -1346,10 +1401,6 @@ def play_game():
 
     class TextBox():
         def __init__(self):
-            self.image1 =  pygame.Surface((100,200), pygame.SRCALPHA)
-            self.image2 =  pygame.Surface((100,200), pygame.SRCALPHA)
-            self.image1.fill((255,255,255))
-            self.image2.fill((255,255,255))
             self.stat = 0
             self.text = ""
             self.text2 = ""
@@ -1361,269 +1412,58 @@ def play_game():
             self.textbox.fill((0,0,0,150))
             self.turn = 0
             self.char_move = [-80,-80]
-            self.boss_appear_img = False
-        
+            self.boss_appear_img = False       
         def next_text(self):
+            global character
             self.count = 50
-            text = ""
+            text = ''
+            if self.stat == 0:
+                if boss.num == 2:self.stat = m_text_start[0] if character == 0 else s_text_start[0]
+                if boss.num == 4:self.stat = m_text_start[1] if character == 0 else s_text_start[1]
+                if boss.num == 6:self.stat = m_text_start[2] if character == 0 else s_text_start[2]
+                if boss.num == 8:self.stat = m_text_start[3] if character == 0 else s_text_start[3]
+                if boss.num == 10:self.stat = m_text_start[4] if character == 0 else s_text_start[4]
+                if boss.num == 11:self.stat = m_text_start[5] if character == 0 else s_text_start[5]
             if self.started and not self.pause:
                 self.stat += 1
-                if boss.num == 2:
-                    if self.stat == 1:
-                        self.turn = 0
-                        text = "요즘 따라 좀 덥네"
-                        self.turn
-                    if self.stat == 2:
-                        self.turn = 0
-                        text = "이럴땐 호수에서 자는게 제일인데~"
-                    if self.stat == 3:
-                        self.turn = 1
-                        boss.real_appear = True
-                        self.boss_appear_img = True
-                        text = "더위를 피할거라면"
-                    if self.stat == 4:
-                        self.turn = 1
-                        text = "큰 나무 밑에 있어봐 꽤 시원하다구"
-                    if self.stat == 5:
-                        self.turn = 0
-                        text = "말만 그렇지 '엄청' 시원하지 않다고"
-                    if self.stat == 6:
-                        self.turn = 1
-                        pygame.mixer.music.stop()
-                        pygame.mixer.music.load(BOSS_BGM1)
-                        pygame.mixer.music.play(-1)
-                        text = "그럼 내가 엄청 시원하게 해줄게!"
-                    if self.stat == 7:
-                        # 보스전 시작
-                        self.pause = True
-                        boss.attack_start = True
-                        self.char_move = [-80,-80]
-                        boss.count = 0
-                        self.count = 0
-                    if self.stat == 8:
-                        self.turn = 0
-                        text = "확실히 시원하긴 하네~"
-                        boss.count = 0
-                    if self.stat == 9:
-                        # 대화 끝
-                        self.boss_appear_img = False
-                        self.started = False
-                        self.count = 0
-                if boss.num == 4:
-                    if self.stat == 1:
-                        self.turn = 0
-                        text = "바다는 시원할줄 알았는데_여기도 조금 덥네"
-                    if self.stat == 2:
-                        self.turn = 1
-                        text = "너무 더워~"
-                    if self.stat == 3:
-                        self.turn = 1
-                        boss.real_appear = True
-                        self.boss_appear_img = True
-                        text = "요즘따라 바다속이 더 따뜻해졌어"
-                    if self.stat == 4:
-                        self.turn = 0
-                        text = "넌 원래 바다속에 있어야 되지않니?"
-                    if self.stat == 5:
-                        self.turn = 1
-                        text = "바다에 산소가 부족해져서 나왔는데_더 더워"
-                    if self.stat == 6:
-                        self.turn = 1
-                        pygame.mixer.music.stop()
-                        pygame.mixer.music.load(BOSS_BGM2)
-                        pygame.mixer.music.play(-1)
-                        text = "하지만 너랑 싸울 기회는 노칠 수 없지!"
-                    if self.stat == 7:
-                        # 보스전 시작
-                        self.pause = True
-                        boss.attack_start = True
-                        self.char_move = [-80,-80]
-                        boss.count = 0
-                        self.count = 0
-                    if self.stat == 8:
-                        self.turn = 0
-                        text = "이렇게 싸우면 숨쉬러 나오는 의미가 없잖아"
-                        boss.count = 0
-                    if self.stat == 9:
-                        self.turn = 1
-                        text = "흐어..억. 그러네.."
-                    if self.stat == 10:
-                        # 대화 끝
-                        self.boss_appear_img = False
-                        self.started = False
-                        self.count = 0
-                if boss.num == 6:
-                    if self.stat == 1:
-                        self.turn = 0
-                        text = "갑자기 여름이 되서 그런가_덤비는 얘들이 많네"
-                    if self.stat == 2:
-                        self.turn = 1
-                        text = "힘을 얻어서 그래"
-                    if self.stat == 3:
-                        self.turn = 1
-                        boss.real_appear = True
-                        self.boss_appear_img = True
-                        text = "내 노래 덕분에 힘이 커진거지"
-                    if self.stat == 4:
-                        self.turn = 0
-                        text = "그러면 아까 치코리타도 너가 한짓이니?"
-                    if self.stat == 5:
-                        self.turn = 1
-                        text = "그렇다고 볼 수 있지~_(치코리타 아닌데..)"
-                    if self.stat == 6:
-                        self.turn = 1
-                        pygame.mixer.music.stop()
-                        pygame.mixer.music.load(BOSS_BGM3)
-                        pygame.mixer.music.play(-1)
-                        text = "모처럼 온김에 내 노래도 들어줘라!"
-                    if self.stat == 7:
-                        # 보스전 시작
-                        self.pause = True
-                        boss.attack_start = True
-                        self.char_move = [-80,-80]
-                        boss.count = 0
-                        self.count = 0
-                    if self.stat == 8:
-                        self.turn = 0
-                        text = "입장료는 냈지?"
-                        boss.count = 0
-                    if self.stat == 9:
-                        self.turn = 1
-                        text = "그래.."
-                    if self.stat == 10:
-                        # 대화 끝
-                        self.boss_appear_img = False
-                        self.started = False
-                        self.count = 0
-                if boss.num == 8:
-                    if self.stat == 1:
-                        self.turn = 0
-                        text = "동굴안이라고 시원하지 않네_열기가 벌써 안까지 들어온건가?"
-                    if self.stat == 2:
-                        self.turn = 1
-                        text = "침입자인가?"
-                    if self.stat == 3:
-                        self.turn = 1
-                        boss.real_appear = True
-                        self.boss_appear_img = True
-                        text = "여기서 당장 나가시지?_같은 포켓몬이라 해도 서로 해치는건 안된다고"
-                    if self.stat == 4:
-                        self.turn = 0
-                        text = "넌 누구를 보호하고 있는거냐?"
-                    if self.stat == 5:
-                        self.turn = 1
-                        text = "그건 알려줄 수 없다!"
-                    if self.stat == 6:
-                        self.turn = 1
-                        pygame.mixer.music.stop()
-                        pygame.mixer.music.load(BOSS_BGM4)
-                        pygame.mixer.music.play(-1)
-                        text = "그 정체를 알고싶다면_날 먼저 쓰러뜨려야 할 것 이다!"
-                    if self.stat == 7:
-                        # 보스전 시작
-                        self.pause = True
-                        boss.attack_start = True
-                        self.char_move = [-80,-80]
-                        boss.count = 0
-                        self.count = 0
-                    if self.stat == 8:
-                        self.turn = 0
-                        text = "자 그럼 지나간다?"
-                        boss.count = 0
-                    if self.stat == 9:
-                        self.turn = 1
-                        text = "흑흑.. 죄송합니다!"
-                    if self.stat == 10:
-                        # 대화 끝
-                        self.boss_appear_img = False
-                        self.started = False
-                        self.count = 0
-                if boss.num == 10:
-                    if self.stat == 1:
-                        self.turn = 0
-                        text = "동굴안이라고 시원하지 않네_열기가 벌써 안까지 들어온건가?"
-                    if self.stat == 2:
-                        self.turn = 1
-                        text = "침입자인가?"
-                    if self.stat == 3:
-                        self.turn = 1
-                        boss.real_appear = True
-                        self.boss_appear_img = True
-                        text = "여기서 당장 나가시지?_같은 포켓몬이라 해도 서로 해치는건 안된다고"
-                    if self.stat == 4:
-                        self.turn = 0
-                        text = "넌 누구를 보호하고 있는거냐?"
-                    if self.stat == 5:
-                        self.turn = 1
-                        text = "그건 알려줄 수 없다!"
-                    if self.stat == 6:
-                        self.turn = 1
-                        pygame.mixer.music.stop()
-                        pygame.mixer.music.load(BOSS_BGM5)
-                        pygame.mixer.music.play(-1)
-                        text = "그 정체를 알고싶다면_날 먼저 쓰러뜨려야 할 것 이다!"
-                    if self.stat == 7:
-                        # 보스전 시작
-                        self.pause = True
-                        boss.attack_start = True
-                        self.char_move = [-80,-80]
-                        boss.count = 0
-                        self.count = 0
-                    if self.stat == 8:
-                        self.turn = 0
-                        text = "자 그럼 지나간다?"
-                        boss.count = 0
-                    if self.stat == 9:
-                        self.turn = 1
-                        text = "흑흑.. 죄송합니다!"
-                    if self.stat == 10:
-                        # 대화 끝
-                        self.boss_appear_img = False
-                        self.started = False
-                        self.count = 0
-                if boss.num == 11:
-                    if self.stat == 1:
-                        self.turn = 0
-                        text = "동굴안이라고 시원하지 않네_열기가 벌써 안까지 들어온건가?"
-                    if self.stat == 2:
-                        self.turn = 1
-                        text = "침입자인가?"
-                    if self.stat == 3:
-                        self.turn = 1
-                        boss.real_appear = True
-                        self.boss_appear_img = True
-                        text = "여기서 당장 나가시지?_같은 포켓몬이라 해도 서로 해치는건 안된다고"
-                    if self.stat == 4:
-                        self.turn = 0
-                        text = "넌 누구를 보호하고 있는거냐?"
-                    if self.stat == 5:
-                        self.turn = 1
-                        text = "그건 알려줄 수 없다!"
-                    if self.stat == 6:
-                        self.turn = 1
-                        pygame.mixer.music.stop()
-                        pygame.mixer.music.load(BOSS_BGM6)
-                        pygame.mixer.music.play(-1)
-                        text = "그 정체를 알고싶다면_날 먼저 쓰러뜨려야 할 것 이다!"
-                    if self.stat == 7:
-                        # 보스전 시작
-                        self.pause = True
-                        boss.attack_start = True
-                        self.char_move = [-80,-80]
-                        boss.count = 0
-                        self.count = 0
-                    if self.stat == 8:
-                        self.turn = 0
-                        text = "자 그럼 지나간다?"
-                        boss.count = 0
-                    if self.stat == 9:
-                        self.turn = 1
-                        text = "흑흑.. 죄송합니다!"
-                    if self.stat == 10:
-                        # 대화 끝
-                        self.boss_appear_img = False
-                        self.started = False
-                        self.count = 0
+                read_text = m_text_scroll[self.stat-1] if character == 0 else s_text_scroll[self.stat-1]
+                read_text = read_text.split(':')
+                if read_text[0] == '#P':
+                    self.turn = 0
+                    text = read_text[1]
+                if read_text[0] == '#A':
+                    self.turn = 1
+                    boss.real_appear = True
+                    self.boss_appear_img = True
+                    text = read_text[1]
+                if read_text[0] == '#B':
+                    self.turn = 1
+                    text = read_text[1]
+                if read_text[0] == '#M':
+                    self.turn = 1
+                    pygame.mixer.music.stop()
+                    if boss.num == 2:pygame.mixer.music.load(BOSS_BGM1)
+                    if boss.num == 4:pygame.mixer.music.load(BOSS_BGM2)
+                    if boss.num == 6:pygame.mixer.music.load(BOSS_BGM3)
+                    if boss.num == 8:pygame.mixer.music.load(BOSS_BGM4)
+                    if boss.num == 10:pygame.mixer.music.load(BOSS_BGM5)
+                    if boss.num == 11:pygame.mixer.music.load(BOSS_BGM6)
+                    pygame.mixer.music.play(-1)
+                    text = read_text[1]
+                if read_text[0] == '#S':
+                    self.pause = True
+                    boss.attack_start = True
+                    self.char_move = [-80,-80]
+                    boss.count = 0
+                    self.count = 0
+                if read_text[0] == '#E':
+                    self.boss_appear_img = False
+                    self.started = False
+                    self.count = 0
+                    # if self.stat == 8:
+                    #     self.turn = 0
+                    #     text = "확실히 시원하긴 하네~"
+                    #     boss.count = 0
                 if self.stat > 0:
                     textlist = text.split('_')
                     self.text = self.font.render(textlist[0], True, (255,255,255) if self.turn == 0 else (255, 87, 84))
@@ -1652,9 +1492,6 @@ def play_game():
             if self.started and not self.pause:
                 try:                    
                     if self.stat > 0: 
-                        if self.count >= 50: # 대화              
-                            up_render_layer.blit(self.image1,(0+self.char_move[0],HEIGHT-200-self.char_move[0]))
-                            if self.boss_appear_img: up_render_layer.blit(self.image2,(WIDTH-100-self.char_move[1],HEIGHT-200-self.char_move[1]))
                         up_render_layer.blit(self.textbox,(50,HEIGHT-125))
                         up_render_layer.blit(self.text,(100,HEIGHT-115))
                         up_render_layer.blit(self.text2,(100,HEIGHT-90))
@@ -1664,13 +1501,9 @@ def play_game():
                     pass
 
         def re_start(self):
-            self.image1 =  pygame.Surface((100,200), pygame.SRCALPHA)
-            self.image2 =  pygame.Surface((100,200), pygame.SRCALPHA)
-            self.image1.fill((255,255,255))
-            self.image2.fill((255,255,255))
-            self.stat = 0
             self.text = ""
             self.text2 = ""
+            self.stat = 0
             self.started = False
             self.pause = False
             self.count = 0
@@ -1725,10 +1558,8 @@ def play_game():
 
     def bullet(pos,dir,speed,img,col,mode=0,num = (0,0)):
         spr.add(Bullet(pos[0]*2,pos[1]*2,dir,speed,img,col,mode,num))
-        if img == 19: spr.sprites().insert(len(spr.sprites()),spr.sprites().pop(0))
     def sbullet(pos,dir,speed,img,col,mode=0,num = (0,0)):
         spr.add(Bullet(pos[0],pos[1],dir,speed,img,col,mode,num))
-        if img == 19: spr.sprites().insert(len(spr.sprites()),spr.sprites().pop(0))
     def bullet_effect(sound,col,pos,only_sound = False):
         if not sound == 0:
             if sound == s_tan1:tan_channel.play(sound)
@@ -1921,7 +1752,7 @@ def play_game():
     # 개발자 전용
     
     global bkgd, time_stop
-    global stage_count, boss_group, screen_shake_count
+    global stage_count, boss_group, screen_shake_count, pause
     # 초기 설정
     enemy_group = pygame.sprite.Group()
     boss = Boss_Enemy(-99,-99)
@@ -1956,7 +1787,7 @@ def play_game():
     # 게임 시작전 메뉴 변수들
     spr = pygame.sprite.Group()
     magic_spr = pygame.sprite.Group()
-    player = Player(-125,-125,5,500)
+    player = Player(-125,-125,5,100)
     player_group = pygame.sprite.Group(player)
     player_hitbox = Player_hit()
     player_sub = Player_sub(1)
@@ -2494,7 +2325,7 @@ def play_game():
         if num == 2: 
             boss.pos = (WIDTH+64,HEIGHT+64)
             boss.radius = 40
-            boss.image.blit(pokemons[1],(0,0))         
+            boss.image.blit(pokemons[1],pokemons[2],pokemons[3],pokemons[4],(0,0))         
             boss.num = 2
             boss.spell = [spells[0]]
             boss.dies = True
@@ -2811,11 +2642,11 @@ def play_game():
                 pos = set_bossmove_point((WIDTH-150,HEIGHT//2,0),120,3)
                 if ready:
                     if when_time(count,60):
-                        magic_bullet((WIDTH,pos[1]),180,10,1)
-                        magic_bullet((WIDTH+15,pos[1]+100),180,10,1)
-                        magic_bullet((WIDTH+20,pos[1]-100),180,10,1)
-                        magic_bullet((WIDTH+25,pos[1]+200),180,10,1)
-                        magic_bullet((WIDTH+30,pos[1]-200),180,10,1)
+                        magic_bullet((WIDTH,pos[1]),180,18,1)
+                        magic_bullet((WIDTH+15,pos[1]+50),180,18,1)
+                        magic_bullet((WIDTH+20,pos[1]-50),180,18,1)
+                        magic_bullet((WIDTH+25,pos[1]+100),180,18,1)
+                        magic_bullet((WIDTH+30,pos[1]-100),180,18,1)
                     if count == 180:
                         s_ch0.play()
                     if count == 240:
@@ -2824,6 +2655,8 @@ def play_game():
                         count = 0
                     if while_time(count,60):
                         set_go_boss(3,-look_at_player(pos),30)
+                        bullet_effect(s_kira1,2,pos)
+                        bullet(pos,look_at_player(pos),5,15,2)
             if num == 19:
                 pos = set_bossmove_point((WIDTH-150,HEIGHT//2,0),120,3)
                 if ready:
@@ -3586,7 +3419,7 @@ def play_game():
                 bullet(self.pos,look_at_player(self.pos)+95,6,16,5)
         if mod == 4:
             self.count += 1
-            self.pos = move_circle(player.pos,self.count*3+180,300)
+            self.pos = move_circle(player.pos,self.count*3+180,200)
             if while_time(self.count,6):
                 bullet_effect(s_tan1,5,self.pos)
                 bullet(self.pos,look_at_player(self.pos),2,10,5,0.1)
@@ -3634,7 +3467,7 @@ def play_game():
             self.count += 1
             if while_time(self.count,2):
                 #sbullet_effect(s_kira1,6,self.pos)
-                sullet(self.pos,self.count*2.1+180,0,4,5,20)
+                bullet(self.pos,self.count*2.1+180,0,4,5,20)
                 bullet(self.pos,self.count*2.1,0,4,3,20)
 
     def stage_manager():
@@ -3808,7 +3641,7 @@ def play_game():
                                 stage_challenge = 0
                                 stage_line = 0
                                 text.re_start()
-                                stage_end = 120
+                                stage_end = 60
                                 stage_condition = 1
                 if stage_fun == 2:
                     if stage_challenge == 0:
@@ -3920,6 +3753,7 @@ def play_game():
                                 stage_challenge = 0
                                 stage_line = 0
                                 text.re_start()
+                                stage_end = 60
                                 stage_condition = 1   
                 if stage_fun == 3:
                     if stage_challenge == 0:
@@ -4024,6 +3858,7 @@ def play_game():
                                 stage_challenge = 0
                                 stage_line = 0
                                 text.re_start()
+                                stage_end = 60
                                 stage_condition = 1 
                 if stage_fun == 4:
                     if stage_challenge == 0:
@@ -4133,6 +3968,7 @@ def play_game():
                                 stage_challenge = 0
                                 stage_line = 0
                                 text.re_start()
+                                stage_end = 60
                                 stage_condition = 1                                              
                 if stage_fun == 5:
                     if stage_challenge == 0:
@@ -4226,6 +4062,7 @@ def play_game():
                                 stage_challenge = 0
                                 stage_line = 0
                                 text.re_start()
+                                stage_end = 60
                                 stage_condition = 1                      
                 if stage_fun == 6:              
                     if stage_challenge == 0:
@@ -4331,6 +4168,13 @@ def play_game():
                             if curser == 0: 
                                 if practicing and boss.died_next_stage:
                                     pass
+                                elif player.died:
+                                    player.health = player.max_health
+                                    player.power = 400
+                                    player.count = 0
+                                    player.died = False
+                                    pause = False
+                                    pygame.mixer.music.unpause()
                                 else:
                                     pause = False
                                     pygame.mixer.music.unpause()
@@ -4398,14 +4242,14 @@ def play_game():
                 if skillobj_group: skillobj_group.update(screen)
                 spr.update(screen)
                 if not time_stop:
-                    player_hitbox.update()
+                    if not player.died:player_hitbox.update()
                     if beams_group: beams_group.update()                            
                     player_group.update(hit_list)
                     if enemy_group:enemy_group.update()
                     if item_group: item_group.update()
                     if boss.appear: boss_group.update(boss_collide)
                     if effect_group: effect_group.update()
-                    player_sub.update()
+                    if not player.died:player_sub.update()
                     if bomb_group: 
                         bomb_group.update()
                         bomb_hit_group.update()
@@ -4436,8 +4280,8 @@ def play_game():
                 item_group.draw(render_layer)
                 magic_spr.draw(render_layer)      
                 beams_group.draw(render_layer)  
-                player_group.draw(render_layer) 
-                player_sub.draw()
+                if not player.died:player_group.draw(render_layer) 
+                if not player.died:player_sub.draw()
                 enemy_group.draw(render_layer)            
                 if not starting or read_end: enemy_group.draw(render_layer)
                 if boss.appear: boss_group.draw(render_layer)
@@ -4451,7 +4295,7 @@ def play_game():
                 up_render_layer.fill((0,0,0,0))
                 effect_group.draw(up_render_layer)   
                 player.skill_list[player.skill_pointer].draw()                  
-                title.draw()
+                if title.count < 460: title.draw()
                 if text.started:text.draw()
                 ui.draw()
                 if boss.spell and boss.appear and boss.spell[0].spellcard:
@@ -4467,7 +4311,8 @@ def play_game():
                 for i in range(0,3): # 메뉴 그리기
                     menu = pygame.Surface((160,32), SRCALPHA)
                     if curser == i: menu.fill((0,0,0,200))
-                    menu.blit(menu_img,(0,0),(160,80+32*i,160,32))
+                    if i == 0 and player.died:menu.blit(menu_img,(0,0),(160,224,160,32))
+                    else:menu.blit(menu_img,(0,0),(160,80+32*i,160,32))
                     if i == 0 and practicing and boss.died_next_stage: 
                         pygame.draw.rect(menu, (0,0,0,100), (0,0,160,32))
                     pause_menu.blit(menu,(0,200+32*i))
@@ -4508,7 +4353,7 @@ def play_game():
                                 cur_screen = 1  
                                 stage_fun = 0
                                 start_fun = stage_fun  
-                                stage_challenge = 5
+                                #stage_challenge = 5
                                 curser = 0
                             if ev.key == pygame.K_x or ev.key == pygame.K_ESCAPE:
                                 s_cancel.play()
