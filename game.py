@@ -35,8 +35,10 @@ menu_img = pygame.image.load('resources\Image\Menus.png').convert_alpha()
 item_img = pygame.image.load('resources\Image\item.png').convert_alpha()
 skill_img = pygame.image.load('resources\Image\skill.png').convert_alpha()
 ui_img = pygame.image.load('resources\Image\player_ui.png').convert_alpha()
+loding_img = pygame.image.load('resources\Image\Loding.png').convert()
+screen.blit(pygame.transform.scale2x(loding_img),(0,0))
+pygame.display.flip()
 mew_text = open("resources\mew.txt", 'r', encoding="UTF-8")
-background_img = pygame.transform.scale(background_img, (WIDTH, HEIGHT))
 text_scroll = []
 text_start = [0]
 lines = mew_text.readlines()
@@ -47,8 +49,8 @@ for line in lines:
     if line == '#E:#####################################':
         text_start.append(a)
     text_scroll.append(line)
-msfx_volume = 20
-mmusic_volume = 0
+msfx_volume = 60
+mmusic_volume = 70
 try:sfx_volume = msfx_volume/100
 except:sfx_volume = 0
 try:music_volume = mmusic_volume/100
@@ -90,6 +92,7 @@ BOSS_BGM3 = 'resources\Music\BGM\\3Boss.wav'
 BOSS_BGM4 = 'resources\Music\BGM\\4Boss.wav'
 BOSS_BGM5 = 'resources\Music\BGM\\5Boss.wav'
 BOSS_BGM6 = 'resources\Music\BGM\\6Boss.wav'
+TITLE = 'resources\Music\BGM\\title.wav'
 
 tan_channel = pygame.mixer.Channel(0)
 kira_channel = pygame.mixer.Channel(1)
@@ -291,7 +294,7 @@ boss_background = pygame.Surface((1080,720))
 # 폰트 불러오기
 score_font = pygame.font.Font(FONT_1, 25)
 font1 = pygame.font.Font(FONT_1, 18)
-score_setting = (10,10,987650,10,0,0,0,0,0)
+score_setting = (10,10,987650,200,0,0,0,0,0)
 bullet_border_wide = 200
 bullet_border = Rect(0-bullet_border_wide, 0-bullet_border_wide, WIDTH*2 + bullet_border_wide, HEIGHT*2 + bullet_border_wide)
 small_border = Rect(0, 0, WIDTH*2, HEIGHT*2)
@@ -356,8 +359,8 @@ def play_game():
             self.hit_dir = 0
             self.skill_list = []
             self.skill_pointer = 0
-            self.gatcha = 70
-            self.gatcha_max = 70
+            self.gatcha = 50
+            self.gatcha_max = 50
             self.died = False
         def update(self,collide):
             global screen_shake_count, pause, drilling
@@ -369,10 +372,10 @@ def play_game():
                 if keys[pygame.K_LSHIFT]:self.speed = 2
                 else:self.speed = 4           
                 # 화면 밖으로 안나감
-                if keys[pygame.K_RIGHT]:dx += 0 if self.rect.centerx >= WIDTH-20 else self.speed            
-                if keys[pygame.K_LEFT]:dx -= 0 if self.rect.centerx <= 0 + 20 else self.speed            
-                if keys[pygame.K_DOWN]:dy += 0 if self.rect.centery >= HEIGHT-20 else self.speed               
-                if keys[pygame.K_UP]:dy -= 0 if self.rect.centery <= 0+20 else self.speed
+                if keys[pygame.K_RIGHT]:dx += 0 if self.rect.centerx >= WIDTH-10 else self.speed            
+                if keys[pygame.K_LEFT]:dx -= 0 if self.rect.centerx <= 0 + 10 else self.speed            
+                if keys[pygame.K_DOWN]:dy += 0 if self.rect.centery >= HEIGHT-10 else self.speed               
+                if keys[pygame.K_UP]:dy -= 0 if self.rect.centery <= 0+10 else self.speed
                 if self.rect.centerx <= -100: 
                     dx = 0
                     dy = 0
@@ -439,10 +442,10 @@ def play_game():
                 else:
                     # 키보드 먹히기
                     self.pos = (self.pos[0] + dx*dt, self.pos[1] + dy*dt) 
-                if self.pos[0] <= 20: self.pos = (20,self.pos[1])
-                if self.pos[0] >= WIDTH-20: self.pos = (WIDTH-20,self.pos[1])
-                if self.pos[1] <= 20: self.pos = (self.pos[0],20)
-                if self.pos[1] >= HEIGHT-20: self.pos = (self.pos[0],HEIGHT-20)
+                if self.pos[0] <= 10: self.pos = (10,self.pos[1])
+                if self.pos[0] >= WIDTH-10: self.pos = (WIDTH-10,self.pos[1])
+                if self.pos[1] <= 10: self.pos = (self.pos[0],10)
+                if self.pos[1] >= HEIGHT-10: self.pos = (self.pos[0],HEIGHT-10)
                 self.real_pos = (self.pos[0]*2,self.pos[1]*2)            
                 self.rect.center = round(self.pos[0]), round(self.pos[1]) 
             if self.died:
@@ -598,6 +601,8 @@ def play_game():
             self.save = 1
             self.text = val
             self.name = name
+            self.pos = [WIDTH//2+50,HEIGHT//2]
+            self.pos_stage = [WIDTH//2+10,HEIGHT//2-20]
     class Beam(pygame.sprite.Sprite):
         def __init__(self, pos, num=0, dir=0):
             global add_dam
@@ -639,7 +644,7 @@ def play_game():
                 self.image = pygame.Surface((20, 20), pygame.SRCALPHA)
                 pygame.draw.circle(self.image, 'red', (10,10), 10)
                 self.speed = 0
-                self.damage = 100
+                self.damage = 200
                 player.gatcha = 0
             if self.num == 5:
                 self.image = pygame.Surface((40, 24), pygame.SRCALPHA)
@@ -802,7 +807,7 @@ def play_game():
                         if self.image_num == 0:self.image = self.image2                
                         if self.image_num == 1:self.image = pygame.transform.rotate(self.image2, -10)
                         if self.image_num == 2:self.image = pygame.transform.rotate(self.image2, 10)                      
-                        self.rect = self.image.get_rect(center = (round(self.pos[0]),round(self.pos[1])))
+                    
                     # 빔에 맞았을때
                     if len(collide) > 0 and not self.godmod:                               
                         for beam in collide:
@@ -815,6 +820,8 @@ def play_game():
                                 self.real_health -= beam.damage
                                 beam.died = True
                     if self.health <= 0 and not self.dieleft and self.ready: # 체력다 닳음 죽은적이없고 스펠시전 중이였을때 실행
+                        self.image = self.image2 
+                        self.image_num = 0
                         self.count = 0
                         self.move_ready = False
                         self.ready = False
@@ -847,6 +854,7 @@ def play_game():
                             for _ in range(0,40):
                                 item_group.add(Item(get_new_pos((self.pos[0]*2,self.pos[1]*2),randint(-200,200),randint(-200,200)),1))
                     self.count += 1
+                    self.rect = self.image.get_rect(center = self.pos)
                 # 처음등장시 중앙으로 오기
                 if self.real_appear and not self.attack_start and not self.dieleft:
                     if distance(self.pos,(WIDTH-150,HEIGHT//2)) <= 2:
@@ -1029,6 +1037,8 @@ def play_game():
                 if distance(self.pos,boss.pos) <= 20:
                     self.speed = 0
                     self.pos = boss.pos
+                if distance(self.pos,boss.pos) <= 2:
+                    boss.health -= 3
                 
             if self.pos[0] >= WIDTH:self.kill()
             self.count += 1
@@ -1089,6 +1099,7 @@ def play_game():
                             enemy.health -= 50
                     if hit_rect.colliderect(boss.rect):
                         boss.health -= 50
+                    self.cool = 0
                 if self.num == 7: # 거품발사
                     if while_time(self.cool,5):
                         self.pos = player.pos
@@ -1216,10 +1227,13 @@ def play_game():
                     if count >= 240:self.radius -= 18
                     for enemy in enemy_group.sprites():
                         if distance(self.pos,enemy.pos) <= self.radius//2:
-                            enemy.health -= 1
+                            enemy.health -= 10
                     if distance(self.pos,boss.pos) <= self.radius//2:
-                        boss.health -= 1
-
+                        boss.health -= 10
+                    for enemy in spr.sprites():
+                        if distance(self.pos,(enemy.pos[0]//2,enemy.pos[1]//2)) <= self.radius//2:
+                            item_group.add(Item(enemy.pos,1))
+                            enemy.kill()
             if not self.cool == 0:self.cool -= 1
             if not self.draw_cool == 0:self.draw_cool -= 1
         def draw(self,screen):
@@ -1324,7 +1338,9 @@ def play_game():
             if self.grazed and dist <= 25 and not player.godmod:
                 s_graze.play()
                 score += score_setting[3]
-                self.grazed = False        
+                self.grazed = False    
+                if player.gatcha < player.gatcha_max: 
+                    player.gatcha += 1   
             # 화면에 없으면 없애기    
                    
             if self.screen_die==0 and not small_border.colliderect(self.rect):       
@@ -1611,10 +1627,7 @@ def play_game():
                     self.boss_appear_img = False
                     self.started = False
                     self.count = 0
-                    # if self.stat == 8:
-                    #     self.turn = 0
-                    #     text = "확실히 시원하긴 하네~"
-                    #     boss.count = 0
+                    boss.count = 0
                 if self.stat > 0:
                     textlist = text.split('_')
                     self.text = self.font.render(textlist[0], True, (255,255,255) if self.turn == 0 else (255, 87, 84))
@@ -2058,7 +2071,7 @@ def play_game():
             bkgd_list.append(Back_Ground(bg_image,(0,1080,720,360),10,10))
             bkgd_list.append(Back_Ground(bg_image,(540,1080,540,360),8,11))
         if fun == 5:
-            bkgd_list.append(Back_Ground(bg_image,(0,1440,540,360),5,8,12))
+            bkgd_list.append(Back_Ground(bg_image,(0,1440,540,360),5,8,0))
         if fun == 6:
             bkgd_list.append(Back_Ground(bg_image,(0,1800,540,360),5,8,0))
 
@@ -2123,7 +2136,7 @@ def play_game():
                 if val == 10:
                     enemy_group.add(Enemy(x,y,180,4,20,18,30,val,Skill(7,2,"모양은 원모양","거품발사",20,50)))
                 if val == 11:
-                    enemy_group.add(Enemy(x,y,180+randint(-10,10),4,20,16,30,val,Skill(8,0,"불끌때 제법인","물대포",10,90)))
+                    enemy_group.add(Enemy(x,y,180+randint(-10,10),4,20,16,30,val,Skill(8,2,"불끌때 제법인","물대포",10,90)))
             ##################### 3 스테이지 $$$$$$$$$$$$$$$$$
             if stage_fun == 3:
                 if val == 12:
@@ -2553,7 +2566,7 @@ def play_game():
             boss.radius = 40
             boss.image.blit(pokemons[6],(0,0))         
             boss.num = num
-            boss.spell = [spells[34],spells[33],spells[34],spells[35],spells[36],spells[37],spells[38]]
+            boss.spell = [spells[32],spells[33],spells[34],spells[35],spells[36],spells[37],spells[38]]
             boss.dies = True
             boss_background.blit(bg2_image,(0,0),(0,0,540,360))
             boss_background.blit(bg2_image,(0,0),(0,360,540,360))
@@ -2806,10 +2819,10 @@ def play_game():
                         s_kira0.play()
                         add_effect(pos,5)
                         count = 0
-                    if while_time(count,60):
+                    if while_time(count,120):
                         set_go_boss(3,-look_at_player(pos),30)
                         bullet_effect(s_kira1,2,pos)
-                        bullet(pos,look_at_player(pos),5,15,2)
+                        bullet(pos,look_at_player(pos),4,15,2)
             if num == 19:
                 pos = set_bossmove_point((WIDTH-150,HEIGHT//2,0),120,3)
                 if ready:
@@ -2915,7 +2928,7 @@ def play_game():
                 boss.box_disable = True
                 if ready:
                     if while_time(count,2) and boss.move_speed == 20:
-                        rand = (randint(-100,100),randint(-100,100))
+                        rand = (randint(-50,50),randint(-50,50))
                         bullet_effect(s_tan1,7,get_new_pos(pos,rand[0],rand[1]))
                         bullet(get_new_pos(pos,rand[0],rand[1]),-boss.move_dir,8,15,7)     
                     if while_time(count,3) and boss.list[0]:
@@ -2925,7 +2938,7 @@ def play_game():
                             bullet(calculate_new_xy(pos,60*i,sub,True),-sub-90,4,1,7)                       
                     if while_time(count,60):
                         set_go_boss(20,-look_at_point(pos,(0,player.pos[1])),999)                
-                    if pos[0] < 32 and not boss.list[0]:
+                    if pos[0] < 64 and not boss.list[0]:
                         boss.move_speed = 5
                         boss.list[0] = True
                         s_enep2.play()
@@ -2981,13 +2994,13 @@ def play_game():
                             bullet(calculate_new_xy(pos,60*i,sub,True),-sub+90,5,1,4)
                             bullet(calculate_new_xy(pos,60*i,sub,True),-sub+135,5,1,4)
                     if while_time(count,2) and big_small(count,60,80):
-                        rand = (randint(-100,100),randint(-100,100))
+                        rand = (randint(-50,50),randint(-50,50))
                         bullet_effect(s_tan1,4,get_new_pos(pos,rand[0],rand[1]))
                         bullet(get_new_pos(pos,rand[0],rand[1]),look_at_player(pos)+randint(-5,5),7,17,7)
-                        rand = (randint(-100,100),randint(-100,100))
+                        rand = (randint(-50,50),randint(-50,50))
                         bullet_effect(s_tan1,4,get_new_pos(pos,rand[0],rand[1]))
                         bullet(get_new_pos(pos,rand[0],rand[1]),look_at_player(pos)+randint(-5,5),7,17,7)
-                        rand = (randint(-100,100),randint(-100,100))
+                        rand = (randint(-50,50),randint(-50,50))
                         bullet_effect(s_tan1,4,get_new_pos(pos,rand[0],rand[1]))
                         bullet(get_new_pos(pos,rand[0],rand[1]),look_at_player(pos)+randint(-5,5),7,17,7)
                     if while_time(count,4)and big_small(count,80,100): 
@@ -3457,6 +3470,7 @@ def play_game():
                     self.direction += 2
                 else:
                     self.direction -= 2
+            if self.count == 120: self.speed = self.speed // 2
         if mod == 9:  # 60초후 넘 값의 방향으로 속도3
             self.count += 1
             self.screen_die = True
@@ -3581,8 +3595,8 @@ def play_game():
                 bullet(self.pos,look_at_player(self.pos)+95,6,16,4)
         if mod == 5:
             if self.count == 0:
-                sbullet_effect(s_tan1,1,self.pos)
-                sbullet(self.pos,self.direction,0,15,1,17)
+                bullet_effect(s_tan1,1,self.pos)
+                bullet(self.pos,self.direction,0,15,1,17)
             self.count += 1
             if while_time(self.count,5) and self.count <= 180:
                 bullet(self.pos,self.direction+randint(-20,20),0,1,1,16,self.count)
@@ -4268,7 +4282,8 @@ def play_game():
                                 stage_challenge = 0
                                 stage_line = 0
                                 text.re_start()
-                                stage_condition = 1 
+                                stage_end = 60
+                                stage_condition = 1   
                     
                 stage_cline = 0
         else:
@@ -4355,6 +4370,7 @@ def play_game():
                             pause = False
                             pygame.mixer.music.unpause()
             if game_restart:
+                frame_count = 0
                 break
             
             # 탄에 박았는가
@@ -4371,7 +4387,7 @@ def play_game():
             if boss.appear: boss_collide = pygame.sprite.spritecollide(boss, beams_group, False, pygame.sprite.collide_circle)
             # 연산 업데이트
             if not pause:      
-                if len(magic_spr.sprites()) != 0:magic_spr.update(screen)    
+                if magic_spr.sprites():magic_spr.update(screen)    
                 if boss.appear and boss.health <= 0: remove_allbullet()  
                 if boss.fire_field_radius > 0:
                     for item in spr.sprites():
@@ -4461,6 +4477,11 @@ def play_game():
             
             pygame.display.flip()       
         if cur_screen == 0:
+            if frame_count == 0:
+                pygame.mixer.music.stop()
+                pygame.mixer.music.load(TITLE)
+                pygame.mixer.music.play(-1)
+                frame_count -= 1
             for ev in pygame.event.get():
                 if ev.type == pygame.QUIT: # 게임끄기
                     play = False
@@ -4492,7 +4513,7 @@ def play_game():
                                 player.power = 0
                                 cur_screen = 1  
                                 stage_fun = 0
-                                start_fun = stage_fun  
+                                start_fun = stage_fun
                                 frame_count = 0
                                 curser = 0
                             if ev.key == pygame.K_x or ev.key == pygame.K_ESCAPE:
@@ -4508,6 +4529,7 @@ def play_game():
                                 start_fun = stage_fun  
                                 cur_screen = 1 
                                 practicing = True
+                                frame_count = 0
                                 curser = 0
                             if ev.key == pygame.K_x or ev.key == pygame.K_ESCAPE:
                                 s_cancel.play()
