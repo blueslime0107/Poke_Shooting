@@ -1,0 +1,9 @@
+Z : shot
+X : use main skill
+Shift : slow move
+Ctrl : shoot pokeball
+C : use sub skill
+D : change next sub skill
+shoot pokeball to pokemon
+when pokemon fall down
+you will get a sub skill

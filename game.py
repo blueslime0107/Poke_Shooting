@@ -39,6 +39,9 @@ loding_img = pygame.image.load('resources\Image\Loding.png').convert()
 screen.blit(pygame.transform.scale2x(loding_img),(0,0))
 pygame.display.flip()
 mew_text = open("resources\mew.txt", 'r', encoding="UTF-8")
+text_text = open("resources\how_to_play.txt", 'r', encoding="UTF-8")
+text_credit = open("resources\credit.txt", 'r', encoding="UTF-8")
+score_text = open("resources\score.txt", 'r', encoding="UTF-8")
 text_scroll = []
 text_start = [0]
 lines = mew_text.readlines()
@@ -49,6 +52,22 @@ for line in lines:
     if line == '#E:#####################################':
         text_start.append(a)
     text_scroll.append(line)
+htp_scroll = []
+credit_scroll = []
+lines = text_text.readlines()
+for line in lines:
+    line = line.strip()
+    htp_scroll.append(line)
+lines = text_credit.readlines()
+for line in lines:
+    line = line.strip()
+    credit_scroll.append(line)
+score_scroll = []
+lines = score_text.readlines()
+for line in lines:
+    line = line.strip()
+    score_scroll.append(line)
+
 msfx_volume = 60
 mmusic_volume = 70
 try:sfx_volume = msfx_volume/100
@@ -80,6 +99,7 @@ s_select = pygame.mixer.Sound('resources\Music\SFX\se_ok00.wav')
 s_cancel = pygame.mixer.Sound('resources\Music\SFX\se_cancel00.wav')
 s_pause = pygame.mixer.Sound('resources\Music\SFX\se_pause.wav')
 FONT_1 = 'resources\Font\SEBANG Gothic Bold.ttf' 
+FONT_2 = 'resources\Font\SEBANG Gothic.ttf'
 FIELD_1 = 'resources\Music\BGM\\1Stage.wav'
 FIELD_2 = 'resources\Music\BGM\\2Stage.wav'
 FIELD_3 = 'resources\Music\BGM\\3Stage.wav'
@@ -294,7 +314,8 @@ boss_background = pygame.Surface((1080,720))
 # 폰트 불러오기
 score_font = pygame.font.Font(FONT_1, 25)
 font1 = pygame.font.Font(FONT_1, 18)
-score_setting = (10,10,987650,200,0,0,0,0,0)
+#쌀점,경험치,고속주행,그레이즈, 포획, 스펠클리어
+score_setting = (100,2000,1,200,100000,777777,0,0,0)
 bullet_border_wide = 200
 bullet_border = Rect(0-bullet_border_wide, 0-bullet_border_wide, WIDTH*2 + bullet_border_wide, HEIGHT*2 + bullet_border_wide)
 small_border = Rect(0, 0, WIDTH*2, HEIGHT*2)
@@ -304,10 +325,10 @@ bullet_size = (10,6,8,8,6,6,6,9,6,7,7,4,5,15,15,20,10,10,10,20)
 game_restart = False
 
 def play_game():
-    
     global WIDTH, HEIGHT, screen,prev_time,bkgd_list,boss_background, mmusic_volume, msfx_volume,music_volume, sfx_volume, game_restart, score
     start_fun = 0
     practicing = False
+    continued = 0
     def music_and_sfx_volume():
         pygame.mixer.music.set_volume(music_volume)
         s_lazer1.set_volume(sfx_volume)
@@ -363,14 +384,16 @@ def play_game():
             self.gatcha_max = 50
             self.died = False
         def update(self,collide):
-            global screen_shake_count, pause, drilling
+            global screen_shake_count, pause, drilling,score
             if not self.died:
                 dx, dy = 0 , 0
                 inum = self.img_num
                 self.img_num = 0
                 # 플레이어 이동 조종 SHIFT 를 누르면 느리게 움직이기
                 if keys[pygame.K_LSHIFT]:self.speed = 2
-                else:self.speed = 4           
+                else:
+                    self.speed = 4  
+                    score += score_setting[2]         
                 # 화면 밖으로 안나감
                 if keys[pygame.K_RIGHT]:dx += 0 if self.rect.centerx >= WIDTH-10 else self.speed            
                 if keys[pygame.K_LEFT]:dx -= 0 if self.rect.centerx <= 0 + 10 else self.speed            
@@ -390,7 +413,7 @@ def play_game():
                         if character == 41:
                             beams_group.add(Beam(get_new_pos(player.pos,5,15),2))
                             beams_group.add(Beam(get_new_pos(player.pos,5,-15),2))
-                    if keys[K_KP_0] and self.gatcha >= self.gatcha_max:
+                    if keys[K_LCTRL] and self.gatcha >= self.gatcha_max:
                         beams_group.add(Beam(get_new_pos(player.pos,5),4))
                 # 모양이 바꼈을 때만 모양 업데이트
                 self.img_num = self.img_num + keys[pygame.K_RIGHT] + keys[pygame.K_LEFT]*2
@@ -418,6 +441,7 @@ def play_game():
                 
                 # 무적이면 2초뒤 풀리기
                 if self.godmod and self.hit_speed <= 0:
+                    boss.spell_clear = False
                     self.godmod_count -= 1
                     if 0 >= self.godmod_count:
                         self.godmod = False
@@ -665,7 +689,6 @@ def play_game():
             if not small_border.colliderect(self.rect):self.appear = False
             
             self.damage += add_dam
-            print(add_dam)
             self.image = pygame.transform.rotate(self.image, self.direction)
         def update(self):
             # 화면 나가면 삭제
@@ -726,7 +749,7 @@ def play_game():
                 enemy_boom_channel.play(s_enedead)
                 effect_group.add(Effect(self.pos,1))
                 effect_group.add(Effect(self.pos,3))
-                for i in range(0,math.ceil(self.max_health/50)):
+                for i in range(0,math.ceil(self.max_health/25)):
                     rand = [randint(-100,100),randint(-100,100)]
                     if rand[1] < 32: rand[1] = 32
                     if rand[1] >688: rand[1] = 688
@@ -772,6 +795,7 @@ def play_game():
             self.box_disable = False
             self.fire_field = [0,0]
             self.fire_field_radius = 0
+            self.spell_clear = True
 
         def update(self, collide):
             global score, screen_shake_count, clock_fps
@@ -830,6 +854,8 @@ def play_game():
                         self.fire_field = (0,0)
                         self.fire_field_radius = 0
                         self.move_speed = 0
+                        if self.spell_clear and self.spell[0].spellcard: score+=score_setting[5]
+                        self.spell_clear = True
                         add_effect(self.pos,5)
                         if len(self.spell) > 1: # 스펠카드가 남아있다면 안죽기                            
                             del self.spell[0] # 사용한 스펠 삭제
@@ -883,7 +909,7 @@ def play_game():
                             self.real_appear = False
                         if self.death_count == 130:
                             clock_fps = 60
-                            text.pause = False
+                            if not self.num == 11:text.pause = False
                             self.dieleft = False
                             self.appear = False
                             self.death_count = 0
@@ -1039,6 +1065,7 @@ def play_game():
                     self.pos = boss.pos
                 if distance(self.pos,boss.pos) <= 2:
                     boss.health -= 3
+                    if boss.health <= 0: self.kill()  
                 
             if self.pos[0] >= WIDTH:self.kill()
             self.count += 1
@@ -1207,8 +1234,8 @@ def play_game():
                     if Rect(player.pos[0]-100,player.pos[1]-100,WIDTH*2,200).collidepoint(boss.pos):
                         boss.health -= 4
                     for enemy in spr.sprites():
-                        if Rect(player.pos[0]-100,player.pos[1]-100,WIDTH*2,200).collidepoint(enemy.pos):
-                            item_group.add(Item(enemy.pos,1))
+                        if Rect(player.pos[0]-100,player.pos[1]-100,WIDTH*2,200).collidepoint((enemy.pos[0]//2,enemy.pos[1]//2)):
+                            item_group.add(Item((enemy.pos[0]//2,enemy.pos[1]//2),1))
                             enemy.kill()
                 if self.num == 25:
                     if player.godmod:
@@ -1488,9 +1515,9 @@ def play_game():
                 if self.num == 0: 
                     if player.power < 450: player.power += 1 # 먹으면 파워업
                     if player.gatcha < player.gatcha_max: player.gatcha += 1 # 먹으면 파워업
-                    score += 2000
+                    score += score_setting[1]
                 if self.num == 1:
-                    score += 1000
+                    score += score_setting[0]
                 item_channel.play(s_item0)
                 self.kill()
             # 좌표 600이상이면 플레이어 다라가기
@@ -1541,7 +1568,7 @@ def play_game():
             up_render_layer.blit(self.power_pallete,(0,0))
 
             score_text = score_font.render(str(score).zfill(10), True, (255,255,255))
-            up_render_layer.blit(score_text,(WIDTH-score_text.get_rect().width,0))            
+            up_render_layer.blit(score_text,(WIDTH-160,0))            
     class Under_PI():
         def __init__(self):
             self.slow_image = slow_player_circle[0]
@@ -1916,7 +1943,7 @@ def play_game():
     # 개발자 전용
     
     global bkgd, time_stop
-    global stage_count, boss_group, screen_shake_count, pause, add_dam, drilling
+    global stage_count, boss_group, screen_shake_count, pause, add_dam, drilling,cur_count,game_clear
     # 초기 설정
     enemy_group = pygame.sprite.Group()
     boss = Boss_Enemy(-99,-99)
@@ -1926,12 +1953,14 @@ def play_game():
     cur_full_mod = False
     pause = False
     frame_count = 0
+    cur_count = 0
     time_stop = False
     stage_count = 0
     screen_shake_count = 0
 
     add_dam = 0
     drilling = False
+    game_clear = False
 
     
     global character
@@ -1971,7 +2000,7 @@ def play_game():
     starting = True
     read_end = False
 
-    spells = [Spell(1,1000,False),Spell(2,1000,True),Spell(3,1000,False),Spell(4,1300,True),\
+    spells = [Spell(1,1000,False),Spell(2,1000,True),Spell(3,1000,False),Spell(4,1000,False),\
     Spell(5,1300,True),Spell(6,1300,False),Spell(7,1300,True),Spell(8,1300,False),Spell(9,2000,True),Spell(10,1300,False),\
         Spell(11,2800,True),Spell(12,2000,True),Spell(13,1000,False),Spell(14,1000,False),Spell(15,1000,False),Spell(16,2000,True),Spell(17,1000,False),Spell(18,2000,True),\
             Spell(19,1000,False),Spell(20,1000,True),Spell(21,1000,True),Spell(22,1000,False),Spell(23,1000,False),Spell(24,1000,False),\
@@ -2493,7 +2522,7 @@ def play_game():
             boss.radius = 40
             boss.image.blit(pokemons[1],(0,0))         
             boss.num = 2
-            boss.spell = [spells[0],spells[1],spells[2],spells[4]]
+            boss.spell = [spells[3],spells[1],spells[2],spells[4]]
             boss.dies = True
             boss_background.blit(bg2_image,(0,0),(0,0,1080,720))
             text.started = True
@@ -2601,27 +2630,50 @@ def play_game():
                             bullet(pos,look_at_player(pos)+i,5,4,5)
                             bullet(pos,look_at_player(pos)+i+5,5,4,5)
                             bullet(pos,look_at_player(pos)+i-5,5,4,5)
-                    if when_time(count,60):
-                        set_go_boss(2,90,50)
-                    if when_time(count,180):
-                        set_go_boss(2,-90,50)
+                    if while_time(count,120):
+                        set_go_boss(3,choice([-90,90]),60)
                         count = 0
             if num == 2:
                 pos = set_bossmove_point((WIDTH-150,HEIGHT/2),120,3)
                 if ready:
                     if while_time(count,30):
                         rand = randint(0,15)
-                        add_effect(pos,2,2)
-                        s_tan1.play()
+                        bullet_effect(s_tan1,5,pos)
                         for i in range(0,360,15):
                             bullet(pos,i+rand,4,3,2)
                     if while_time(count+1,180):
-                        add_effect(pos,2,5)
-                        s_tan1.play()
+                        bullet_effect(s_tan1,5,pos)
                         for i in range(1,20):
-                            bullet(pos,look_at_player(pos),i/2,5,5)             
+                            bullet(pos,look_at_player(pos),i/2,5,5)   
+                    if while_time(count+20,180):                  
+                        bullet_effect(s_tan1,5,pos)
+                        for i in range(1,20):
+                            bullet(pos,look_at_player(pos),i/2,5,5)
+                    if while_time(count+40,180):
+                        bullet_effect(s_tan1,5,pos)
+                        for i in range(1,20):
+                            bullet(pos,look_at_player(pos),i/2,5,5)          
             if num == 3:
-                pos = set_bossmove_point((WIDTH-150,HEIGHT//2,0),120,3)
+                pos = set_bossmove_point((WIDTH-150,HEIGHT//2),120,3)
+                if ready:
+                    if while_time(count,20) and count < 120:
+                        bullet_effect(s_tan1,5,pos)
+                        for i in range(0,360,30):
+                            bullet(pos,look_at_player(pos)+i,5,4,5)
+                            bullet(pos,look_at_player(pos)+i+5,5,4,5)
+                            bullet(pos,look_at_player(pos)+i-5,5,4,5)
+                    if when_time(count,120):
+                        bullet_effect(s_tan1,5,pos)
+                        for i in range(0,360,20):
+                            bullet(pos,i,5,3,5)
+                        set_go_boss(3,choice([-90,90]),60)
+                    if when_time(count,180):
+                        bullet_effect(s_tan1,5,pos)
+                        for i in range(1,10):
+                            bullet(pos,look_at_player(pos),i/2,5,5)  
+                        count = 0
+            if num == 4:
+                pos = set_bossmove_point((WIDTH-150,HEIGHT//2),120,3)
                 if ready:
                     if while_time(count,20) and count < 120:
                         add_effect(pos,2,5)
@@ -2630,41 +2682,29 @@ def play_game():
                             bullet(pos,look_at_player(pos)+i,5,4,5)
                             bullet(pos,look_at_player(pos)+i+5,5,4,5)
                             bullet(pos,look_at_player(pos)+i-5,5,4,5)
-                            bullet(pos,look_at_player(pos)+i,3,1,5)
-                            bullet(pos,look_at_player(pos)+i+5,3,1,5)
-                            bullet(pos,look_at_player(pos)+i-5,3,1,5)
-                    if when_time(count,60):
-                        set_go_boss(2,90,50)
+                    if while_time(count,120):
+                        bullet_effect(s_tan1,5,pos)
+                        for i in range(0,360,20):
+                            bullet(pos,i,5,3,5)
+                        set_go_boss(3,choice([-90,90]),60)
                     if when_time(count,180):
-                        set_go_boss(2,-90,50)
                         count = 0
-            if num == 4:
-                pos = set_bossmove_point((WIDTH-150,HEIGHT//2,0),120,3)
-                if ready:
-                    if while_time(count,15):
-                        rand = randint(0,15)
-                        add_effect(pos,2,0)
-                        s_tan1.play()
-                        for i in range(0,360,15):
-                            bullet((pos[0]+randint(-60,60),pos[1]+randint(-60,60)),i+rand,5,randint(2,3),randint(1,7))
-                    if while_time(count,180):
-                        set_go_boss(2,randint(0,360),30)
             if num == 5:
                 pos = set_bossmove_point((WIDTH-150,HEIGHT//2,0),120,3)
                 if ready:
                     if while_time(count,4):
-                        s_tan2.play()
+                        bullet_effect(s_tan2,0,0,True)
                         bullet(pos,count*2,4,4,5)
                         bullet(pos,count*2+180,4,4,5)
                     if while_time(count,60) and count > 180:
                         dir = look_at_player(pos)
-                        s_tan1.play()
+                        s_tan2.play()
                         add_effect(pos,2,5)
                         bullet(pos,dir,2,15,5)
-                        bullet((pos[0]+30,pos[1]),dir,2,15,5)
-                        bullet((pos[0]-30,pos[1]),dir,2,15,5)
-                        bullet((pos[0],pos[1]+30),dir,2,15,5)
-                        bullet((pos[0],pos[1]-30),dir,2,15,5)
+                        bullet((pos[0]+10,pos[1]),dir,2,15,5)
+                        bullet((pos[0]-10,pos[1]),dir,2,15,5)
+                        bullet((pos[0],pos[1]+10),dir,2,15,5)
+                        bullet((pos[0],pos[1]-10),dir,2,15,5)
             if num == 6:
                 pos = set_bossmove_point((WIDTH-150,HEIGHT//2,0),120,3)
                 if ready:
@@ -3810,6 +3850,7 @@ def play_game():
                                 text.re_start()
                                 stage_end = 60
                                 stage_condition = 1
+                                boss.died_next_stage = False   
                 if stage_fun == 2:
                     if stage_challenge == 0:
                         pokemon_spawn(8,(WIDTH,HEIGHT),120,-135,4)
@@ -3922,6 +3963,7 @@ def play_game():
                                 text.re_start()
                                 stage_end = 60
                                 stage_condition = 1   
+                                boss.died_next_stage = False   
                 if stage_fun == 3:
                     if stage_challenge == 0:
 
@@ -4027,6 +4069,7 @@ def play_game():
                                 text.re_start()
                                 stage_end = 60
                                 stage_condition = 1 
+                                boss.died_next_stage = False   
                 if stage_fun == 4:
                     if stage_challenge == 0:
                         if while_poke_spawn(10,24,1):
@@ -4136,7 +4179,8 @@ def play_game():
                                 stage_line = 0
                                 text.re_start()
                                 stage_end = 60
-                                stage_condition = 1                                              
+                                stage_condition = 1     
+                                boss.died_next_stage = False                                            
                 if stage_fun == 5:
                     if stage_challenge == 0:
                         if while_poke_spawn(10,24,1):
@@ -4230,7 +4274,8 @@ def play_game():
                                 stage_line = 0
                                 text.re_start()
                                 stage_end = 60
-                                stage_condition = 1                      
+                                stage_condition = 1    
+                                boss.died_next_stage = False                  
                 if stage_fun == 6:              
                     if stage_challenge == 0:
                         title_spawn(6,120)
@@ -4275,15 +4320,7 @@ def play_game():
                         next_challenge(360)
                     if stage_challenge == 2:
                         if not boss.appear and not boss.died_next_stage: 
-                            boss_spawn(11)
-                        if boss.died_next_stage:
-                            stage_count = 0
-                            if not text.started:
-                                stage_challenge = 0
-                                stage_line = 0
-                                text.re_start()
-                                stage_end = 60
-                                stage_condition = 1   
+                            boss_spawn(11)  
                     
                 stage_cline = 0
         else:
@@ -4315,6 +4352,7 @@ def play_game():
                             text.next_text()
                         if ev.key == pygame.K_x and player.mp > 0:
                             skill_activating.append(Skill_Core(26,295))
+                            boss.spell_clear = False
                             player.mp -= 1      
                         if ev.key == pygame.K_c and player.skill_list[player.skill_pointer].pp > 0:
                             player.skill_list[player.skill_pointer].pp -= 1    
@@ -4337,8 +4375,10 @@ def play_game():
                                     player.health = player.max_health
                                     player.power = 400
                                     player.count = 0
+                                    player.mp = 4
                                     player.died = False
                                     pause = False
+                                    continued += 1
                                     pygame.mixer.music.unpause()
                                 else:
                                     pause = False
@@ -4364,7 +4404,8 @@ def play_game():
                                 enemy_group.empty()     
                                 spr.empty()     
                                 item_group.empty()  
-                                boss.reset()                          
+                                boss.reset()             
+                                continued = 0             
                             if curser == 2: game_restart = True
                         if ev.key == pygame.K_ESCAPE:
                             pause = False
@@ -4382,7 +4423,8 @@ def play_game():
                         if not beam.died:
                             enemy[i].health -= beam.damage
                             if beam.num == 4 and enemy[i].health <= 0:
-                                player.skill_list[player.skill_pointer] = enemy[i].skill      
+                                player.skill_list[player.skill_pointer] = enemy[i].skill   
+                                score+=score_setting[4] 
                             beam.died = True                       
             if boss.appear: boss_collide = pygame.sprite.spritecollide(boss, beams_group, False, pygame.sprite.collide_circle)
             # 연산 업데이트
@@ -4416,7 +4458,15 @@ def play_game():
                     stage_count += 1
                     if not bkgd_list == []:
                         for i in bkgd_list:i.update()
-                
+            if boss.died_next_stage and stage_fun == 6 and stage_challenge == 2 and not game_clear:
+                pygame.mixer.music.fadeout(9000)
+                stage_count = 0
+                cur_count = frame_count
+                game_clear = True 
+            if game_clear:
+                if frame_count - cur_count > 600:
+                    cur_screen = 0
+                    frame_count = 0
             # 그리기 시작
             #배경 스크롤
             if frame_count >= 60:
@@ -4447,7 +4497,7 @@ def play_game():
                         screen.blit(scaled,(randint(-20,20),randint(-20,20)))
                         screen_shake_count -= 1
                     spr.draw(screen)
-                    up_render_layer.fill((0,0,0,0))
+                    up_render_layer.fill((255,255,255,0))
                     effect_group.draw(up_render_layer)   
                     player.skill_list[player.skill_pointer].draw()                  
                     if title.count < 460: title.draw()
@@ -4455,6 +4505,10 @@ def play_game():
                     ui.draw()
                     if boss.spell and boss.appear and boss.spell[0].spellcard:
                         boss.spell[0].draw()
+                    if game_clear:
+                        if frame_count-cur_count > 300:
+                            up_render_layer.fill((255,255,255,frame_count-300-cur_count if frame_count-300-cur_count < 256 else 255))
+                    
                     screen.blit(pygame.transform.scale2x(up_render_layer),(0,0))
                 else: 
                     screen.blit(pygame.transform.scale2x(render_layer),(0,0))
@@ -4477,7 +4531,7 @@ def play_game():
             
             pygame.display.flip()       
         if cur_screen == 0:
-            if frame_count == 0:
+            if frame_count == 0 and not game_clear:
                 pygame.mixer.music.stop()
                 pygame.mixer.music.load(TITLE)
                 pygame.mixer.music.play(-1)
@@ -4486,140 +4540,211 @@ def play_game():
                 if ev.type == pygame.QUIT: # 게임끄기
                     play = False
                 if ev.type == pygame.KEYDOWN: 
-                    if ev.key == pygame.K_f:
-                        full_on = False if full_on == True else True  
-                    if ev.key == pygame.K_UP:
-                        curser = curser_max if curser == 0 else curser - 1 # 커서위로
-                        s_ok.play()
-                    if ev.key == pygame.K_DOWN:
-                        curser = 0 if curser == curser_max else curser + 1 # 커서밑으로
-                        s_ok.play()
-
-                    if select_mod == 0: # 시작화면
-                        if ev.key == pygame.K_z or ev.key == pygame.K_RETURN:
-                            s_select.play()
-                            if curser == 3: play = False # 게임끄기
-                            if curser == 0: select_mod += 1 ############ 게임시작
-                            if curser == 1: select_mod += 1 ############ 게임시작
-                            if curser == 2: select_mod += 1 ############ 게임시작
-                            menu_mod = curser # 현재 어떤 버튼 눌렀는지 저장
-                            curser = 0
-                            break
-                    if select_mod == 1:
-                        if menu_mod == 0:
+                    if not game_clear:
+                        if ev.key == pygame.K_f:
+                            full_on = False if full_on == True else True  
+                        if ev.key == pygame.K_UP:
+                            curser = curser_max if curser == 0 else curser - 1 # 커서위로
+                            s_ok.play()
+                        if ev.key == pygame.K_DOWN:
+                            curser = 0 if curser == curser_max else curser + 1 # 커서밑으로
+                            s_ok.play()
+                        if select_mod == 0: # 시작화면
                             if ev.key == pygame.K_z or ev.key == pygame.K_RETURN:
                                 s_select.play()
-                                character = 0 if curser == 0 else 41
-                                player.power = 0
-                                cur_screen = 1  
-                                stage_fun = 0
-                                start_fun = stage_fun
-                                frame_count = 0
+                                if curser == 5: play = False # 게임끄기
+                                else:select_mod += 1 ############ 게임시작
+                                menu_mod = curser # 현재 어떤 버튼 눌렀는지 저장
                                 curser = 0
-                            if ev.key == pygame.K_x or ev.key == pygame.K_ESCAPE:
-                                s_cancel.play()
-                                curser = 0
-                                select_mod -= 1
-                                menu_mod = -1                     
-                        if menu_mod == 1:
-                            if ev.key == pygame.K_z or ev.key == pygame.K_RETURN:
-                                s_select.play()
-                                player.power = 400
-                                stage_fun = curser                                 
-                                start_fun = stage_fun  
-                                cur_screen = 1 
-                                practicing = True
-                                frame_count = 0
-                                curser = 0
-                            if ev.key == pygame.K_x or ev.key == pygame.K_ESCAPE:
-                                s_cancel.play()
-                                curser = 0
-                                select_mod -= 1
-                                menu_mod = -1
-                            if ev.key == pygame.K_RIGHT or ev.key == pygame.K_LEFT:
-                                s_select.play()
-                                character = 41 if character == 0 else 0      
-                        if menu_mod == 2:
-                            if ev.key == pygame.K_RIGHT:
-                                s_ok.play()
-                                if curser == 0:
-                                    full_on = 1 if full_on == 0 else 0
-                                if curser == 1:
-                                    mmusic_volume = mmusic_volume + 5 if mmusic_volume < 100 else 100
-                                if curser == 2:
-                                    msfx_volume = msfx_volume + 5 if msfx_volume < 100 else 100                                
-                            if ev.key == pygame.K_LEFT:
-                                s_ok.play()
-                                if curser == 0:
-                                    full_on = 1 if full_on == 0 else 0
-                                if curser == 1:
-                                    mmusic_volume = mmusic_volume - 5 if mmusic_volume > 0 else 0
-                                if curser == 2:
-                                    msfx_volume = msfx_volume - 5 if msfx_volume > 0 else 0
-                            if ev.key == pygame.K_x or ev.key == pygame.K_ESCAPE:
-                                s_cancel.play()
-                                try:sfx_volume = msfx_volume/100
-                                except:sfx_volume = 0
-                                try:music_volume = mmusic_volume/100
-                                except:music_volume = 0
-                                music_and_sfx_volume()
-                                curser = 0
-                                select_mod -= 1
-                                menu_mod = -1                             
+                                break
+                        if select_mod == 1:
+                            if menu_mod == 0:
+                                if ev.key == pygame.K_z or ev.key == pygame.K_RETURN:
+                                    s_select.play()
+                                    character = 0 if curser == 0 else 41
+                                    player.power = 0
+                                    cur_screen = 1  
+                                    stage_fun = 0
+                                    start_fun = stage_fun
+                                    frame_count = 0
+                                    curser = 0
+                                if ev.key == pygame.K_x or ev.key == pygame.K_ESCAPE:
+                                    s_cancel.play()
+                                    curser = 0
+                                    select_mod -= 1
+                                    menu_mod = -1                     
+                            if menu_mod == 1:
+                                if ev.key == pygame.K_z or ev.key == pygame.K_RETURN:
+                                    s_select.play()
+                                    player.power = 400
+                                    stage_fun = curser                                 
+                                    start_fun = stage_fun  
+                                    cur_screen = 1 
+                                    practicing = True
+                                    frame_count = 0
+                                    curser = 0
+                                if ev.key == pygame.K_x or ev.key == pygame.K_ESCAPE:
+                                    s_cancel.play()
+                                    curser = 0
+                                    select_mod -= 1
+                                    menu_mod = -1
+                                if ev.key == pygame.K_RIGHT or ev.key == pygame.K_LEFT:
+                                    s_select.play()
+                                    character = 41 if character == 0 else 0      
+                            if menu_mod == 2:
+                                if ev.key == pygame.K_x or ev.key == pygame.K_ESCAPE:
+                                    s_cancel.play()
+                                    curser = 0
+                                    select_mod -= 1
+                                    menu_mod = -1
+                            if menu_mod == 3:
+                                if ev.key == pygame.K_x or ev.key == pygame.K_ESCAPE:
+                                    s_cancel.play()
+                                    curser = 0
+                                    select_mod -= 1
+                                    menu_mod = -1
+                            if menu_mod == 4:
+                                if ev.key == pygame.K_RIGHT:
+                                    s_ok.play()
+                                    if curser == 0:
+                                        full_on = 1 if full_on == 0 else 0
+                                    if curser == 1:
+                                        mmusic_volume = mmusic_volume + 5 if mmusic_volume < 100 else 100
+                                    if curser == 2:
+                                        msfx_volume = msfx_volume + 5 if msfx_volume < 100 else 100                                
+                                if ev.key == pygame.K_LEFT:
+                                    s_ok.play()
+                                    if curser == 0:
+                                        full_on = 1 if full_on == 0 else 0
+                                    if curser == 1:
+                                        mmusic_volume = mmusic_volume - 5 if mmusic_volume > 0 else 0
+                                    if curser == 2:
+                                        msfx_volume = msfx_volume - 5 if msfx_volume > 0 else 0
+                                if ev.key == pygame.K_x or ev.key == pygame.K_ESCAPE:
+                                    s_cancel.play()
+                                    try:sfx_volume = msfx_volume/100
+                                    except:sfx_volume = 0
+                                    try:music_volume = mmusic_volume/100
+                                    except:music_volume = 0
+                                    music_and_sfx_volume()
+                                    curser = 0
+                                    select_mod -= 1
+                                    menu_mod = -1                             
+                    else:
+                        if ev.key == K_x or ev.key == K_ESCAPE or ev.key == K_z:
+                            old_score = 0
+                            if character == 0:
+                                old_score = int(score_scroll[0][2:])
+                                if old_score < score:
+                                    score_scroll[0] = "H:"+str(score).zfill(10)
+                                    score_scroll[0] = score_scroll[0]
+                            else:
+                                old_score = score_scroll[1][2:]
+                                if old_score < score:
+                                    score_scroll[1] = "F:"+str(score).zfill(10)
+                                    score_scroll[1] = score_scroll[1]
+                            with open('resources\score.txt','w',encoding="UTF-8") as f:
+                                f.write(score_scroll[0]+"\n")
+                                f.write(score_scroll[1]+"\n")
+                                
+                            game_restart = True
+            if game_restart:
+                frame_count = 0
+                break    
             render_layer.blit(background_img,(0,0))            
             ui_x = WIDTH - 180
-            ui_y = HEIGHT - 200
-            if select_mod == 0: # 시작화면
-                curser_max = 3
-                render_layer.blit(menu_img,(0,0),(0,0,320,48))# 타이틀
-                for i in range(0,4): # 메뉴 그리기
-                    menu = pygame.Surface((160,32), SRCALPHA)
-                    if curser == i: menu.fill((0,0,255,200))
-                    menu.blit(menu_img,(0,0),(0,48+32*i,320,48))
-                    render_layer.blit(menu,(ui_x,ui_y+32*i))
-            if select_mod == 1: # 다음옴션
-                if menu_mod == 0: # 시작>난이도 정하기
-                    curser_max = 1
-                    render_layer.blit(menu_img,(0,0),(0,176,320,32))
-                    for i in range(0,2): # 메뉴 그리기
-                        menu = pygame.Surface((208,32), SRCALPHA)
-                        if curser == i: menu.fill((0,0,0,200))
-                        menu.blit(menu_img,(0,0),(0,208+32*i,192,32))
-                        render_layer.blit(menu,(int(WIDTH/2-240),int(HEIGHT/2-30+64*i-64*curser)))
-                if menu_mod == 1:
+            ui_y = 20
+            if not game_clear:
+                if select_mod == 0: # 시작화면
                     curser_max = 5
-                    text_box = ["Stage1","Stage2","Stage3","Stage4","Stage5","Stage6"]
-                    for i in range(0,6):
-                        text_color = (255,0,255) if i == curser else (0,0,255)
-                        text1 = score_font.render(text_box[i], True, text_color)
-                        render_layer.blit(text1,(100,50+40*i))
-                    if character == 0:
-                        text_color = (255,0,255)
-                        text1 = score_font.render("MEW", True, text_color)                        
-                        render_layer.blit(text1,(300,100))  
-                    else:  
-                        text_color = (0,255,255)
-                        text1 = score_font.render("SELEBI", True, text_color)                        
-                        render_layer.blit(text1,(300,100))                      
-                if menu_mod == 2:
-                    curser_max = 2
-                    text_box = ["화면모드","음악","효과음"]
-                    text_box[0] = "화면모드    창모드" if full_on == 0 else "화면모드    전체화면"
-                    text_box[1] = "음악   " + str(mmusic_volume)
-                    text_box[2] = "효과음  " + str(msfx_volume)
-                    for i in range(0,3):
-                        text_color = (255,0,255) if i == curser else (0,0,255)
-                        text1 = score_font.render(text_box[i], True, text_color)
-                        render_layer.blit(text1,(200,100+40*i))
-            if frame_count > 0:
-                frame_count -= 1
-                if frame_count == 0:
-                    character = 0 if curser == 0 else 41
-                    player.power = 0
-                    cur_screen = 1  
-                    stage_fun = 0
-                    start_fun = stage_fun  
-                    curser = 0
+                    render_layer.blit(menu_img,(0,0),(0,0,320,48))# 타이틀
+                    for i in range(0,6): # 메뉴 그리기
+                        menu = pygame.Surface((160,32), SRCALPHA)
+                        if curser == i: menu.fill((0,0,255,200))
+                        menu.blit(menu_img,(0,0),(0,48+32*i,320,48))
+                        render_layer.blit(menu,(ui_x,ui_y+32*i))
+                    text1 = score_font.render(score_scroll[0], True, (0,0,0))
+                    render_layer.blit(text1,(0,HEIGHT-60))
+                    text1 = score_font.render(score_scroll[1], True, (0,0,0))
+                    render_layer.blit(text1,(2,HEIGHT-30))
+                if select_mod == 1: # 다음옴션
+                    if menu_mod == 0: # 시작>난이도 정하기
+                        curser_max = 1
+                        render_layer.blit(menu_img,(0,0),(0,240,320,48))
+                        for i in range(0,2): # 메뉴 그리기
+                            menu = pygame.Surface((208,32), SRCALPHA)
+                            if curser == i: menu.fill((0,0,0,200))
+                            menu.blit(menu_img,(0,0),(0,288+32*i,192,32))
+                            render_layer.blit(menu,(int(WIDTH/2-240),int(HEIGHT/2-30+64*i-64*curser)))
+                    if menu_mod == 1:
+                        curser_max = 5
+                        text_box = ["Stage1","Stage2","Stage3","Stage4","Stage5","Stage6"]
+                        for i in range(0,6):
+                            text_color = (255,0,255) if i == curser else (0,0,255)
+                            text1 = score_font.render(text_box[i], True, text_color)
+                            render_layer.blit(text1,(100,50+40*i))
+                        if character == 0:
+                            text_color = (0,0,0)
+                            text1 = score_font.render("Homing", True, text_color)                        
+                            render_layer.blit(text1,(300,100))  
+                        else:  
+                            text_color = (0,0,0)
+                            text1 = score_font.render("FFocus", True, text_color)                        
+                            render_layer.blit(text1,(300,100))                      
+                    if menu_mod == 2:
+                        font = pygame.font.Font(FONT_2, 30)
+                        pygame.draw.rect(render_layer, (0,0,0), (20,20,WIDTH-40,HEIGHT-40), width=0)
+                        for text in range(0,len(htp_scroll)):
+                            text1 = font.render(htp_scroll[text], True, (255,255,255))
+                            render_layer.blit(text1,(40,30*text+30))
+                    if menu_mod == 3:
+                        font = pygame.font.Font(FONT_2, 10)
+                        pygame.draw.rect(render_layer, (0,0,0), (20,20,WIDTH-40,HEIGHT-40), width=0)
+                        for text in range(0,len(credit_scroll)):
+                            text1 = font.render(credit_scroll[text], True, (255,255,255))
+                            render_layer.blit(text1,(30,10*text+30))
+                    if menu_mod == 4:
+                        curser_max = 2
+                        text_box = ["화면모드","음악","효과음"]
+                        text_box[0] = "화면모드    창모드" if full_on == 0 else "화면모드    전체화면"
+                        text_box[1] = "음악   " + str(mmusic_volume)
+                        text_box[2] = "효과음  " + str(msfx_volume)
+                        for i in range(0,3):
+                            text_color = (255,0,255) if i == curser else (0,0,255)
+                            text1 = score_font.render(text_box[i], True, text_color)
+                            render_layer.blit(text1,(200,100+40*i))
+                if frame_count > 0:
+                    frame_count -= 1
+                    if frame_count == 0:
+                        character = 0 if curser == 0 else 41
+                        player.power = 0
+                        cur_screen = 1  
+                        stage_fun = 0
+                        start_fun = stage_fun  
+                        curser = 0
+            else:
+                x = 80
+                y = 80 + math.sin(math.pi * (frame_count / 180))*5
+                y2 = 80 + math.sin(math.pi * (frame_count*2 / 180))*5
+                print(math.sin(math.pi * (frame_count / 180))*5)
+                print(y)
+                font = pygame.font.Font(FONT_1, 20)    
+                text1 = font.render("!GAME CLEAR!", True, (0,0,255))   
+                render_layer.blit(text1,(0,0))              
+                text1 = font.render("HP: "+str(player.health)+"/"+str(player.max_health), True, (0,0,0))   
+                render_layer.blit(text1,(x,y)) 
+                if character == 0:text1 = font.render("Weapon:"+"Homing", True, (0,0,0))
+                else: text1 = font.render("Weapon:"+"FFocus", True, (0,0,0))  
+                render_layer.blit(text1,(x+10,y+30)) 
+                text1 = font.render("Continue:"+str(continued), True, (0,0,0))   
+                render_layer.blit(text1,(x+20,y+60)) 
+                text1 = font.render("Final Score", True, (0,0,0))   
+                render_layer.blit(text1,(x+60,y+90)) 
+                text1 = font.render(str(score).zfill(10), True, (0,0,0))   
+                render_layer.blit(text1,(x+60,y+120))
+                render_layer.blit(pokemons[0],(x+260,y2+100))
+                frame_count += 1
+
             if cur_screen == 0:screen.blit(pygame.transform.scale2x(render_layer),(0,0))
             pygame.display.flip()
         
