@@ -1,3 +1,4 @@
+from turtle import position
 from cv2 import circle
 import pygame, math
 from random import randint, uniform, choice
@@ -21,7 +22,7 @@ monitor_size = [pygame.display.Info().current_w, pygame.display.Info().current_h
 screen_rect = render_layer.get_rect()
 bgm_num = 0
 # 소리 초기설정, 불러오기
-pygame.mixer.set_num_channels(32)
+pygame.mixer.set_num_channels(64)
 pygame.event.set_allowed([pygame.QUIT, pygame.KEYDOWN, pygame.KEYUP])
 
 
@@ -36,6 +37,7 @@ item_img = pygame.image.load('resources\Image\item.png').convert_alpha()
 skill_img = pygame.image.load('resources\Image\skill.png').convert_alpha()
 ui_img = pygame.image.load('resources\Image\player_ui.png').convert_alpha()
 loding_img = pygame.image.load('resources\Image\Loding.png').convert()
+title_img = pygame.image.load('resources\Image\\title.png').convert_alpha()
 screen.blit(pygame.transform.scale2x(loding_img),(0,0))
 pygame.display.flip()
 mew_text = open("resources\mew.txt", 'r', encoding="UTF-8")
@@ -68,8 +70,23 @@ for line in lines:
     line = line.strip()
     score_scroll.append(line)
 
+
+
+full_on = False
 msfx_volume = 30
-mmusic_volume = 0
+mmusic_volume = 40
+
+with open('resources\setting.txt','r',encoding="UTF-8") as f:
+    lines = f.readlines()
+    line = lines[0].strip()
+    line = line.split('=')
+    full_on = bool(line[1])
+    line = lines[1].strip()
+    line = line.split('=')
+    msfx_volume = int(line[1])
+    line = lines[2].strip()
+    line = line.split('=')
+    mmusic_volume = int(line[1])
 try:sfx_volume = msfx_volume/100
 except:sfx_volume = 0
 try:music_volume = mmusic_volume/100
@@ -326,7 +343,7 @@ bullet_size = (10,6,8,8,6,6,6,9,6,7,7,4,5,15,15,20,10,10,10,20)
 game_restart = False
 
 def play_game():
-    global WIDTH, HEIGHT, screen,prev_time,bkgd_list,boss_background, mmusic_volume, msfx_volume,music_volume, sfx_volume, game_restart, score
+    global WIDTH, HEIGHT, screen,prev_time,bkgd_list,boss_background, mmusic_volume, msfx_volume,music_volume, sfx_volume, game_restart, score, full_on
     start_fun = 0
     practicing = False
     continued = 0
@@ -410,16 +427,18 @@ def play_game():
                     dy = 0
                 
                 # 총 쏘기 이벤트
-                if ((text.started and text.pause) or not text.started):
-                    if not drilling:
-                        if keys[pygame.K_z] and frame_count % 4 == 0:
-                            plst_channel.play(s_plst0)
-                            beams_group.add(Beam(get_new_pos(player.pos,20,15)))
-                            beams_group.add(Beam(get_new_pos(player.pos,20,-15)))
-                            if self.power > 200:
-                                beams_group.add(Beam(get_new_pos(player.pos,20,15),0,-10))
-                                beams_group.add(Beam(get_new_pos(player.pos,20,-15),0,10))
-                    if self.shoot_gatcha > 0:self.shoot_gatcha -= 1
+                try:
+                    if ((text.started and text.pause) or not text.started):
+                        if not drilling:
+                            if keys[pygame.K_z] and frame_count % 4 == 0:
+                                plst_channel.play(s_plst0)
+                                beams_group.add(Beam(get_new_pos(player.pos,20,15)))
+                                beams_group.add(Beam(get_new_pos(player.pos,20,-15)))
+                                if self.power > 200:
+                                    beams_group.add(Beam(get_new_pos(player.pos,20,15),2,-10))
+                                    beams_group.add(Beam(get_new_pos(player.pos,20,-15),2,10))
+                        if self.shoot_gatcha > 0:self.shoot_gatcha -= 1
+                except:pass
 
                 # 모양이 바꼈을 때만 모양 업데이트
                 self.img_num = self.img_num + keys[pygame.K_RIGHT] + keys[pygame.K_LEFT]*2
@@ -655,6 +674,7 @@ def play_game():
             self.radius = 20
             self.appear = True
             self.died = False
+            self.effect = False
             if self.num == 0: # 뮤 메인
                 self.image.fill((255, 0, 222))
                 pygame.draw.rect(self.image, (247, 178, 238), (1,1,18,14),0)
@@ -670,10 +690,9 @@ def play_game():
                 if boss.attack_start: self.direction = look_at_point(self.pos,boss_group.sprites()[0].pos)
                 self.rect = self.image.get_rect(center = get_new_pos(self.pos))  
             if self.num == 2: # 세레비 메인
-                self.image.fill((255, 0, 222))
-                pygame.draw.rect(self.image, (247, 178, 238), (1,1,18,14),0)
+                pygame.draw.rect(self.image, (247, 178, 238), (0,0,20,16),2)
                 self.speed = 40
-                self.damage = 3
+                self.damage = 1
             if self.num == 3: # 세레비 서브
                 self.image.fill((0, 0, 0) if randint(0,2) == 0 else (255, 255, 255))
                 pygame.draw.rect(self.image, (0, 0, 0) if randint(0,2) == 0 else (255, 255, 255), (2,2,16,12))
@@ -719,7 +738,11 @@ def play_game():
             if not far_border.colliderect(self.rect):
                 self.kill()
             if self.died and not self.num == 7:
-                self.kill()
+                if self.effect:
+                    self.kill()
+                else:
+                    self.image.fill((255,255,255))
+                    self.effect = True
             self.pos = calculate_new_xy(self.pos, self.speed, -self.direction)
             self.rect = self.image.get_rect(center = get_new_pos(self.pos))  
     class Enemy(pygame.sprite.Sprite):
@@ -777,7 +800,7 @@ def play_game():
             if self.health <= 0: # 체력 다 달면 죽기
                 if self.num == 21 and not self.health == -999:
                     bullet_effect(s_tan2,0,self.pos)
-                    for i in range(0,360,20):                       
+                    for i in range(0,360,45):                       
                         bullet(calculate_new_xy(self.pos,20,-i),i,0,12,0,9.4)
                 enemy_boom_channel.play(s_enedead)
                 effect_group.add(Effect(self.pos,1))
@@ -1093,13 +1116,13 @@ def play_game():
                     if distance(self.pos,(bulls.pos[0]//2,bulls.pos[1]//2)) <= 40:
                         bulls.kill()
                         self.direction += 1
-                if self.direction >= 30:
+                if self.direction >= 10:
                     self.kill()
             if self.num == 12:
                 if self.speed == 0:
                     for enemy in enemy_group.sprites():
                         if distance(self.pos,enemy.pos) <= 2:
-                            enemy.health -= 3
+                            enemy.health -= 1
                             if enemy.health <= 0: self.kill()     
                 for enemy in enemy_group.sprites():
                     if distance(self.pos,enemy.pos) <= 20:
@@ -1109,7 +1132,7 @@ def play_game():
                     self.speed = 0
                     self.pos = boss.pos
                 if distance(self.pos,boss.pos) <= 2:
-                    boss.health -= 3
+                    boss.health -= 1
                     if boss.health <= 0: self.kill()  
                 
             if self.pos[0] >= WIDTH:self.kill()
@@ -1152,7 +1175,7 @@ def play_game():
                     for enemy in enemy_group.sprites():
                         if distance(self.pos,enemy.pos) <= 200:
                             enemy.pos = calculate_new_xy(enemy.pos,2,-look_at_player(enemy.pos)+180)
-                    if distance(self.pos,boss.pos) <= 200:
+                    if distance(self.pos,boss.pos) <= 200 and boss.move_ready:
                         boss.pos = calculate_new_xy(boss.pos,2,-look_at_player(boss.pos)+180)
                 if self.num == 4: # 실뿜기
                     if self.cool == self.max_cool:
@@ -1235,8 +1258,9 @@ def play_game():
                     self.pos = player.pos
                     for enemy in enemy_group.sprites():
                         enemy.pos = (enemy.pos[0]+200 if enemy.pos[0]+200 < WIDTH else WIDTH,enemy.pos[1])
-                        enemy.health -= 10
-                    boss.pos = (boss.pos[0]+200 if boss.pos[0]+200 < 504 else 504,boss.pos[1])
+                        enemy.health -= 10 
+                    if boss.move_ready:
+                        boss.pos = (boss.pos[0]+200 if boss.pos[0]+200 < 504 else 504,boss.pos[1])
                     self.cool = 0
                 if self.num == 20:
                     if while_time(self.cool,2):
@@ -1266,16 +1290,18 @@ def play_game():
                         boss.health -= 500
                     self.cool = 0
                 if self.num == 24:
-                    if self.cool == self.max_cool:screen_shake_count = 600
-                    for enemy in enemy_group.sprites():
-                        if Rect(player.pos[0]-100,player.pos[1]-100,WIDTH*2,200).collidepoint(enemy.pos):
-                            enemy.health -= 4
-                    if Rect(player.pos[0]-100,player.pos[1]-100,WIDTH*2,200).collidepoint(boss.pos):
-                        boss.health -= 4
-                    for enemy in spr.sprites():
-                        if Rect(player.pos[0]-100,player.pos[1]-100,WIDTH*2,200).collidepoint((enemy.pos[0]//2,enemy.pos[1]//2)):
-                            item_group.add(Item((enemy.pos[0]//2,enemy.pos[1]//2),1))
-                            enemy.kill()
+                    count = self.max_cool - self.cool
+                    if count == 60:screen_shake_count = 600
+                    if count >= 60:
+                        for enemy in enemy_group.sprites():
+                            if Rect(player.pos[0]-100,player.pos[1]-100,WIDTH*2,200).collidepoint(enemy.pos):
+                                enemy.health -= 4
+                        if Rect(player.pos[0]-100,player.pos[1]-100,WIDTH*2,200).collidepoint(boss.pos):
+                            boss.health -= 4
+                        for enemy in spr.sprites():
+                            if Rect(player.pos[0]-100,player.pos[1]-100,WIDTH*2,200).collidepoint((enemy.pos[0]//2,enemy.pos[1]//2)):
+                                item_group.add(Item((enemy.pos[0]//2,enemy.pos[1]//2),1))
+                                enemy.kill()
                 if self.num == 25:
                     if player.godmod:
                         player.health = player.before_health
@@ -1288,14 +1314,15 @@ def play_game():
                     if count <= 30: self.radius = count*8
                     elif big_small(count,50,110): self.radius -= 3
                     elif big_small(count,120,180): self.radius += 18
+                    if when_time(count , 0): s_cat1.play()
                     if when_time(count , 50): s_ch0.play()
                     if when_time(count , 120): s_boom.play()
                     if count >= 240:self.radius -= 18
                     for enemy in enemy_group.sprites():
                         if distance(self.pos,enemy.pos) <= self.radius//2:
-                            enemy.health -= 10
+                            enemy.health -= 2
                     if distance(self.pos,boss.pos) <= self.radius//2:
-                        boss.health -= 5
+                        boss.health -= 2
                     for enemy in spr.sprites():
                         if distance(self.pos,(enemy.pos[0]//2,enemy.pos[1]//2)) <= self.radius//2:
                             item_group.add(Item(enemy.pos,1))
@@ -1340,8 +1367,12 @@ def play_game():
             if self.num == 22:
                 pygame.draw.circle(screen, (255,0,0,self.draw_cool*3),self.pos, 50)
             if self.num == 24:
-                pygame.draw.rect(screen, (255,255,255,200), Rect(player.pos[0]-100,player.pos[1]-100,WIDTH*2,200))
-                pygame.draw.rect(screen, (255, 248, 115,200), Rect(player.pos[0]-50,player.pos[1]-50,WIDTH*2,100))
+                count = self.max_cool - self.cool
+                if count < 60:
+                    pygame.draw.rect(screen, (255,255,255,200), Rect(player.pos[0]-1,player.pos[1]-1,WIDTH*2,2))
+                else:
+                    pygame.draw.rect(screen, (255,255,255,200), Rect(player.pos[0]-100,player.pos[1]-100,WIDTH*2,200))
+                    pygame.draw.rect(screen, (255, 248, 115,200), Rect(player.pos[0]-50,player.pos[1]-50,WIDTH*2,100))
             if self.num == 25:
                 pygame.draw.circle(screen, (0, 166, 255,180), player.pos, 50)
             if self.num == 26:
@@ -1621,7 +1652,7 @@ def play_game():
             self.power_pallete.blit(self.ui_img,(0,0))
             text = self.ui_font2.render(str(player.power), True, (255,255,255))
             self.power_pallete.blit(text,get_new_pos(self.power_xy,285/2,-15/2)) 
-            text = self.ui_font.render("MP " + str(player.mp)+"/ 8", True, (255,255,255))
+            text = self.ui_font.render("PP " + str(player.mp)+"/ 8", True, (255,255,255))
             self.power_pallete.blit(text,self.skill_xy)            
             self.power_pallete.fill((255, 255, 255, 50 if self.power_pallete_rect.collidepoint(player.pos) else 255), special_flags=pygame.BLEND_RGBA_MULT)
             up_render_layer.blit(self.power_pallete,(0,0))
@@ -1995,7 +2026,6 @@ def play_game():
     boss = Boss_Enemy(-99,-99)
     boss_group = pygame.sprite.Group(boss)
     play = True
-    full_on = False
     cur_full_mod = False
     pause = False
     frame_count = 0
@@ -2051,7 +2081,7 @@ def play_game():
                             Spell(40,1200,False),Spell(41,1800,True,4,"멀리서만 아름다운","신통력"),Spell(42,1200,False),Spell(43,2000,True,9,"용이 부르짖는다","용의파동"),\
                                 Spell(44,1200,False),Spell(45,1700,True,1,"지나간 자리엔 남지않는","쾌청"),Spell(46,1200,False),Spell(47,2400,True,1,"도피하기엔 틈이없다","푸른불꽃"),Spell(48,5000,True,1,"크로스플레임","크로스플레임")]
 
-    player.skill_list.append(Skill(0,7,"Press C key!","몸부림",30,60,10))
+    player.skill_list.append(Skill(3,5,"저리가람","바람일으키기",10,60,30))
     player.skill_list.append(Skill(0,7,"Press C key!","몸부림",30,60,10))
     player.skill_list.append(Skill(0,7,"Press C key!","몸부림",30,60,10))
 
@@ -2490,8 +2520,8 @@ def play_game():
                 if when_time(count,80):
                     bullet_effect(s_tan1,7,pos)
                     for i in range(2,6):
-                        bullet(pos,look_at_player(pos)+3,i,5,7)   
-                        bullet(pos,look_at_player(pos)-3,i,5,7)   
+                        bullet(pos,look_at_player(pos)+6,i,5,7)   
+                        bullet(pos,look_at_player(pos)-6,i,5,7)   
         if stage_fun == 6:
             if num == 27:
                 if when_time(count,60):
@@ -3284,7 +3314,8 @@ def play_game():
                     for i in range(0,360,45):
                         bullet_effect(s_tan1,1,calculate_new_xy(pos,count*3+60,-i-count*4.7,True))
                         bullet(calculate_new_xy(pos,count*3+60,-i-count*4.7,True),i+count*4.4,0,2,1)
-                        bullet(calculate_new_xy(pos,-count*3-60,-i-count*4.7,True),i+count*4.4,0,15,1,0.2)
+                        bullet_effect(s_tan1,2,calculate_new_xy(pos,-count*2-60,-i-count*4.7,True))
+                        bullet(calculate_new_xy(pos,-count*2-60,-i-count*4.7,True),i+count*4.4,0,7,2,0.2)
                 if when_time(count,150):
                     add_effect(pos,8)
                     boss.fire_field = [300,30]
@@ -3293,10 +3324,10 @@ def play_game():
                 if when_time(count,270):
                     set_go_boss(2,randint(0,360),60)
                 if when_time(count,330):
-                    count = 0 
-                if while_time(count,30):
-                    for i in range(0,360,10):
-                        bullet(pos,count*1.7+i,1,4,3)
+                    count = 0
+                if while_time(count,60):
+                    for i in range(0,360,5):
+                        bullet(pos,count*1.7+i,8,4,4,9,[count*1.7+i])
         if num == 42:
             pos = set_bossmove_point((WIDTH-150,HEIGHT//2,0),120,3)
             if ready: 
@@ -3318,7 +3349,7 @@ def play_game():
                     for i in range(0,360,45):
                         bullet_effect(s_tan1,3,calculate_new_xy(pos,200,-i-count*10.3,True))
                         bullet(calculate_new_xy(pos,200,-i-count*10.3,True),i+180+count*10.3,1,2,2)    
-                        bullet(calculate_new_xy(pos,200,-i-count*10.3,True),i+count*10.3+20,5,11,4)   
+                        bullet(calculate_new_xy(pos,200,-i-count*10.3,True),i+count*10.3+20,5,7,4)   
                         bullet(calculate_new_xy(pos,200,-i-count*10.3,True),i+count*10.3-20,5,12,3)
                 if while_time(count+200,300):
                     add_effect(pos,8)
@@ -3338,14 +3369,13 @@ def play_game():
                     set_go_boss(3,choice([60,120,-60,-120]),60)
                 if when_time(count,100):
                     add_effect(pos,8) 
-                if while_time(count,40):
-                    rand = (randint(400,504),randint(35,326))
-                    bullet_effect(s_kira0,2,rand)   
-                    bullet(rand,look_at_point(rand,player.pos),8,19,2) 
                 if while_time(count,2) and big_small(count,120,240):  
                     bullet_effect(s_tan1,1,calculate_new_xy(pos,20,-look_at_player(pos)+randint(-15,15),True))   
-                    bullet(calculate_new_xy(pos,20,-look_at_player(pos)+randint(-15,15),True),look_at_player(boss.pos)+randint(-10,10),12,15,1) 
-                    bullet(calculate_new_xy(pos,20,-look_at_player(pos)+randint(-15,15),True),look_at_player(boss.pos)+randint(-10,10),8,12,1)
+                    bullet(calculate_new_xy(pos,20,-look_at_player(pos)+randint(-15,15),True),look_at_player(boss.pos)+randint(-10,10)+15,12,15,1) 
+                    bullet(calculate_new_xy(pos,20,-look_at_player(pos)+randint(-15,15),True),look_at_player(boss.pos)+randint(-10,10)+15,8,12,1)
+                    bullet(calculate_new_xy(pos,20,-look_at_player(pos)+randint(-15,15),True),look_at_player(boss.pos)+randint(-10,10)-15,12,15,1) 
+                    bullet(calculate_new_xy(pos,20,-look_at_player(pos)+randint(-15,15),True),look_at_player(boss.pos)+randint(-10,10)-15,8,12,1)
+                    bullet(calculate_new_xy(pos,20,-look_at_player(pos)+randint(-15,15),True),look_at_player(boss.pos),7,3,3)
                 if when_time(count,180):
                     set_go_boss(3,choice([60,120,-60,-120]),60)
                 if when_time(count,300):
@@ -3405,8 +3435,8 @@ def play_game():
                 if count > 60:   
                     if while_time(count,3):
                         for i in range(0,360,90):
-                            bullet_effect(s_tan1,4,calculate_new_xy(pos,100,-count*0.7-i,True))
-                            bullet(calculate_new_xy(pos,100,-count*0.7-i,True),count*0.7+i,5,9,4)        
+                            bullet_effect(s_tan1,4,calculate_new_xy(pos,100,-count*-1.7-i,True))
+                            bullet(calculate_new_xy(pos,100,-count*0.7-i,True),count*-1.7+i,5,9,4)        
                         for i in range(0,360,90):
                             bullet_effect(0,3,calculate_new_xy(pos,100,count*2.7+i,True))
                             bullet(calculate_new_xy(pos,100,count*2.7+i,True),-count*2.7-i,8,9,3)    
@@ -3428,40 +3458,37 @@ def play_game():
             pos = set_bossmove_point((WIDTH//2,HEIGHT//2,0),120,3)
             if ready:
                 if count == 1:
-                    s_ch0.play()
-                    boss.fire_field = (360,120)
+                    add_effect(pos,8)
                     boss.list[0] = 0
-                if count == 120:
+                if count == 60:
                     s_enep2.play()            
                 if count > 60:
-                    if while_time(count,boss.list[0]+60):
-                        bullet_effect(s_tan1,0,0,True)
-                        for _ in range(0,10):
-                            bullet((0,randint(4,HEIGHT-4)),0,0,4,1,21)      
-                            bullet((WIDTH,randint(4,HEIGHT-4)),180,0,4,1,21) 
-                            bullet((randint(0,WIDTH),4),-90,0,4,1,21)  
-                            bullet((randint(0,WIDTH),HEIGHT-4),90,0,4,1,21)  
-                    if while_time(count,180) and boss.list[1]>0:
-                        bullet_effect(s_kira0,4,(0,HEIGHT))
-                        bullet_effect(s_kira0,4,(WIDTH,HEIGHT))
-                        bullet_effect(s_kira0,4,(0,0))
-                        bullet_effect(s_kira0,4,(WIDTH,0))
-                        for i in range(1,10):
-                            bullet((0,HEIGHT),look_at_player((0,HEIGHT)),i,1,4)      
-                            bullet((WIDTH,HEIGHT),look_at_player((WIDTH,HEIGHT)),i,1,4) 
-                            bullet((0,0),look_at_player((0,0)),i,1,4)  
-                            bullet((WIDTH,0),look_at_player((WIDTH,0)),i,1,4)     
-                    if while_time(count,240) and boss.list[1]>2:
-                        bullet_effect(s_enep2,1,pos)
+                    if boss.list[0]>3:
+                        if while_time(count,1):
+                            for i in range(0,360,90):
+                                bullet(pos,i+count//1.5,17,15,1)    
+                    else:
+                        if while_time(count,1):
+                            for i in range(0,360,90):
+                                bullet(pos,i+count//2,15,3,1)  
+                    if while_time(count,60) and boss.list[0]>0:
+                        bullet_effect(s_tan1,7,pos)
+                        for i in range(0,360,10):
+                            bullet(pos,count*2.7+i,3,3,7)    
+                    if while_time(count,180) and boss.list[0]>1:
+                        bullet_effect(s_kira0,0,0,True)
+                        for i in range(0,360,10):
+                            bullet(calculate_new_xy(pos,720,-count*1.7-i,True),count*1.7+i+180,2,10,6,23) 
+                    if while_time(count,20) and boss.list[0]>2:
+                        bullet_effect(s_tan2,5,pos)
                         for i in range(0,360,45):
-                            bullet(pos,i+look_at_player(pos),1,19,1)
+                            bullet(pos,i,4,7,5)
                     if boss.health<=boss.max_health-round(boss.max_health/5)*(boss.list[1]+1):
                         boss.health -= 1
                         s_enep2.play()     
                         bullet_clear()
-                        level = [0,2,4]
-                        if boss.list[1] in level:boss.list[0] -= 10
                         boss.list[1] += 1
+                        boss.list[0] += 1
         
         if ready:pos = go_boss()
         else:pos = calculate_new_xy(pos,boss.move_speed,boss.move_dir)
@@ -3652,6 +3679,11 @@ def play_game():
             if self.pos[1] < 0:
                 self.direction  = -self.direction
                 self.pos = (self.pos[0],0)
+        if mod == 23:
+            if self.count == 0:self.screen_die = 2
+            self.count += 1
+            if distance((self.pos[0]//2,self.pos[1]//2),boss.pos) <= 20:
+                self.kill()
 
     def magic_type(self,mod):
         if mod == 1:
@@ -3724,13 +3756,13 @@ def play_game():
                     self.kill()
         if mod == 8:
             self.count += 1
-            if while_time(self.count,4):
+            if while_time(self.count,2):
                 #sbullet_effect(s_kira1,6,self.pos)
                 bullet(self.pos,self.count*2.1,0,4,6,20)
                 bullet(self.pos,-self.count*2.1,0,4,7,20)
         if mod == 9:
             self.count += 1
-            if while_time(self.count,4):
+            if while_time(self.count,2):
                 #sbullet_effect(s_kira1,6,self.pos)
                 bullet(self.pos,self.count*2.1+180,0,4,5,20)
                 bullet(self.pos,self.count*2.1,0,4,3,20)
@@ -4407,7 +4439,7 @@ def play_game():
                                 if player.shoot_gatcha > 0:
                                     beams_group.add(Beam(get_new_pos(player.pos,5),4))
                                 if player.shoot_gatcha == 0:
-                                    player.shoot_gatcha = 30                            
+                                    player.shoot_gatcha = 10                            
                         if (text.started and text.pause) or not text.started:
                             if ev.key == pygame.K_x and player.mp > 0:
                                 skill_activating.append(Skill_Core(26,295))
@@ -4580,8 +4612,7 @@ def play_game():
                     for i in range(0,3): # 메뉴 그리기
                         menu = pygame.Surface((160,32), SRCALPHA)
                         if curser == i: menu.fill((0,0,0,200))
-                        if i == 0 and player.died:menu.blit(menu_img,(0,0),(160,224,160,32))
-                        else:menu.blit(menu_img,(0,0),(160,80+32*i,160,32))
+                        menu.blit(menu_img,(0,0),(160,80+32*i,160,32))
                         if i == 0 and practicing and boss.died_next_stage: 
                             pygame.draw.rect(menu, (0,0,0,100), (0,0,160,32))
                         pause_menu.blit(menu,(0,200+32*i))
@@ -4688,6 +4719,10 @@ def play_game():
                                     try:music_volume = mmusic_volume/100
                                     except:music_volume = 0
                                     music_and_sfx_volume()
+                                    with open('resources\setting.txt','w',encoding="UTF-8") as f:
+                                        f.write("fullscreen"+"="+str(full_on)+"\n")
+                                        f.write("sfx"+"="+str(msfx_volume)+"\n")
+                                        f.write("bgm"+"="+str(mmusic_volume)+"\n")
                                     curser = 0
                                     select_mod -= 1
                                     del menu_mod[len(menu_mod)-1]     
@@ -4745,7 +4780,7 @@ def play_game():
             if not game_clear:
                 if select_mod == 0: # 시작화면
                     curser_max = 5
-                    render_layer.blit(menu_img,(0,0),(0,0,320,48))# 타이틀
+                    render_layer.blit(title_img,(0,0))# 타이틀
                     for i in range(0,6): # 메뉴 그리기
                         menu = pygame.Surface((160,32), SRCALPHA)
                         if curser == i: menu.fill((0,0,255,200))
@@ -4782,15 +4817,15 @@ def play_game():
                     if menu_mod[0] == 2:
                         font = pygame.font.Font(FONT_2, 30)
                         pygame.draw.rect(render_layer, (0,0,0), (20,20,WIDTH-40,HEIGHT-40), width=0)
-                        for text in range(0,len(htp_scroll)):
-                            text1 = font.render(htp_scroll[text], True, (255,255,255))
-                            render_layer.blit(text1,(40,30*text+30))
+                        for texta in range(0,len(htp_scroll)):
+                            text1 = font.render(htp_scroll[texta], True, (255,255,255))
+                            render_layer.blit(text1,(40,30*texta+30))
                     if menu_mod[0] == 3:
                         font = pygame.font.Font(FONT_2, 10)
                         pygame.draw.rect(render_layer, (0,0,0), (20,20,WIDTH-40,HEIGHT-40), width=0)
-                        for text in range(0,len(credit_scroll)):
-                            text1 = font.render(credit_scroll[text], True, (255,255,255))
-                            render_layer.blit(text1,(30,10*text+30))
+                        for texta in range(0,len(credit_scroll)):
+                            text1 = font.render(credit_scroll[texta], True, (255,255,255))
+                            render_layer.blit(text1,(30,10*texta+30))
                     if menu_mod[0] == 4:
                         curser_max = 2
                         text_box = ["화면모드","음악","효과음"]

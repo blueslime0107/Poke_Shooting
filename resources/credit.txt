@@ -1,8 +1,28 @@
-CREDIT
-a
-b
-c
-d
-e
-f
-g
+USED SOURCE
+Music/SFX from Touhou series by ZUN
+Title - Touhou 10 ~ Sealed Gods
+Stage1 - Touhou 12 ~ At the End of Spring
+Boss1 - Touhou 10 ~ Because Princess Inada Is Scolding Me
+Stage2 - Touhou 16 ~ The Colorless Wind on Youkai Mountain
+Boss2 - Touhou 12 ~ Beware the Umbrella Left There Forever
+Stage3 - Touhou 12 ~ Sky Ruin
+Boss3 - Touhou 16 ~ A Pair of Divine Beasts
+Stage4 - Touhou 13 ~ Desire Drive
+Boss4 - Touhou 13 ~ Old Distant Hermit
+Stage5 - Touhou 17 ~ Beast Metropolis
+Boss5 - Touhou 11 ~ Corpse Voyage ~ Be of good cheer!
+Stage6 - Touhou 10 ~ Cemetery of Onbashira ~ Grave of Being
+Boss6 - Touhou 13 ~ Shoutoku Legend ~ True Administrator
+
+Graphic
+Pokemons from Pokemon / Black White
+Title image from Pokemon Gold / Silver
+
+and other background, item, skill image etc..
+blueslime
+
+Program
+blueslime
+
+Special
+you!

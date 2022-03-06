@@ -1,0 +1,3 @@
+fullscreen=True
+sfx=30
+bgm=40
