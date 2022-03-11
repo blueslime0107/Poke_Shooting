@@ -1,3 +1,3 @@
-fullscreen=False
-sfx=0
-bgm=0
+fullscreen=True
+sfx=30
+bgm=40

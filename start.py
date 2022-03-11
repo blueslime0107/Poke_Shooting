@@ -1,12 +1,10 @@
 import pygame
 from pygame.locals import *
 import time
-
 pygame.init()
 pygame.mixer.pre_init(44100,-16,2,512)
-pygame.mixer.set_num_channels(64)
-audio_mixer = pygame.mixer
 
+# 해상도
 WIDTH = 540
 HEIGHT = 360
 render_layer = pygame.Surface((WIDTH,HEIGHT))
@@ -17,6 +15,10 @@ monitor_size = [pygame.display.Info().current_w, pygame.display.Info().current_h
 screen_rect = render_layer.get_rect()
 bgm_num = 0
 # 소리 초기설정, 불러오기
+pygame.mixer.set_num_channels(64)
+pygame.event.set_allowed([pygame.QUIT, pygame.KEYDOWN, pygame.KEYUP])
+
+
 # 이미지 불러오기
 bullet_image = pygame.image.load('resources\Image\Bullets.png').convert_alpha()
 bg_image = pygame.image.load('resources\Image\Bg1.png').convert_alpha()
@@ -64,26 +66,24 @@ for line in lines:
 
 
 full_on = False
-msfx_volume = 0
-mmusic_volume = 0
-sfx_volume = 0
-music_volume = 0
+msfx_volume = 30
+mmusic_volume = 40
 
 with open('resources\setting.txt','r',encoding="UTF-8") as f:
     lines = f.readlines()
     line = lines[0].strip()
     line = line.split('=')
-    if line[1] == '0' or line[1] == 'False':
-        full_on = False
-    else:
-        full_on = True
+    full_on = bool(line[1])
     line = lines[1].strip()
     line = line.split('=')
     msfx_volume = int(line[1])
     line = lines[2].strip()
     line = line.split('=')
     mmusic_volume = int(line[1])
-
+try:sfx_volume = msfx_volume/100
+except:sfx_volume = 0
+try:music_volume = mmusic_volume/100
+except:music_volume = 0
 
 s_lazer1 = pygame.mixer.Sound('resources\Music\SFX\se_lazer00.wav')
 s_tan1 = pygame.mixer.Sound('resources\Music\SFX\se_tan00.wav')
@@ -123,35 +123,6 @@ BOSS_BGM4 = 'resources\Music\BGM\\4Boss.wav'
 BOSS_BGM5 = 'resources\Music\BGM\\5Boss.wav'
 BOSS_BGM6 = 'resources\Music\BGM\\6Boss.wav'
 TITLE = 'resources\Music\BGM\\title.wav'
-
-try:sfx_volume = msfx_volume/100
-except:sfx_volume = 0
-try:music_volume = mmusic_volume/100
-except:music_volume = 0
-pygame.mixer.music.set_volume(music_volume)
-s_lazer1.set_volume(sfx_volume)
-s_tan1.set_volume(sfx_volume)
-s_tan2.set_volume(sfx_volume)
-s_ch2.set_volume(sfx_volume)
-s_ch0.set_volume(sfx_volume)
-s_cat1.set_volume(sfx_volume)
-s_enep1.set_volume(sfx_volume)
-s_enep2.set_volume(sfx_volume)
-s_slash.set_volume(sfx_volume)
-s_pldead.set_volume(sfx_volume)
-s_plst0.set_volume(sfx_volume)
-s_damage0.set_volume(sfx_volume)
-s_damage1.set_volume(sfx_volume)
-s_graze.set_volume(sfx_volume)
-s_kira0.set_volume(sfx_volume)
-s_kira1.set_volume(sfx_volume)
-s_boom.set_volume(sfx_volume)
-s_item0.set_volume(sfx_volume)
-s_enedead.set_volume(sfx_volume)
-s_ok.set_volume(sfx_volume)
-s_cancel.set_volume(sfx_volume)
-s_select.set_volume(sfx_volume)
-s_pause.set_volume(sfx_volume)
 
 tan_channel = pygame.mixer.Channel(0)
 kira_channel = pygame.mixer.Channel(1)
@@ -363,3 +334,33 @@ near_border= Rect(0, 0, WIDTH, HEIGHT)
 far_border= Rect(-50, -50, WIDTH+100, HEIGHT+100)
 bullet_size = (10,6,8,8,6,6,6,9,6,7,7,4,5,15,15,20,10,10,10,20)
 game_restart = False
+effect_group = 0
+
+def music_and_sfx_volume():
+    pygame.mixer.music.set_volume(music_volume)
+    s_lazer1.set_volume(sfx_volume)
+    s_tan1.set_volume(sfx_volume)
+    s_tan2.set_volume(sfx_volume)
+    s_ch2.set_volume(sfx_volume)
+    s_ch0.set_volume(sfx_volume)
+    s_cat1.set_volume(sfx_volume)
+    s_enep1.set_volume(sfx_volume)
+    s_enep2.set_volume(sfx_volume)
+    s_slash.set_volume(sfx_volume)
+    s_pldead.set_volume(sfx_volume)
+    s_plst0.set_volume(sfx_volume)
+    s_damage0.set_volume(sfx_volume)
+    s_damage1.set_volume(sfx_volume)
+    s_graze.set_volume(sfx_volume)
+    s_kira0.set_volume(sfx_volume)
+    s_kira1.set_volume(sfx_volume)
+    s_boom.set_volume(sfx_volume)
+    s_item0.set_volume(sfx_volume)
+    s_enedead.set_volume(sfx_volume)
+    s_ok.set_volume(sfx_volume)
+    s_cancel.set_volume(sfx_volume)
+    s_select.set_volume(sfx_volume)
+    s_pause.set_volume(sfx_volume)
+
+
+    

@@ -1,12 +1,14 @@
 import pygame
-from start import *
-from main_func import *
+from pygame.locals import *
+import start as st
+import norm_func as nf
+ 
 
 class Player(pygame.sprite.Sprite):
     def __init__(self, x, y, speed, health):
         pygame.sprite.Sprite.__init__(self) # 초기화?
         self.image = pygame.Surface((128, 128), pygame.SRCALPHA) # 이미지          
-        self.image.blit(pokemons[0],(0,-5)) # 이미지 위치조정
+        self.image.blit(st.pokemons[0],(0,-5)) # 이미지 위치조정
         self.rect = self.image.get_rect(center = (round(x), round(y)))
         self.image2 = self.image.copy()
         self.img_num = 0
@@ -31,9 +33,8 @@ class Player(pygame.sprite.Sprite):
         self.died = False
         self.gihapetii = True
         self.shoot_gatcha = 0
-        self.drilling = False
-    def update(self,collide,text):
-        global screen_shake_count, pause, score
+    def update(self,collide):
+        global screen_shake_count, pause, drilling,score
         if not self.died:
             dx, dy = 0 , 0
             inum = self.img_num
@@ -58,7 +59,7 @@ class Player(pygame.sprite.Sprite):
             # 총 쏘기 이벤트
             try:
                 if ((text.started and text.pause) or not text.started):
-                    if not player.drilling:
+                    if not drilling:
                         if keys[pygame.K_z] and frame_count % 4 == 0:
                             plst_channel.play(s_plst0)
                             beams_group.add(Beam(get_new_pos(player.pos,20,15)))
@@ -138,7 +139,7 @@ class Player_hit(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.pos = (0,0)
         self.radius = 3
-    def update(self, player):
+    def update(self):
         self.pos = (player.pos[0]*2,player.pos[1]*2)
         self.rect.center = self.pos    
 class Player_sub():
@@ -152,15 +153,17 @@ class Player_sub():
         self.radi = 40
         self.count = 0
     
-    def update(self, text, player, bg, character):
+    def update(self):
+        global drilling
         keys = pygame.key.get_pressed()
         if (text.started and text.pause) or not text.started:
-            if not player.drilling:                
+            if not drilling:
+                
                 if keys[pygame.K_z] and while_time(self.count,6) and player.power >= 100:
                     for i in range(0,int(player.power/100)):
-                        if character == 0:bg.add(Beam(get_new_pos(self.ballxy[i],16,16),1))
+                        if character == 0:beams_group.add(Beam(get_new_pos(self.ballxy[i],16,16),1))
                         else:
-                            bg.add(Beam(get_new_pos(self.ballxy[i],16,16),3))
+                            beams_group.add(Beam(get_new_pos(self.ballxy[i],16,16),3))
         if character == 0:
             if keys[pygame.K_LSHIFT] and self.adddir <= 30:
                 self.adddir += 2
@@ -214,13 +217,13 @@ class Player_sub():
         if player.power >= 400:render_layer.blit(self.ball,get_new_pos(self.ballxy[3]))
 class Skill():
     def __init__(self,num,col,sub_msg,msg,pp,cool,refill=0):
-        font2 = pygame.font.Font(FONT_2, 9)
+        font2 = pygame.font.Font(st.FONT_2, 9)
         self.image = pygame.Surface((200,37), SRCALPHA)
-        self.image.blit(skill_img,(0,0),(0,37*col,200,37))
+        self.image.blit(st.skill_img,(0,0),(0,37*col,200,37))
         self.image = pygame.transform.flip(self.image, True, True)
         self.num = num
         self.cool = cool
-        text = font1.render(msg, True, (255,255,255))
+        text = st.font1.render(msg, True, (255,255,255))
         self.image.blit(text,(1,1))
         text = font2.render(sub_msg, True, (255,255,255))
         self.image.blit(text,(1,24))
@@ -249,8 +252,8 @@ class Tittle():
         self.save = 1
         self.text = "Stage 1"
         self.name = "드넓은 초원"
-        self.pos = [WIDTH//2+50,HEIGHT//2]
-        self.pos_stage = [WIDTH//2+10,HEIGHT//2-20]
+        self.pos = [st.WIDTH//2+50,st.HEIGHT//2]
+        self.pos_stage = [st.WIDTH//2+10,st.HEIGHT//2-20]
     def draw(self):
         if self.count < 600: 
             title_text = score_font.render(self.text, True, (0, 176, 26))
@@ -489,7 +492,6 @@ class Boss_Enemy(pygame.sprite.Sprite):
         self.fire_field = [0,0]
         self.fire_field_radius = 0
         self.spell_clear = True
-        self.sin = 0
 
     def update(self, collide):
         global score, screen_shake_count, clock_fps
@@ -524,8 +526,7 @@ class Boss_Enemy(pygame.sprite.Sprite):
                 if inum != self.image_num:
                     if self.image_num == 0:self.image = self.image2                
                     if self.image_num == 1:self.image = pygame.transform.rotate(self.image2, -10)
-                    if self.image_num == 2:self.image = pygame.transform.rotate(self.image2, 10)              
-                self.rect = self.image.get_rect(center = self.pos)        
+                    if self.image_num == 2:self.image = pygame.transform.rotate(self.image2, 10)                      
                 
                 # 빔에 맞았을때
                 if len(collide) > 0 and not self.godmod:                               
@@ -574,9 +575,8 @@ class Boss_Enemy(pygame.sprite.Sprite):
                             item_group.add(Item(get_new_pos((self.pos[0]*2,self.pos[1]*2),randint(-100,100),randint(-100,100)),0))
                         for _ in range(0,40):
                             item_group.add(Item(get_new_pos((self.pos[0]*2,self.pos[1]*2),randint(-200,200),randint(-200,200)),1))
-                if self.move_speed == 0:self.sin += 4
                 self.count += 1
-                
+                self.rect = self.image.get_rect(center = self.pos)
             # 처음등장시 중앙으로 오기
             if self.real_appear and not self.attack_start and not self.dieleft:
                 if distance(self.pos,(WIDTH-150,HEIGHT//2)) <= 2:
@@ -625,7 +625,7 @@ class Boss_Enemy(pygame.sprite.Sprite):
                         self.appear = False 
                         self.count = 0                          
             
-        self.rect.center = get_new_pos(self.pos,0,math.sin(math.pi * (self.sin / 180))*5) 
+        self.rect.center = self.pos
 
     def reset(self):
         self.image = pygame.Surface((128,128), pygame.SRCALPHA)      
@@ -667,11 +667,11 @@ class Spell():
         self.spellcard = spellcard
         self.num = number
         self.count = 0
-        self.font = pygame.font.Font(FONT_2, 10)
-        self.font2 = pygame.font.Font(FONT_1, 20)
+        self.font = pygame.font.Font(st.FONT_2, 10)
+        self.font2 = pygame.font.Font(st.FONT_1, 20)
         self.image = pygame.Surface((200,40), pygame.SRCALPHA)
         if self.spellcard:
-            self.image.blit(skill_img,(0,0),(0,0+37*col,200,37))
+            self.image.blit(st.skill_img,(0,0),(0,0+37*col,200,37))
             text = self.font.render(sub_name, True, 'white')
             self.image.blit(text,(13,2))
             text = self.font2.render(name, True, 'white')
@@ -682,7 +682,6 @@ class Spell():
             up_render_layer.blit(self.image,(WIDTH-200,(self.count-60)**2))
         if self.count > 85: up_render_layer.blit(self.image,(WIDTH-200,320))
         self.count += 1
-
 class Spell_Obj(pygame.sprite.Sprite):
     def __init__(self, pos, direction, speed,  mod):
         pygame.sprite.Sprite.__init__(self)   
@@ -770,7 +769,6 @@ class Spell_Obj(pygame.sprite.Sprite):
         if not small_border.colliderect(self.rect): self.kill()
         self.pos = calculate_new_xy(self.pos, self.speed, -self.direction)
         self.rect.center = self.pos
-
 class Skill_Core(): # 스킬 능력 구현
     def __init__(self, num, cool):
         self.num = num
@@ -780,7 +778,7 @@ class Skill_Core(): # 스킬 능력 구현
         self.pos = (0,0)
         self.radius = 0
     def update(self,bos):
-        global add_dam, screen_shake_count
+        global add_dam, drilling, screen_shake_count
         if self.cool > 0:
             if self.num == 0: # 몸부림
                 player.pos = get_new_pos(player.pos,randint(-20,20),randint(-20,20))
@@ -874,11 +872,11 @@ class Skill_Core(): # 스킬 능력 구현
                         beams_group.add(Beam(player.pos,6,self.cool*1.4+i))
             if self.num ==17:
                 if self.cool == self.max_cool:
-                    player.drilling = True
+                    drilling = True
                     player.godmod = True
                     player.godmod_count = 60
                     player.max_godmod_count = player.godmod_count
-                if self.cool == self.max_cool//2:player.drilling = False
+                if self.cool == self.max_cool//2:drilling = False
             if self.num == 18:
                 if player.godmod:
                     bullet_clear()
@@ -982,7 +980,7 @@ class Skill_Core(): # 스킬 능력 구현
         if self.num == 16:
             pygame.draw.circle(screen, (255,255,0,210),player.pos, round(self.draw_cool/2),2)
         if self.num == 17: 
-            if player.drilling:pygame.draw.circle(screen, (255,255,0,210-self.draw_cool),player.pos, 240-self.draw_cool*2,4)   
+            if drilling:pygame.draw.circle(screen, (255,255,0,210-self.draw_cool),player.pos, 240-self.draw_cool*2,4)   
         if self.num == 18:
             pygame.draw.circle(screen, (0,0,0,50),player.pos, 300) 
             pygame.draw.circle(screen, (0,0,0,100),player.pos, 400,100) 
@@ -1007,7 +1005,6 @@ class Skill_Core(): # 스킬 능력 구현
             pygame.draw.circle(screen, (0, 166, 255,180), player.pos, 50)
         if self.num == 26:
             pygame.draw.circle(screen, (255, 100, 215,180), player.pos, self.radius//2)
-# 총알     ############################################
 class Bullet(pygame.sprite.Sprite):
     
     def __init__(self, x, y, direction, speed, bul, col, mod, num=(0,0)):
@@ -1086,8 +1083,6 @@ class Bullet(pygame.sprite.Sprite):
             self.rect = self.image.get_rect(center = (int(self.pos[0]),int(self.pos[1])))
         self.keeplotate = True if (bul == 10 or bul == 11 or bul == 14) else False
         self.rect = self.image.get_rect(center = (round(self.pos[0]),round(self.pos[1])))
-############################################
-
 class MagicField(pygame.sprite.Sprite):
     def __init__(self, pos, direction, speed, mod, screen_die = 0):
         # 이미지
@@ -1122,8 +1117,6 @@ class MagicField(pygame.sprite.Sprite):
             # 화면에 없으면 없애기
         if not bullet_border.colliderect(self.rect) and self.screen_die == 0:
             self.kill()    
-############################################
-
 class Effect(pygame.sprite.Sprite):
     def __init__(self, pos, num, col=0):
         pygame.sprite.Sprite.__init__(self) # 초기화?
@@ -1184,7 +1177,6 @@ class Effect(pygame.sprite.Sprite):
 
         self.rect = self.image.get_rect(center = get_new_pos((self.pos)))
         self.count += 1
-
 class Item(pygame.sprite.Sprite):
     def __init__(self, pos, num, dir=0):
         pygame.sprite.Sprite.__init__(self) # 초기화?
@@ -1249,17 +1241,16 @@ class Item(pygame.sprite.Sprite):
 
         self.rect = self.image.get_rect(center = get_new_pos((self.pos)))
         self.count += 1
-
 class UI():
     def __init__(self,val):
         self.val = val
-        self.ui_font = pygame.font.Font(FONT_1, 15)
-        self.ui_font2 = pygame.font.Font(FONT_1, 14)
+        self.ui_font = pygame.font.Font(st.FONT_1, 15)
+        self.ui_font2 = pygame.font.Font(st.FONT_1, 14)
         self.power= pygame.Surface((100, 20), pygame.SRCALPHA)
         self.power_xy = (30,29)
         self.skill_xy = (115,6)
         self.ui_img = pygame.Surface((400,80), pygame.SRCALPHA)
-        self.ui_img.blit(ui_img,(0,0),(0,0,400,80))
+        self.ui_img.blit(self.ui_img,(0,0),(0,0,400,80))
         self.ui_img = pygame.transform.scale(self.ui_img, (200, 40))
         self.power_pallete = pygame.Surface((400,80), pygame.SRCALPHA)
         self.power_pallete_rect = Rect(0,0,240,85)
@@ -1290,13 +1281,13 @@ class UI():
         score_text = score_font.render(str(score).zfill(10), True, (255,255,255))
         up_render_layer.blit(score_text,(WIDTH-160,0))            
 class Under_PI():
-    def __init__(self, player):
-        self.slow_image = slow_player_circle[0]
-        self.rect = self.slow_image.get_rect(center = get_new_pos(player.pos))
+    def __init__(self):
+        self.slow_image = st.slow_player_circle[0]
+        self.rect = self.slow_image.get_rect(center = nf.get_new_pos(player.pos))
         self.slow_count = 0
         self.pos = player.pos
 
-    def draw(self, player):
+    def draw(self):
         if keys[pygame.K_LSHIFT]:
             self.pos = player.pos
             self.slow_image = slow_player_circle[self.slow_count]
@@ -1312,7 +1303,6 @@ class Under_PI():
             drawArc(render_layer, (0,0,0), psi, 56, 8, 360*100,120 if not player.godmod else 255)
             if player.godmod: drawArc(render_layer, health_color(player.health/player.max_health), psi, 55, 5, 360*player.before_health/player.max_health,120)
             drawArc(render_layer, health_color(player.health/player.max_health), psi, 55, 5, 360*player.health/player.max_health,120 if not player.godmod else 255)
-
 class TextBox():
     def __init__(self):
         self.stat = 0
@@ -1321,7 +1311,7 @@ class TextBox():
         self.started = False
         self.pause = False
         self.count = 0
-        self.font = pygame.font.Font(FONT_1, 20)
+        self.font = pygame.font.Font(st.FONT_1, 20)
         self.textbox = pygame.Surface((490,1), pygame.SRCALPHA)
         self.textbox.fill((0,0,0,150))
         self.turn = 0
@@ -1436,7 +1426,6 @@ class TextBox():
         self.turn = 0
         self.char_move = [-80,-80]
         self.boss_appear_img = False
-
 class Back_Ground():
     def __init__(self, img, rect, speed, num, y=0,not_appear=False):
         image = pygame.Surface((rect[2],rect[3]), pygame.SRCALPHA)
@@ -1450,5 +1439,68 @@ class Back_Ground():
     def update(self):
         self.x -= self.speed
 
-def add_effect(pos,num,col=0,da):
-    da.add(Effect(pos,num,col))
+
+
+play = True
+cur_full_mod = False
+pause = False
+frame_count = 0
+cur_count = 0
+time_stop = False
+stage_count = 0
+screen_shake_count = 0
+add_dam = 0
+drilling = False
+game_clear = False   
+#global character, difficult
+curser = 0
+curser_max = 4
+select_mod = 0
+menu_mod = []
+character = 0
+difficult = 0
+cur_screen = 0
+#global stage_line, stage_cline, stage_repeat_count, stage_condition, stage_challenge, stage_fun, stage_end
+stage_fun = 0
+stage_line = 0
+stage_cline = 0
+stage_repeat_count = 0
+stage_condition = 1
+stage_challenge = 0
+stage_end = 0
+skill_activating = []
+# 게임 시작전 메뉴 변수들
+boss = Boss_Enemy(-99,-99)
+boss_group = pygame.sprite.Group(boss)
+enemy_group = pygame.sprite.Group()
+spr = pygame.sprite.Group()
+magic_spr = pygame.sprite.Group()
+player = Player(-125,-125,5,500)
+player_group = pygame.sprite.Group(player)
+player_hitbox = Player_hit()
+player_sub = Player_sub(1)
+skillobj_group = pygame.sprite.Group()
+title = Tittle(1)
+ui = UI(1)
+under_ui = Under_PI()
+text = TextBox()
+beams_group = pygame.sprite.Group()
+effect_group = pygame.sprite.Group()
+item_group = pygame.sprite.Group()
+
+starting = True
+read_end = False
+
+spells = [Spell(1,700,False),Spell(2,1000,True,3,"뭐든지 가르는","메지컬리프"),Spell(3,1000,False),Spell(4,1000,False),\
+Spell(5,1300,True,3,"네잎클로버가 담긴","리프스톰"),Spell(6,1300,False),Spell(7,1300,True,2,"큰 물방울","물놀이"),Spell(8,1300,False),Spell(9,1800,True,2,"안에 뭔가를 넣은","거품"),Spell(10,1300,False),\
+    Spell(11,2800,True,2,"잔잔해지는","물의파동"),Spell(12,2000,True,2,"왕의 소나기","거품광선"),Spell(13,1000,False),Spell(14,1000,False),Spell(15,1000,False),Spell(16,2000,True,4,"꽃도 춤추게 하는","염동력"),Spell(17,1000,False),Spell(18,1800,True,0,"노래폭력","에코보이스"),\
+        Spell(19,1000,False),Spell(20,1600,True,4,"그래도 방어는 필수","인파이트"),Spell(21,1500,True,0,"주위에 맴도는","옛노래"),Spell(22,1000,False),Spell(23,1000,False),Spell(24,1000,False),\
+            Spell(25,1700,True,1,"성스러운 입자","성스러운칼"),Spell(26,1100,False),Spell(27,1500,True,1,"베는데 1초","인파이트"),Spell(28,800,False),Spell(29,1800,True,1,"뭐든지 꿰뚫는 창","두세번치기"),Spell(30,1500,True,1,"모든 경험이 깆든","신비의칼"),\
+                Spell(31,1000,False),Spell(32,1000,False),Spell(33,1200,False),Spell(34,1600,True,4,"불에 뜨겁게 달궈진","염동력"),Spell(35,1200,False),Spell(36,1800,True,1,"차분하고 뒤엉킨","V제너레이트"),\
+                    Spell(37,1200,False),Spell(38,1500,True,1,"주위의 도움으로","플레어드라이브"),Spell(39,1500,True,0,"V 모양으로","파괴광선"),\
+                        Spell(40,1200,False),Spell(41,1800,True,4,"멀리서만 아름다운","신통력"),Spell(42,1200,False),Spell(43,2000,True,9,"용이 부르짖는다","용의파동"),\
+                            Spell(44,1200,False),Spell(45,1700,True,1,"지나간 자리엔 남지않는","쾌청"),Spell(46,1200,False),Spell(47,2400,True,1,"도피하기엔 틈이없다","푸른불꽃"),Spell(48,5000,True,1,"크로스플레임","크로스플레임")]
+
+player.skill_list.append(Skill(3,5,"저리가람","바람일으키기",10,60,30))
+player.skill_list.append(Skill(0,7,"Press C key!","몸부림",30,60,10))
+player.skill_list.append(Skill(0,7,"Press C key!","몸부림",30,60,10))
