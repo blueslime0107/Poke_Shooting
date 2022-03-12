@@ -1,6 +1,7 @@
 import pygame
 from pygame.locals import *
 import time
+
 pygame.init()
 pygame.mixer.pre_init(44100,-16,2,512)
 
@@ -66,8 +67,8 @@ for line in lines:
 
 
 full_on = False
-msfx_volume = 30
-mmusic_volume = 40
+sfx_volume = 0
+music_volume = 0
 
 with open('resources\setting.txt','r',encoding="UTF-8") as f:
     lines = f.readlines()
@@ -76,14 +77,10 @@ with open('resources\setting.txt','r',encoding="UTF-8") as f:
     full_on = bool(line[1])
     line = lines[1].strip()
     line = line.split('=')
-    msfx_volume = int(line[1])
+    sfx_volume = int(line[1])
     line = lines[2].strip()
     line = line.split('=')
-    mmusic_volume = int(line[1])
-try:sfx_volume = msfx_volume/100
-except:sfx_volume = 0
-try:music_volume = mmusic_volume/100
-except:music_volume = 0
+    music_volume = int(line[1])
 
 s_lazer1 = pygame.mixer.Sound('resources\Music\SFX\se_lazer00.wav')
 s_tan1 = pygame.mixer.Sound('resources\Music\SFX\se_tan00.wav')
@@ -318,7 +315,6 @@ clock_fps = 60
 TARGET_FPS = 60
 keys = pygame.key.get_pressed() 
 boss_movebox = Rect(300,35,204,292)
-score_setting = (10,10,987650,10,0,0,0,0,0)
 score = 0
 bkgd_list = []
 boss_background = pygame.Surface((1080,720))
@@ -336,31 +332,7 @@ bullet_size = (10,6,8,8,6,6,6,9,6,7,7,4,5,15,15,20,10,10,10,20)
 game_restart = False
 effect_group = 0
 
-def music_and_sfx_volume():
-    pygame.mixer.music.set_volume(music_volume)
-    s_lazer1.set_volume(sfx_volume)
-    s_tan1.set_volume(sfx_volume)
-    s_tan2.set_volume(sfx_volume)
-    s_ch2.set_volume(sfx_volume)
-    s_ch0.set_volume(sfx_volume)
-    s_cat1.set_volume(sfx_volume)
-    s_enep1.set_volume(sfx_volume)
-    s_enep2.set_volume(sfx_volume)
-    s_slash.set_volume(sfx_volume)
-    s_pldead.set_volume(sfx_volume)
-    s_plst0.set_volume(sfx_volume)
-    s_damage0.set_volume(sfx_volume)
-    s_damage1.set_volume(sfx_volume)
-    s_graze.set_volume(sfx_volume)
-    s_kira0.set_volume(sfx_volume)
-    s_kira1.set_volume(sfx_volume)
-    s_boom.set_volume(sfx_volume)
-    s_item0.set_volume(sfx_volume)
-    s_enedead.set_volume(sfx_volume)
-    s_ok.set_volume(sfx_volume)
-    s_cancel.set_volume(sfx_volume)
-    s_select.set_volume(sfx_volume)
-    s_pause.set_volume(sfx_volume)
+
 
 
     

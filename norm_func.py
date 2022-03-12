@@ -1,3 +1,9 @@
+import pygame, math
+import random 
+import start as st
+import cv2
+import numpy
+
 def get_new_pos(pos,x=0,y=0):
     return (round(pos[0] + x), round(pos[1] + y))
 
@@ -13,7 +19,7 @@ def while_time(val,time):
 def calculate_new_xy(old_xy, speed, angle_in_degrees, no_delta = False):
     move_vec = pygame.math.Vector2()
     move_vec.from_polar((speed/2, angle_in_degrees))
-    if not no_delta: move_vec = (move_vec[0]*dt,move_vec[1]*dt)
+    if not no_delta: move_vec = (move_vec[0]*st.dt,move_vec[1]*st.dt)
     return (old_xy[0] + move_vec[0],old_xy[1] + move_vec[1])
 
 def distance(f_pos,sec_pos):
@@ -48,4 +54,4 @@ def health_color(val):
         return (0,255,0)
 
 def randfloat(min,max):
-    return round(uniform(min,max),1)
+    return round(random.uniform(min,max),1)

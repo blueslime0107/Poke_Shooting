@@ -1,7 +1,15 @@
-import pygame
+import pygame, math
+from random import randint
 from pygame.locals import *
 import start as st
-import norm_func as nf
+from start import render_layer,bullets, WIDTH, HEIGHT, small_border, FONT_1, font1, bullet_border, pokemons, items,near_border, boss_movebox,screen_rect, up_render_layer,far_border
+from start import magic_circle_sprite, white_circle, died_white_circle,bullet_erase,boss_circle,bullet_size
+from start import s_boom, s_cat1, s_ch0, s_ch2, s_damage0, s_damage1, s_enedead, s_enep1, s_graze, s_item0, s_pldead, s_plst0, s_tan1, s_tan2
+from start import item_channel, plst_channel, graze_channel ,enemy_boom_channel, black_screen, enemy_died_circle, bullet_taning
+from stage import enemy_attack, bullet_type, boss_attack, magic_type
+from start import WIDTH, HEIGHT
+from norm_func import *
+from spec_func import *
  
 
 class Player(pygame.sprite.Sprite):
@@ -33,8 +41,7 @@ class Player(pygame.sprite.Sprite):
         self.died = False
         self.gihapetii = True
         self.shoot_gatcha = 0
-    def update(self,collide):
-        global screen_shake_count, pause, drilling,score
+    def update(self,collide,keys):
         if not self.died:
             dx, dy = 0 , 0
             inum = self.img_num
@@ -44,9 +51,9 @@ class Player(pygame.sprite.Sprite):
             else:
                 self.speed = 4  
                 try:
-                    if ((text.started and text.pause) or not text.started):score += score_setting[2]       
+                    if ((text.started and text.pause) or not text.started):st.score += st.score_setting[2]       
                 except:
-                        score += score_setting[2] 
+                        st.score += st.score_setting[2] 
             # 화면 밖으로 안나감
             if keys[pygame.K_RIGHT]:dx += 0 if self.rect.centerx >= WIDTH-10 else self.speed            
             if keys[pygame.K_LEFT]:dx -= 0 if self.rect.centerx <= 0 + 10 else self.speed            
@@ -123,7 +130,7 @@ class Player(pygame.sprite.Sprite):
                             self.died = True
             else:
                 # 키보드 먹히기
-                self.pos = (self.pos[0] + dx*dt, self.pos[1] + dy*dt) 
+                self.pos = (self.pos[0] + dx*st.dt, self.pos[1] + dy*st.dt) 
             if self.pos[0] <= 10: self.pos = (10,self.pos[1])
             if self.pos[0] >= WIDTH-10: self.pos = (WIDTH-10,self.pos[1])
             if self.pos[1] <= 10: self.pos = (self.pos[0],10)
@@ -256,19 +263,19 @@ class Tittle():
         self.pos_stage = [st.WIDTH//2+10,st.HEIGHT//2-20]
     def draw(self):
         if self.count < 600: 
-            title_text = score_font.render(self.text, True, (0, 176, 26))
+            title_text = st.score_font.render(self.text, True, (0, 176, 26))
             up_render_layer.blit(title_text,get_new_pos(self.pos_stage,1,-1))
             up_render_layer.blit(title_text,get_new_pos(self.pos_stage,-1,1))
             up_render_layer.blit(title_text,get_new_pos(self.pos_stage,-1,-1))
             up_render_layer.blit(title_text,get_new_pos(self.pos_stage,1,1))
-            title_text = score_font.render(self.text, True, (0, 130, 19))
+            title_text = st.score_font.render(self.text, True, (0, 130, 19))
             up_render_layer.blit(title_text,self.pos_stage)
-            title_text = score_font.render(self.name, True, (255,255,255))
+            title_text = st.score_font.render(self.name, True, (255,255,255))
             up_render_layer.blit(title_text,get_new_pos(self.pos,1,-1))
             up_render_layer.blit(title_text,get_new_pos(self.pos,-1,1))
             up_render_layer.blit(title_text,get_new_pos(self.pos,-1,-1))
             up_render_layer.blit(title_text,get_new_pos(self.pos,1,1))
-            title_text = score_font.render(self.name, True, (0,0,0))
+            title_text = st.score_font.render(self.name, True, (0,0,0))
             up_render_layer.blit(title_text,self.pos)
             self.count += 1
             if self.count < 240:
@@ -417,9 +424,6 @@ class Enemy(pygame.sprite.Sprite):
         self.screen_apper = False
 
     def update(self):
-        global score
-
-        # 능력
         if not self.health <= 0:
             self.pos, self.move_dir, self.move_speed ,self.count,self.list= enemy_attack(self.num, self.count, self.pos, self.move_dir, self.move_speed,self.list)
 
@@ -494,7 +498,6 @@ class Boss_Enemy(pygame.sprite.Sprite):
         self.spell_clear = True
 
     def update(self, collide):
-        global score, screen_shake_count, clock_fps
         if self.appear:
             if self.attack_start:
                 inum = self.image_num
@@ -550,7 +553,7 @@ class Boss_Enemy(pygame.sprite.Sprite):
                     self.fire_field = (0,0)
                     self.fire_field_radius = 0
                     self.move_speed = 0
-                    if self.spell_clear and self.spell[0].spellcard: score+=score_setting[5]
+                    if self.spell_clear and self.spell[0].spellcard: st.score+=st.score_setting[5]
                     self.spell_clear = True
                     add_effect(self.pos,5)
                     if len(self.spell) > 1: # 스펠카드가 남아있다면 안죽기                            
@@ -778,7 +781,6 @@ class Skill_Core(): # 스킬 능력 구현
         self.pos = (0,0)
         self.radius = 0
     def update(self,bos):
-        global add_dam, drilling, screen_shake_count
         if self.cool > 0:
             if self.num == 0: # 몸부림
                 player.pos = get_new_pos(player.pos,randint(-20,20),randint(-20,20))
@@ -1036,8 +1038,6 @@ class Bullet(pygame.sprite.Sprite):
         self.screen_die = False
         
     def update(self, screen):
-        global score
-        global time_stop
         mod, sub = math.trunc(self.mod), (self.mod*10)%10
         direc = self.direction
         #모드 값이 있으면 탄 속성 변화###############################################
@@ -1061,7 +1061,7 @@ class Bullet(pygame.sprite.Sprite):
         # 플레이어가 탄을 스치면 추가점수
         if self.grazed and dist <= 40+self.radius and not player.godmod:
             graze_channel.play(s_graze)
-            score += score_setting[3]
+            st.score += st.score_setting[3]
             player.skill_list[player.skill_pointer].refill += 1
             self.grazed = False    
             if player.gatcha < player.gatcha_max: 
@@ -1189,7 +1189,6 @@ class Item(pygame.sprite.Sprite):
         self.dir = dir
 
     def update(self):
-        global score
         # 화면 넘어가면 삭제:
         if self.num == 2 or self.num == 3:
             if self.count == 0:self.pos = calculate_new_xy(self.pos,100,self.dir)
@@ -1215,24 +1214,24 @@ class Item(pygame.sprite.Sprite):
             if self.num == 0: 
                 if player.power < 450: player.power += 1 # 먹으면 파워업
                 if player.gatcha < player.gatcha_max: player.gatcha += 1 # 먹으면 파워업
-                score += score_setting[1]
+                st.score += st.score_setting[1]
             if self.num == 1:
-                score += score_setting[0]
+                st.score += st.score_setting[0]
             if self.num == 2:
                 if player.health < player.max_health: player.health += 5
                 else: player.health = player.max_health
-                score += score_setting[1]//5
+                st.score += st.score_setting[1]//5
             if self.num == 3:
                 if player.health < player.max_health: player.health += 50
                 else: player.health = player.max_health
-                score += score_setting[1]//2
+                st.score += st.score_setting[1]//2
             if self.num == 4:
                 if player.skill_list[player.skill_pointer].pp < player.skill_list[player.skill_pointer].max_pp: player.skill_list[player.skill_pointer].pp+=1
-                score += score_setting[0]
+                st.score += st.score_setting[0]
             if self.num == 5:
                 if player.mp < 8: player.mp += 1
                 if player.skill_list[player.skill_pointer].pp < player.skill_list[player.skill_pointer].max_pp: player.skill_list[player.skill_pointer].pp+=1
-                score += score_setting[0]*5
+                st.score += st.score_setting[0]*5
             if self.num == 6:
                 player.power = 450
             item_channel.play(s_item0)
@@ -1270,7 +1269,7 @@ class UI():
         else:pygame.draw.rect(self.power_pallete, (41, 129, 214), ((self.power_xy),(140,9)))
         if player.power < 400:pygame.draw.rect(self.power_pallete, (74, 162, 247), ((self.power_xy),(round(player.power*1.4-300*1.4),9)))
         else:pygame.draw.rect(self.power_pallete, (74, 162, 247), ((self.power_xy),(140,9)))   
-        self.power_pallete.blit(self.ui_img,(0,0))
+        self.power_pallete.blit(st.ui_img,(0,0))
         text = self.ui_font2.render(str(player.power), True, (255,255,255))
         self.power_pallete.blit(text,get_new_pos(self.power_xy,285/2,-15/2)) 
         text = self.ui_font.render("PP " + str(player.mp)+"/ 8", True, (255,255,255))
@@ -1278,24 +1277,24 @@ class UI():
         self.power_pallete.fill((255, 255, 255, 50 if self.power_pallete_rect.collidepoint(player.pos) else 255), special_flags=pygame.BLEND_RGBA_MULT)
         up_render_layer.blit(self.power_pallete,(0,0))
 
-        score_text = score_font.render(str(score).zfill(10), True, (255,255,255))
-        up_render_layer.blit(score_text,(WIDTH-160,0))            
+        st.score_text = st.score_font.render(str(st.score).zfill(10), True, (255,255,255))
+        up_render_layer.blit(st.score_text,(WIDTH-160,0))            
 class Under_PI():
     def __init__(self):
         self.slow_image = st.slow_player_circle[0]
-        self.rect = self.slow_image.get_rect(center = nf.get_new_pos(player.pos))
+        self.rect = self.slow_image.get_rect(center = get_new_pos(player.pos))
         self.slow_count = 0
         self.pos = player.pos
 
-    def draw(self):
+    def draw(self, keys):
         if keys[pygame.K_LSHIFT]:
             self.pos = player.pos
-            self.slow_image = slow_player_circle[self.slow_count]
+            self.slow_image = st.slow_player_circle[self.slow_count]
             pygame.draw.circle(render_layer, (255,0,0), self.rect.center, 3)
             self.rect = self.slow_image.get_rect(center = get_new_pos(self.pos))
             render_layer.blit(self.slow_image, self.rect.topleft)
             self.slow_count += 1
-            if self.slow_count >= len(slow_player_circle): self.slow_count = 0
+            if self.slow_count >= len(st.slow_player_circle): self.slow_count = 0
         if starting and not read_end and player.health > 0: # 원형 체력바 그리기
             psi = player.pos if character == 0 else get_new_pos(player.pos,-2,-2)
             drawArc(render_layer, (100, 194, 247), psi, 45, 2, 360*player.gatcha/player.gatcha_max,150)
@@ -1320,19 +1319,19 @@ class TextBox():
         self.player_name = "뮤"  
         self.boss_name = "세레비"    
     def next_text(self):
-        global character
+
         self.count = 50
         text = ''
         if self.stat == 0:
-            if boss.num == 2:self.stat = text_start[0]
-            if boss.num == 4:self.stat = text_start[1] 
-            if boss.num == 6:self.stat = text_start[2] 
-            if boss.num == 8:self.stat = text_start[3] 
-            if boss.num == 10:self.stat = text_start[4]
-            if boss.num == 11:self.stat = text_start[5]
+            if boss.num == 2:self.stat = st.text_start[0]
+            if boss.num == 4:self.stat = st.text_start[1] 
+            if boss.num == 6:self.stat = st.text_start[2] 
+            if boss.num == 8:self.stat = st.text_start[3] 
+            if boss.num == 10:self.stat = st.text_start[4]
+            if boss.num == 11:self.stat = st.text_start[5]
         if self.started and not self.pause:
             self.stat += 1
-            read_text = text_scroll[self.stat-1]
+            read_text = st.text_scroll[self.stat-1]
             read_text = read_text.split(':')
             if read_text[0] == '#P':
                 self.turn = 0
@@ -1348,12 +1347,12 @@ class TextBox():
             if read_text[0] == '#M':
                 self.turn = 1
                 pygame.mixer.music.stop()
-                if boss.num == 2:pygame.mixer.music.load(BOSS_BGM1)
-                if boss.num == 4:pygame.mixer.music.load(BOSS_BGM2)
-                if boss.num == 6:pygame.mixer.music.load(BOSS_BGM3)
-                if boss.num == 8:pygame.mixer.music.load(BOSS_BGM4)
-                if boss.num == 10:pygame.mixer.music.load(BOSS_BGM5)
-                if boss.num == 11:pygame.mixer.music.load(BOSS_BGM6)
+                if boss.num == 2:pygame.mixer.music.load(st.BOSS_BGM1)
+                if boss.num == 4:pygame.mixer.music.load(st.BOSS_BGM2)
+                if boss.num == 6:pygame.mixer.music.load(st.BOSS_BGM3)
+                if boss.num == 8:pygame.mixer.music.load(st.BOSS_BGM4)
+                if boss.num == 10:pygame.mixer.music.load(st.BOSS_BGM5)
+                if boss.num == 11:pygame.mixer.music.load(st.BOSS_BGM6)
                 pygame.mixer.music.play(-1)
                 text = read_text[1]
             if read_text[0] == '#S':
@@ -1469,6 +1468,7 @@ stage_condition = 1
 stage_challenge = 0
 stage_end = 0
 skill_activating = []
+practicing = False
 # 게임 시작전 메뉴 변수들
 boss = Boss_Enemy(-99,-99)
 boss_group = pygame.sprite.Group(boss)
