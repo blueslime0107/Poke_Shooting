@@ -1,7 +1,5 @@
-from turtle import position
-from cv2 import circle
 import pygame, math
-from random import randint, uniform, choice
+from random import randint
 from pygame.locals import *
 
 import time
@@ -9,7 +7,7 @@ import start as st
 import stage_var as sv
 from norm_func import *
 from spec_func import remove_allbullet, background_scroll
-from start import render_layer, WIDTH, HEIGHT, TITLE, FONT_1, FONT_2, score_font, pokemons, menu_img, monitor_size, up_render_layer,skill_surface
+from start import render_layer, WIDTH, HEIGHT, TITLE, FONT_1, FONT_2, score_font, menu_img, monitor_size, up_render_layer,skill_surface
 from start import s_boom, s_cancel, s_cat1, s_ch0, s_ch2, s_damage0, s_damage1, s_enedead, s_enep1, s_enep2, s_graze, s_item0, s_kira0, s_kira1, s_lazer1, s_ok, s_pause, s_pldead, s_plst0, s_select, s_slash, s_tan1, s_tan2
 from stage import stage_manager
 # 게임에 핵심적인 기능만 주석을 넣었습니다 ##
@@ -45,10 +43,66 @@ def music_and_sfx_volume(m,s):
     s_cancel.set_volume(s)
     s_select.set_volume(s)
     s_pause.set_volume(s)
+def all_reset():
+    sv.play = True
+    sv.cur_full_mod = False
+    sv.pause = False
+    sv.frame_count = 0
+    sv.cur_count = 0
+    sv.time_stop = False
+    sv.stage_count = 0
+    sv.screen_shake_count = 0
+    sv.add_dam = 0
+    sv.drilling = False
+    sv.game_clear = False   
+    sv.curser = 0
+    sv.select_mod = 0
+    sv.menu_mod = []
+    sv.character = 0
+    sv.difficult = 0
+    sv.cur_screen = 0
+    sv.stage_fun = 0
+    sv.stage_line = 0
+    sv.stage_cline = 0
+    sv.stage_repeat_count = 0
+    sv.stage_condition = 1
+    sv.stage_challenge = 0
+    sv.stage_end = 0
+    sv.skill_activating = []
+    sv.practicing = False
+    # 게임 시작전 메뉴 변수들
+    sv.boss = sv.Boss_Enemy(-99,-99)
+    sv.boss_group = pygame.sprite.Group(sv.boss)
+    sv.enemy_group = pygame.sprite.Group()
+    sv.spr = pygame.sprite.Group()
+    sv.magic_spr = pygame.sprite.Group()
+    sv.player = sv.Player(-125,-125,5,500)
+    sv.player_group = pygame.sprite.Group(sv.player)
+    sv.player_hitbox = sv.Player_hit()
+    sv.player_sub = sv.Player_sub(1)
+    sv.skillobj_group = pygame.sprite.Group()
+    sv.title = sv.Tittle(1)
+    sv.ui = sv.UI(1)
+    sv.under_ui = sv.Under_PI()
+    sv.text = sv.TextBox()
+    sv.beams_group = pygame.sprite.Group()
+    sv.effect_group = pygame.sprite.Group()
+    sv.item_group = pygame.sprite.Group()
+
+    sv.starting = True
+    sv.read_end = False
+
+    sv.player.skill_list.append(sv.Skill(3,5,"저리가람","바람일으키기",10,60,30))
+    sv.player.skill_list.append(sv.Skill(0,7,"Press C key!","몸부림",30,60,10))
+    sv.player.skill_list.append(sv.Skill(0,7,"Press C key!","몸부림",30,60,10))
+
 
 def play_game():
     global screen
     music_and_sfx_volume(st.music_volume,st.sfx_volume)    
+    continued = 0
+    start_fun = [0,0]
+    bgx = 0
 
     ################################################# 
     while sv.play:
@@ -115,27 +169,38 @@ def play_game():
                                     sv.pause = False
                                     pygame.mixer.music.unpause()
                             if sv.curser == 1:
-                                if sv.practicing:sv.practicing = False
-                                sv.player.power = 0
-                                sv.player.health = sv.player.max_health
-                                sv.stage_fun = sv.start_fun
+                                sv.boss = sv.Boss_Enemy(-99,-99)
+                                sv.boss_group = pygame.sprite.Group(sv.boss)
+                                sv.enemy_group = pygame.sprite.Group()
+                                sv.spr = pygame.sprite.Group()
+                                sv.magic_spr = pygame.sprite.Group()
+                                sv.player = sv.Player(-125,-125,5,500)
+                                sv.player_group = pygame.sprite.Group(sv.player)
+                                sv.player_hitbox = sv.Player_hit()
+                                sv.player_sub = sv.Player_sub(1)
+                                sv.skillobj_group = pygame.sprite.Group()
+                                sv.title = sv.Tittle(1)
+                                sv.ui = sv.UI(1)
+                                sv.under_ui = sv.Under_PI()
+                                sv.text = sv.TextBox()
+                                sv.beams_group = pygame.sprite.Group()
+                                sv.effect_group = pygame.sprite.Group()
+                                sv.item_group = pygame.sprite.Group()
+                                sv.stage_fun = start_fun[0]
+                                sv.stage_challenge = start_fun[1]
                                 sv.stage_line = 0
                                 sv.stage_cline = 0
                                 sv.stage_repeat_count = 0
                                 sv.stage_condition = 1
-                                sv.stage_challenge = 0
                                 sv.player.skill_list = []
                                 sv.player.skill_list.append(sv.Skill(0,7,"Press C key!","몸부림",30,60))
                                 sv.player.skill_list.append(sv.Skill(0,7,"Press C key!","몸부림",30,60))
                                 sv.player.skill_list.append(sv.Skill(0,7,"Press C key!","몸부림",30,60))
+                                if sv.practicing: sv.player.power = 400
                                 st.score = 0
                                 sv.skill_activating = []
                                 sv.pause = False
-                                pygame.mixer.music.unpause()  
-                                sv.enemy_group.empty()     
-                                sv.spr.empty()     
-                                sv.item_group.empty()  
-                                sv.boss.reset()             
+                                pygame.mixer.music.unpause()              
                                 continued = 0             
                             if sv.curser == 2: st.game_restart = True
                         if ev.key == pygame.K_ESCAPE:
@@ -159,7 +224,7 @@ def play_game():
                                 sv.player.skill_list[sv.player.skill_pointer] = enemy[i].skill   
                                 st.score+=st.score_setting[4] 
                             beam.died = True                       
-            if sv.boss.appear: sv.boss_collide = pygame.sprite.spritecollide(sv.boss, sv.beams_group, False, pygame.sprite.collide_circle)
+            if sv.boss.appear: boss_collide = pygame.sprite.spritecollide(sv.boss, sv.beams_group, False, pygame.sprite.collide_circle)
             # 연산 업데이트
             if not sv.pause:      
                 if sv.magic_spr.sprites():sv.magic_spr.update(screen)    
@@ -179,7 +244,7 @@ def play_game():
                 sv.player_group.update(hit_list,keys)
                 if sv.enemy_group:sv.enemy_group.update()
                 if sv.item_group: sv.item_group.update()
-                if sv.boss.appear: sv.boss_group.update(sv.boss_collide)
+                if sv.boss.appear: sv.boss_group.update(boss_collide)
                 if sv.effect_group: sv.effect_group.update()
                 if not sv.player.died:sv.player_sub.update()
                 if sv.text.started and not sv.text.pause: sv.text.update()
@@ -274,10 +339,10 @@ def play_game():
                         if ev.key == pygame.K_f:
                             sv.st.full_on = False if st.full_on == True else True  
                         if ev.key == pygame.K_UP:
-                            sv.curser = sv.curser_max if sv.curser == 0 else sv.curser - 1 # 커서위로
+                            sv.curser = curser_max if sv.curser == 0 else sv.curser - 1 # 커서위로
                             st.s_ok.play()
                         if ev.key == pygame.K_DOWN:
-                            sv.curser = 0 if sv.curser == sv.curser_max else sv.curser + 1 # 커서밑으로
+                            sv.curser = 0 if sv.curser == curser_max else sv.curser + 1 # 커서밑으로
                             st.s_ok.play()
                         if sv.select_mod == 0: # 시작화면
                             if ev.key == pygame.K_z or ev.key == pygame.K_RETURN:
@@ -314,10 +379,7 @@ def play_game():
                                     sv.curser = 0
                                     sv.select_mod -= 1
                                     del sv.menu_mod[len(sv.menu_mod)-1]   
-                                    break 
-                                if ev.key == pygame.K_RIGHT or ev.key == pygame.K_LEFT:
-                                    s_select.play()
-                                    sv.character = 41 if sv.character == 0 else 0      
+                                    break      
                             if sv.menu_mod[0] == 2:
                                 if ev.key == pygame.K_x or ev.key == pygame.K_ESCAPE:
                                     s_cancel.play()
@@ -369,7 +431,7 @@ def play_game():
                                     sv.player.power = 0
                                     sv.cur_screen = 1  
                                     sv.stage_fun = 0
-                                    sv.start_fun = sv.stage_fun
+                                    start_fun = [0,0]
                                     sv.frame_count = 0
                                     sv.curser = 0
                                 if ev.key == pygame.K_x or ev.key == pygame.K_ESCAPE:
@@ -380,17 +442,35 @@ def play_game():
                                     break                                
                             if sv.menu_mod[0] == 1:
                                 if ev.key == pygame.K_z or ev.key == pygame.K_RETURN:
+                                    sv.select_mod += 1
+                                    sv.menu_mod.append(sv.curser)
+                                    s_select.play()
+                                    sv.curser = 0
+                                    break 
+                                if ev.key == pygame.K_x or ev.key == pygame.K_ESCAPE:
+                                    s_cancel.play()
+                                    sv.curser = 0
+                                    sv.select_mod -= 1
+                                    del sv.menu_mod[len(sv.menu_mod)-1]   
+                                    break 
+                                if ev.key == pygame.K_RIGHT or ev.key == pygame.K_LEFT:
+                                    s_select.play()
+                                    sv.character = 41 if sv.character == 0 else 0                          
+                        if sv.select_mod == 3:
+                            if sv.menu_mod[0] == 1:
+                                if ev.key == pygame.K_z or ev.key == pygame.K_RETURN:
                                     s_select.play()                                    
                                     sv.player.power = 400
-                                    sv.stage_fun = sv.menu_mod[1]                                 
-                                    sv.start_fun = sv.stage_fun  
+                                    sv.stage_fun = sv.menu_mod[2]                                 
                                     if sv.curser == 1:
-                                        if sv.menu_mod[1] == 0:sv.stage_challenge = 5
-                                        if sv.menu_mod[1] == 1:sv.stage_challenge = 4
-                                        if sv.menu_mod[1] == 2:sv.stage_challenge = 8
-                                        if sv.menu_mod[1] == 3:sv.stage_challenge = 7
-                                        if sv.menu_mod[1] == 4:sv.stage_challenge = 6
-                                        if sv.menu_mod[1] == 5:sv.stage_challenge = 2
+                                        if sv.menu_mod[2] == 0:sv.stage_challenge = 5
+                                        if sv.menu_mod[2] == 1:sv.stage_challenge = 4
+                                        if sv.menu_mod[2] == 2:sv.stage_challenge = 8
+                                        if sv.menu_mod[2] == 3:sv.stage_challenge = 7
+                                        if sv.menu_mod[2] == 4:sv.stage_challenge = 6
+                                        if sv.menu_mod[2] == 5:sv.stage_challenge = 2
+                                    start_fun = [sv.stage_fun,sv.stage_challenge]
+                                    sv.difficult = sv.menu_mod[1]
                                     sv.curser = 0
                                     sv.cur_screen = 1 
                                     sv.practicing = True
@@ -400,7 +480,9 @@ def play_game():
                                     sv.curser = sv.menu_mod[1]
                                     sv.select_mod -= 1
                                     del sv.menu_mod[len(sv.menu_mod)-1]   
-                                    break                     
+                                    break  
+                    
+                    
                     else:
                         if ev.key == K_x or ev.key == K_ESCAPE or ev.key == K_z:
                             old_score = 0
@@ -422,75 +504,67 @@ def play_game():
             if st.game_restart:
                 sv.frame_count = 0
                 break    
-            render_layer.blit(st.background_img,(0,0))            
+
+            rel_x = bgx % WIDTH
+            render_layer.blit(st.background_img, (rel_x - WIDTH,0))
+            if rel_x < WIDTH:
+                render_layer.blit(st.background_img,(rel_x,0))  
+            bgx += 1         
             ui_x = WIDTH - 180
             ui_y = 20
-            if not sv.game_clear:
+            if not sv.game_clear: # 메뉴
                 if sv.select_mod == 0: # 시작화면
-                    sv.curser_max = 5
+                    curser_max = 5
                     render_layer.blit(st.title_img,(0,0))# 타이틀
                     for i in range(0,6): # 메뉴 그리기
                         menu = pygame.Surface((160,32), SRCALPHA)
                         if sv.curser == i: menu.fill((0,0,255,200))
                         menu.blit(st.menu_img,(0,0),(0,48+32*i,320,48))
                         render_layer.blit(menu,(ui_x,ui_y+32*i))
-                    sv.text1 = st.score_font.render(st.score_scroll[0], True, (0,0,0))
-                    render_layer.blit(sv.text1,(0,HEIGHT-60))
-                    sv.text1 = st.score_font.render(st.score_scroll[1], True, (0,0,0))
-                    render_layer.blit(sv.text1,(2,HEIGHT-30))
+                    text1 = st.score_font.render(st.score_scroll[0], True, (0,0,0))
+                    render_layer.blit(text1,(0,HEIGHT-60))
+                    text1 = st.score_font.render(st.score_scroll[1], True, (0,0,0))
+                    render_layer.blit(text1,(2,HEIGHT-30))
                 if sv.select_mod == 1: # 다음옴션
                     if sv.menu_mod[0] == 0: # 시작>난이도 정하기
-                        sv.curser_max = 4
-                        for i in range(0,5): # 메뉴 그리기
+                        curser_max = 3
+                        for i in range(0,4): # 메뉴 그리기
                             menu = pygame.Surface((160,48), SRCALPHA)
                             if sv.curser == i: menu.fill((0,0,0,200))
                             menu.blit(menu_img,(0,0),(320,0+48*i,160,48))
                             render_layer.blit(menu,(int(WIDTH/2-240),int(HEIGHT/2-30+64*i-64*sv.curser)))
-                        # for i in range(0,2): # 메뉴 그리기
-                        #     menu = pygame.Surface((208,32), SRCALPHA)
-                        #     if sv.curser == i: menu.fill((0,0,0,200))
-                        #     menu.blit(menu_img,(0,0),(0,288+32*i,192,32))
-                        #     render_layer.blit(menu,(int(WIDTH/2-240),int(HEIGHT/2-30+64*i-64*sv.curser)))
                     if sv.menu_mod[0] == 1:
-                        sv.curser_max = 5
-                        sv.text_box = ["Stage1","Stage2","Stage3","Stage4","Stage5","Stage6"]
-                        for i in range(0,6):
-                            sv.text_color = (255,0,255) if i == sv.curser else (0,0,255)
-                            sv.text1 = score_font.render(sv.text_box[i], True, sv.text_color)
-                            render_layer.blit(sv.text1,(100,50+40*i))
-                        if sv.character == 0:
-                            sv.text_color = (0,0,0)
-                            sv.text1 = score_font.render("Homing", True, sv.text_color)                        
-                            render_layer.blit(sv.text1,(300,100))  
-                        else:  
-                            sv.text_color = (0,0,0)
-                            sv.text1 = score_font.render("FFocus", True, sv.text_color)                        
-                            render_layer.blit(sv.text1,(300,100))   
-                    if sv.menu_mod[0] == 2:
+                        curser_max = 2
+                        for i in range(0,3): # 메뉴 그리기
+                            menu = pygame.Surface((160,48), SRCALPHA)
+                            if sv.curser == i: menu.fill((0,0,0,200))
+                            menu.blit(menu_img,(0,0),(320,0+48*i,160,48))
+                            render_layer.blit(menu,(int(WIDTH/2-240),int(HEIGHT/2-30+64*i-64*sv.curser)))                        
+                    if sv.menu_mod[0] == 2: # 설명
                         font = pygame.font.Font(FONT_2, 30)
                         pygame.draw.rect(render_layer, (0,0,0), (20,20,WIDTH-40,HEIGHT-40), width=0)
-                        for sv.texta in range(0,len(st.htp_scroll)):
-                            sv.text1 = font.render(st.htp_scroll[sv.texta], True, (255,255,255))
-                            render_layer.blit(sv.text1,(40,30*sv.texta+30))
-                    if sv.menu_mod[0] == 3:
+                        for texta in range(0,len(st.htp_scroll)):
+                            text1 = font.render(st.htp_scroll[texta], True, (255,255,255))
+                            render_layer.blit(text1,(40,30*texta+30))
+                    if sv.menu_mod[0] == 3: # 크레딧
                         font = pygame.font.Font(FONT_2, 10)
                         pygame.draw.rect(render_layer, (0,0,0), (20,20,WIDTH-40,HEIGHT-40), width=0)
-                        for sv.texta in range(0,len(st.credit_scroll)):
-                            sv.text1 = font.render(st.credit_scroll[sv.texta], True, (255,255,255))
-                            render_layer.blit(sv.text1,(30,10*sv.texta+30))
-                    if sv.menu_mod[0] == 4:
-                        sv.curser_max = 2
-                        sv.text_box = ["화면모드","음악","효과음"]
-                        sv.text_box[0] = "화면모드    창모드" if st.full_on == 0 else "화면모드    전체화면"
-                        sv.text_box[1] = "음악   " + str(st.music_volume)
-                        sv.text_box[2] = "효과음  " + str(st.sfx_volume)
+                        for texta in range(0,len(st.credit_scroll)):
+                            text1 = font.render(st.credit_scroll[texta], True, (255,255,255))
+                            render_layer.blit(text1,(30,10*texta+30))
+                    if sv.menu_mod[0] == 4: # 설정
+                        curser_max = 2
+                        text_box = ["화면모드","음악","효과음"]
+                        text_box[0] = "화면모드    창모드" if st.full_on == 0 else "화면모드    전체화면"
+                        text_box[1] = "음악   " + str(st.music_volume)
+                        text_box[2] = "효과음  " + str(st.sfx_volume)
                         for i in range(0,3):
-                            sv.text_color = (255,0,255) if i == sv.curser else (0,0,255)
-                            sv.text1 = score_font.render(sv.text_box[i], True, sv.text_color)
-                            render_layer.blit(sv.text1,(200,100+40*i))
+                            text_color = (255,0,255) if i == sv.curser else (0,0,255)
+                            text1 = score_font.render(text_box[i], True, text_color)
+                            render_layer.blit(text1,(200,100+40*i))
                 if sv.select_mod == 2:
                     if sv.menu_mod[0] == 0: # 시작>난이도 정하기
-                        sv.curser_max = 1
+                        curser_max = 1
                         render_layer.blit(menu_img,(0,0),(0,240,320,48))
                         for i in range(0,5): # 메뉴 그리기
                             menu = pygame.Surface((160,48), SRCALPHA)
@@ -503,32 +577,42 @@ def play_game():
                             menu.blit(menu_img,(0,0),(0,288+32*i,192,32))
                             render_layer.blit(menu,(int(WIDTH/2-70),int(HEIGHT/2-30+64*i-64*sv.curser)))
                     if sv.menu_mod[0] == 1:
-                        sv.curser_max = 1
-                        sv.text_box = ["Field","sv.boss"]
-                        for i in range(0,2):
-                            sv.text_color = (255,0,255) if i == sv.curser else (0,0,255)
-                            sv.text1 = score_font.render(sv.text_box[i], True, sv.text_color)
-                            render_layer.blit(sv.text1,(200,50+40*i))
-                        sv.text_box = ["Stage1","Stage2","Stage3","Stage4","Stage5","Stage6"]
+                        curser_max = 5
+                        text_box = ["Stage1","Stage2","Stage3","Stage4","Stage5","Stage6"]
                         for i in range(0,6):
-                            sv.text_color = (255,0,255) if i == sv.menu_mod[1] else (0,0,255)
-                            sv.text1 = score_font.render(sv.text_box[i], True, sv.text_color)
-                            render_layer.blit(sv.text1,(100,50+40*i))
+                            text_color = (255,0,255) if i == sv.curser else (0,0,255)
+                            text1 = score_font.render(text_box[i], True, text_color)
+                            render_layer.blit(text1,(100,50+40*i))
                         if sv.character == 0:
-                            sv.text_color = (0,0,0)
-                            sv.text1 = score_font.render("Homing", True, sv.text_color)                        
-                            render_layer.blit(sv.text1,(300,100))  
+                            text_color = (0,0,0)
+                            text1 = score_font.render("Homing", True, text_color)                        
+                            render_layer.blit(text1,(300,100))  
                         else:  
-                            sv.text_color = (0,0,0)
-                            sv.text1 = score_font.render("FFocus", True, sv.text_color)                        
-                            render_layer.blit(sv.text1,(300,100)) 
-
-                # if sv.select_mod == 2:
-                #     if sv.menu_mod == 1:
-
-
-
-
+                            text_color = (0,0,0)
+                            text1 = score_font.render("FFocus", True, text_color)                        
+                            render_layer.blit(text1,(300,100))    
+                if sv.select_mod == 3:
+                    if sv.menu_mod[0] == 1:
+                        curser_max = 1
+                        text_box = ["Field","Boss"]
+                        for i in range(0,2):
+                            text_color = (255,0,255) if i == sv.curser else (0,0,255)
+                            text1 = score_font.render(text_box[i], True, text_color)
+                            render_layer.blit(text1,(200,50+40*i))
+                        text_box = ["Stage1","Stage2","Stage3","Stage4","Stage5","Stage6"]
+                        for i in range(0,6):
+                            text_color = (255,0,255) if i == sv.menu_mod[2] else (0,0,255)
+                            text1 = score_font.render(text_box[i], True, text_color)
+                            render_layer.blit(text1,(100,50+40*i))
+                        if sv.character == 0:
+                            text_color = (0,0,0)
+                            text1 = score_font.render("Homing", True, text_color)                        
+                            render_layer.blit(text1,(300,100))  
+                        else:  
+                            text_color = (0,0,0)
+                            text1 = score_font.render("FFocus", True, text_color)                        
+                            render_layer.blit(text1,(300,100)) 
+                    
                 if sv.frame_count > 0:
                     sv.frame_count -= 1
                     if sv.frame_count == 0:
@@ -538,32 +622,31 @@ def play_game():
                         sv.stage_fun = 0
                         sv.start_fun = sv.stage_fun  
                         sv.curser = 0
-            else:
+            else: # 게임 끝났을때 화면
                 x = 80
                 y = 80 + math.sin(math.pi * (sv.frame_count / 180))*5
                 y2 = 80 + math.sin(math.pi * (sv.frame_count*2 / 180))*5
-                print(math.sin(math.pi * (sv.frame_count / 180))*5)
-                print(y)
                 font = pygame.font.Font(FONT_1, 20)    
-                sv.text1 = font.render("!GAME CLEAR!", True, (0,0,255))   
-                render_layer.blit(sv.text1,(0,0))              
-                sv.text1 = font.render("HP: "+str(sv.player.health)+"/"+str(sv.player.max_health), True, (0,0,0))   
-                render_layer.blit(sv.text1,(x,y)) 
-                if sv.character == 0:sv.text1 = font.render("Weapon:"+"Homing", True, (0,0,0))
-                else: sv.text1 = font.render("Weapon:"+"FFocus", True, (0,0,0))  
-                render_layer.blit(sv.text1,(x+10,y+30)) 
-                sv.text1 = font.render("Continue:"+str(continued), True, (0,0,0))   
-                render_layer.blit(sv.text1,(x+20,y+60)) 
-                sv.text1 = font.render("Final Score", True, (0,0,0))   
-                render_layer.blit(sv.text1,(x+60,y+90)) 
-                sv.text1 = font.render(str(st.score).zfill(10), True, (0,0,0))   
-                render_layer.blit(sv.text1,(x+60,y+120))
+                text1 = font.render("!GAME CLEAR!", True, (0,0,255))   
+                render_layer.blit(text1,(0,0))              
+                text1 = font.render("HP: "+str(sv.player.health)+"/"+str(sv.player.max_health), True, (0,0,0))   
+                render_layer.blit(text1,(x,y)) 
+                if sv.character == 0:text1 = font.render("Weapon:"+"Homing", True, (0,0,0))
+                else: text1 = font.render("Weapon:"+"FFocus", True, (0,0,0))  
+                render_layer.blit(text1,(x+10,y+30)) 
+                text1 = font.render("Continue:"+str(continued), True, (0,0,0))   
+                render_layer.blit(text1,(x+20,y+60)) 
+                text1 = font.render("Final Score", True, (0,0,0))   
+                render_layer.blit(text1,(x+60,y+90)) 
+                text1 = font.render(str(st.score).zfill(10), True, (0,0,0))   
+                render_layer.blit(text1,(x+60,y+120))
                 render_layer.blit(st.pokemons[0],(x+260,y2+100))
                 sv.frame_count += 1
 
             if sv.cur_screen == 0:screen.blit(pygame.transform.scale2x(render_layer),(0,0))
             pygame.display.flip()
-        
+
+        # 전체화면
         if st.full_on != sv.cur_full_mod:
             if st.full_on:
                 screen = pygame.display.set_mode(monitor_size, pygame.FULLSCREEN|pygame.SCALED)
@@ -572,6 +655,7 @@ def play_game():
             sv.cur_full_mod = st.full_on
     if st.game_restart:
         st.game_restart = False
+        all_reset()
         play_game()
 
 if __name__ == "__main__":

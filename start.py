@@ -74,7 +74,10 @@ with open('resources\setting.txt','r',encoding="UTF-8") as f:
     lines = f.readlines()
     line = lines[0].strip()
     line = line.split('=')
-    full_on = bool(line[1])
+    if line[1] == 'False' or line[1] == '0':
+        full_on = False
+    else:
+        full_on = True
     line = lines[1].strip()
     line = line.split('=')
     sfx_volume = int(line[1])
@@ -330,9 +333,4 @@ near_border= Rect(0, 0, WIDTH, HEIGHT)
 far_border= Rect(-50, -50, WIDTH+100, HEIGHT+100)
 bullet_size = (10,6,8,8,6,6,6,9,6,7,7,4,5,15,15,20,10,10,10,20)
 game_restart = False
-effect_group = 0
-
-
-
-
-    
+effect_group = 0  

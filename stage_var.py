@@ -11,7 +11,6 @@ from start import WIDTH, HEIGHT
 from norm_func import *
 from spec_func import *
  
-
 class Player(pygame.sprite.Sprite):
     def __init__(self, x, y, speed, health):
         pygame.sprite.Sprite.__init__(self) # 초기화?
@@ -42,6 +41,7 @@ class Player(pygame.sprite.Sprite):
         self.gihapetii = True
         self.shoot_gatcha = 0
     def update(self,collide,keys):
+        global pause, screen_shake_count
         if not self.died:
             dx, dy = 0 , 0
             inum = self.img_num
@@ -50,10 +50,7 @@ class Player(pygame.sprite.Sprite):
             if keys[pygame.K_LSHIFT]:self.speed = 2
             else:
                 self.speed = 4  
-                try:
-                    if ((text.started and text.pause) or not text.started):st.score += st.score_setting[2]       
-                except:
-                        st.score += st.score_setting[2] 
+                if ((text.started and text.pause) or not text.started):st.score += st.score_setting[2]       
             # 화면 밖으로 안나감
             if keys[pygame.K_RIGHT]:dx += 0 if self.rect.centerx >= WIDTH-10 else self.speed            
             if keys[pygame.K_LEFT]:dx -= 0 if self.rect.centerx <= 0 + 10 else self.speed            
@@ -434,8 +431,16 @@ class Enemy(pygame.sprite.Sprite):
         if self.health <= 0: # 체력 다 달면 죽기
             if self.num == 21 and not self.health == -999:
                 bullet_effect(s_tan2,0,self.pos)
-                for i in range(0,360,45):                       
-                    bullet(calculate_new_xy(self.pos,20,-i),i,0,12,0,9.4)
+                if difficult == 0:
+                    for i in range(0,360,60):                       
+                        bullet(calculate_new_xy(self.pos,20,-i),i,0,12,0,9.4)
+                if difficult == 1:
+                    for i in range(0,360,45):                       
+                        bullet(calculate_new_xy(self.pos,20,-i),i,0,12,0,9.4)
+                if difficult == 2:
+                    bullet(self.pos,look_at_player(self.pos),0,15,0,9.4)
+                    for i in range(0,360,15):                       
+                        bullet(calculate_new_xy(self.pos,20,-i),i,0,12,0,9.4)
             enemy_boom_channel.play(s_enedead)
             effect_group.add(Effect(self.pos,1))
             effect_group.add(Effect(self.pos,3))
@@ -496,8 +501,9 @@ class Boss_Enemy(pygame.sprite.Sprite):
         self.fire_field = [0,0]
         self.fire_field_radius = 0
         self.spell_clear = True
-
+        self.sin = 0
     def update(self, collide):
+        global pause, screen_shake_count
         if self.appear:
             if self.attack_start:
                 inum = self.image_num
@@ -529,7 +535,8 @@ class Boss_Enemy(pygame.sprite.Sprite):
                 if inum != self.image_num:
                     if self.image_num == 0:self.image = self.image2                
                     if self.image_num == 1:self.image = pygame.transform.rotate(self.image2, -10)
-                    if self.image_num == 2:self.image = pygame.transform.rotate(self.image2, 10)                      
+                    if self.image_num == 2:self.image = pygame.transform.rotate(self.image2, 10)   
+                    self.rect.center = self.pos                   
                 
                 # 빔에 맞았을때
                 if len(collide) > 0 and not self.godmod:                               
@@ -579,6 +586,7 @@ class Boss_Enemy(pygame.sprite.Sprite):
                         for _ in range(0,40):
                             item_group.add(Item(get_new_pos((self.pos[0]*2,self.pos[1]*2),randint(-200,200),randint(-200,200)),1))
                 self.count += 1
+                if self.move_speed == 0: self.sin += 6
                 self.rect = self.image.get_rect(center = self.pos)
             # 처음등장시 중앙으로 오기
             if self.real_appear and not self.attack_start and not self.dieleft:
@@ -593,7 +601,7 @@ class Boss_Enemy(pygame.sprite.Sprite):
             remove_allbullet()
             if self.dies: 
                 if self.num == 2 or self.num == 4 or self.num == 6 or self.num == 8 or self.num == 10 or self.num == 11:
-                    if self.num == 11:clock_fps = 40
+                    if self.num == 11:st.clock_fps = 40
                     self.death_count += 1
                     self.pos = calculate_new_xy(self.pos,1,self.move_dir)
                     if self.death_count == 90:
@@ -607,7 +615,7 @@ class Boss_Enemy(pygame.sprite.Sprite):
                         self.pos = (-128,-128)                            
                         self.real_appear = False
                     if self.death_count == 130:
-                        clock_fps = 60
+                        st.clock_fps = 60
                         if not self.num == 11:text.pause = False
                         self.dieleft = False
                         self.appear = False
@@ -628,7 +636,7 @@ class Boss_Enemy(pygame.sprite.Sprite):
                         self.appear = False 
                         self.count = 0                          
             
-        self.rect.center = self.pos
+        self.rect.center = get_new_pos(self.pos,0,math.sin(self.sin*math.pi/180)*3)
 
     def reset(self):
         self.image = pygame.Surface((128,128), pygame.SRCALPHA)      
@@ -1296,7 +1304,7 @@ class Under_PI():
             self.slow_count += 1
             if self.slow_count >= len(st.slow_player_circle): self.slow_count = 0
         if starting and not read_end and player.health > 0: # 원형 체력바 그리기
-            psi = player.pos if character == 0 else get_new_pos(player.pos,-2,-2)
+            psi = player.pos
             drawArc(render_layer, (100, 194, 247), psi, 45, 2, 360*player.gatcha/player.gatcha_max,150)
             if player.godmod: drawArc(render_layer, (0, 194, 247), psi, 58, 11, 360*player.godmod_count/player.max_godmod_count,255)
             drawArc(render_layer, (0,0,0), psi, 56, 8, 360*100,120 if not player.godmod else 255)
@@ -1438,8 +1446,6 @@ class Back_Ground():
     def update(self):
         self.x -= self.speed
 
-
-
 play = True
 cur_full_mod = False
 pause = False
@@ -1451,7 +1457,6 @@ screen_shake_count = 0
 add_dam = 0
 drilling = False
 game_clear = False   
-#global character, difficult
 curser = 0
 curser_max = 4
 select_mod = 0
@@ -1459,7 +1464,6 @@ menu_mod = []
 character = 0
 difficult = 0
 cur_screen = 0
-#global stage_line, stage_cline, stage_repeat_count, stage_condition, stage_challenge, stage_fun, stage_end
 stage_fun = 0
 stage_line = 0
 stage_cline = 0
@@ -1497,10 +1501,12 @@ Spell(5,1300,True,3,"네잎클로버가 담긴","리프스톰"),Spell(6,1300,Fal
         Spell(19,1000,False),Spell(20,1600,True,4,"그래도 방어는 필수","인파이트"),Spell(21,1500,True,0,"주위에 맴도는","옛노래"),Spell(22,1000,False),Spell(23,1000,False),Spell(24,1000,False),\
             Spell(25,1700,True,1,"성스러운 입자","성스러운칼"),Spell(26,1100,False),Spell(27,1500,True,1,"베는데 1초","인파이트"),Spell(28,800,False),Spell(29,1800,True,1,"뭐든지 꿰뚫는 창","두세번치기"),Spell(30,1500,True,1,"모든 경험이 깆든","신비의칼"),\
                 Spell(31,1000,False),Spell(32,1000,False),Spell(33,1200,False),Spell(34,1600,True,4,"불에 뜨겁게 달궈진","염동력"),Spell(35,1200,False),Spell(36,1800,True,1,"차분하고 뒤엉킨","V제너레이트"),\
-                    Spell(37,1200,False),Spell(38,1500,True,1,"주위의 도움으로","플레어드라이브"),Spell(39,1500,True,0,"V 모양으로","파괴광선"),\
+                    Spell(37,1200,False),Spell(38,2500,True,1,"경계를 볼줄아는","플레어드라이브"),Spell(39,1500,True,0,"V 모양으로","파괴광선"),\
                         Spell(40,1200,False),Spell(41,1800,True,4,"멀리서만 아름다운","신통력"),Spell(42,1200,False),Spell(43,2000,True,9,"용이 부르짖는다","용의파동"),\
                             Spell(44,1200,False),Spell(45,1700,True,1,"지나간 자리엔 남지않는","쾌청"),Spell(46,1200,False),Spell(47,2400,True,1,"도피하기엔 틈이없다","푸른불꽃"),Spell(48,5000,True,1,"크로스플레임","크로스플레임")]
 
 player.skill_list.append(Skill(3,5,"저리가람","바람일으키기",10,60,30))
 player.skill_list.append(Skill(0,7,"Press C key!","몸부림",30,60,10))
 player.skill_list.append(Skill(0,7,"Press C key!","몸부림",30,60,10))
+
+
