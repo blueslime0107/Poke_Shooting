@@ -1,8 +1,6 @@
 import pygame, math
 import random 
 import start as st
-import cv2
-import numpy
 
 def get_new_pos(pos,x=0,y=0):
     return (round(pos[0] + x), round(pos[1] + y))
@@ -38,11 +36,14 @@ def look_at_point(fpos,secpos):
 
 # 동그라미 게이지 (퍼옴)
 def drawArc(surf, color, center, radius, width, end_angle,alpha=255):
-    circle_image = numpy.zeros((radius*2+4, radius*2+4, 4), dtype = numpy.uint8)
-    circle_image = cv2.ellipse(circle_image, (radius+2, radius+2),
-    (radius-width//2, radius-width//2), -90, 0, end_angle, (*color, alpha), width, lineType=cv2.LINE_AA) 
-    circle_surface = pygame.image.frombuffer(circle_image.flatten(), (radius*2+4, radius*2+4), 'RGBA')
-    circle_surface = pygame.transform.flip(circle_surface, True,False)
+    if end_angle <= 0:
+        return
+    diameter = radius * 2 + 4
+    circle_surface = pygame.Surface((diameter, diameter), pygame.SRCALPHA)
+    rect = pygame.Rect(2, 2, radius * 2, radius * 2)
+    start_radian = -math.pi / 2
+    end_radian = start_radian + math.radians(end_angle)
+    pygame.draw.arc(circle_surface, (*color, alpha), rect, start_radian, end_radian, width)
     surf.blit(circle_surface, circle_surface.get_rect(center = (round(center[0]),round(center[1]))))
 
 def health_color(val):

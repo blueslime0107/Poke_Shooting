@@ -1,6 +1,44 @@
+import sys
+import time
+from pathlib import Path
+
 import pygame
 from pygame.locals import *
-import time
+
+
+BASE_DIR = Path(__file__).resolve().parent
+RESOURCE_DIR = BASE_DIR / 'resources'
+IS_WEB = sys.platform == 'emscripten'
+
+
+def resource_path(*parts):
+    return str(RESOURCE_DIR.joinpath(*parts))
+
+
+def read_resource_lines(*parts, fallback=None):
+    try:
+        with open(resource_path(*parts), 'r', encoding='UTF-8') as file:
+            return [line.strip() for line in file.readlines()]
+    except OSError:
+        return [] if fallback is None else list(fallback)
+
+
+def write_resource_lines(parts, lines):
+    try:
+        with open(resource_path(*parts), 'w', encoding='UTF-8') as file:
+            file.write('\n'.join(lines) + '\n')
+        return True
+    except OSError:
+        return False
+
+
+def load_image(*parts, use_alpha=True):
+    image = pygame.image.load(resource_path(*parts))
+    return image.convert_alpha() if use_alpha else image.convert()
+
+
+def load_sound(*parts):
+    return pygame.mixer.Sound(resource_path(*parts))
 
 pygame.init()
 pygame.mixer.pre_init(44100,-16,2,512)
@@ -12,7 +50,10 @@ render_layer = pygame.Surface((WIDTH,HEIGHT))
 up_render_layer = pygame.Surface((WIDTH,HEIGHT), SRCALPHA)
 skill_surface = pygame.Surface((WIDTH,HEIGHT), SRCALPHA)
 screen = pygame.display.set_mode((WIDTH*2,HEIGHT*2))
-monitor_size = [pygame.display.Info().current_w, pygame.display.Info().current_h]
+try:
+    monitor_size = [pygame.display.Info().current_w, pygame.display.Info().current_h]
+except pygame.error:
+    monitor_size = [WIDTH * 2, HEIGHT * 2]
 screen_rect = render_layer.get_rect()
 bgm_num = 0
 # 소리 초기설정, 불러오기
@@ -21,47 +62,41 @@ pygame.event.set_allowed([pygame.QUIT, pygame.KEYDOWN, pygame.KEYUP])
 
 
 # 이미지 불러오기
-bullet_image = pygame.image.load('resources\Image\Bullets.png').convert_alpha()
-bg_image = pygame.image.load('resources\Image\Bg1.png').convert_alpha()
-bg2_image = pygame.image.load('resources\Image\Bg2.png').convert_alpha()
-pkmon_image = pygame.image.load('resources\Image\pokemon.png').convert_alpha()
-background_img = pygame.image.load('resources\Image\\background.jpg').convert()
-menu_img = pygame.image.load('resources\Image\Menus.png').convert_alpha()
-item_img = pygame.image.load('resources\Image\item.png').convert_alpha()
-skill_img = pygame.image.load('resources\Image\skill.png').convert_alpha()
-ui_img = pygame.image.load('resources\Image\player_ui.png').convert_alpha()
-loding_img = pygame.image.load('resources\Image\Loding.png').convert()
-title_img = pygame.image.load('resources\Image\\title.png').convert_alpha()
+bullet_image = load_image('Image', 'Bullets.png')
+bg_image = load_image('Image', 'Bg1.png')
+bg2_image = load_image('Image', 'Bg2.png')
+pkmon_image = load_image('Image', 'pokemon.png')
+background_img = load_image('Image', 'background.jpg', use_alpha=False)
+menu_img = load_image('Image', 'Menus.png')
+item_img = load_image('Image', 'item.png')
+skill_img = load_image('Image', 'skill.png')
+ui_img = load_image('Image', 'player_ui.png')
+loding_img = load_image('Image', 'Loding.png', use_alpha=False)
+title_img = load_image('Image', 'title.png')
 screen.blit(pygame.transform.scale2x(loding_img),(0,0))
 pygame.display.flip()
-mew_text = open("resources\mew.txt", 'r', encoding="UTF-8")
-text_text = open("resources\how_to_play.txt", 'r', encoding="UTF-8")
-text_credit = open("resources\credit.txt", 'r', encoding="UTF-8")
-score_text = open("resources\score.txt", 'r', encoding="UTF-8")
 text_scroll = []
 text_start = [0]
-lines = mew_text.readlines()
+lines = read_resource_lines('mew.txt')
 a = 0
 for line in lines:
     a += 1
-    line = line.strip()
     if line == '#E:#####################################':
         text_start.append(a)
     text_scroll.append(line)
 htp_scroll = []
 credit_scroll = []
-lines = text_text.readlines()
+lines = read_resource_lines('how_to_play.txt')
 for line in lines:
-    line = line.strip()
     htp_scroll.append(line)
-lines = text_credit.readlines()
+lines = read_resource_lines('credit.txt')
 for line in lines:
-    line = line.strip()
     credit_scroll.append(line)
 score_scroll = []
-lines = score_text.readlines()
+lines = read_resource_lines('st.score.txt')
+if not lines:
+    lines = read_resource_lines('score.txt', fallback=['H:0000000000', 'F:0000000000'])
 for line in lines:
-    line = line.strip()
     score_scroll.append(line)
 
 
@@ -70,59 +105,57 @@ full_on = False
 sfx_volume = 0
 music_volume = 0
 
-with open('resources\setting.txt','r',encoding="UTF-8") as f:
-    lines = f.readlines()
-    line = lines[0].strip()
-    line = line.split('=')
-    if line[1] == 'False' or line[1] == '0':
-        full_on = False
-    else:
-        full_on = True
-    line = lines[1].strip()
-    line = line.split('=')
-    sfx_volume = int(line[1])
-    line = lines[2].strip()
-    line = line.split('=')
-    music_volume = int(line[1])
+setting_lines = read_resource_lines('setting.txt', fallback=['fullscreen=False', 'sfx=0', 'bgm=0'])
+while len(setting_lines) < 3:
+    setting_lines.append(['fullscreen=False', 'sfx=0', 'bgm=0'][len(setting_lines)])
 
-s_lazer1 = pygame.mixer.Sound('resources\Music\SFX\se_lazer00.wav')
-s_tan1 = pygame.mixer.Sound('resources\Music\SFX\se_tan00.wav')
-s_tan2 = pygame.mixer.Sound('resources\Music\SFX\se_tan01.wav')
-s_ch2 = pygame.mixer.Sound('resources\Music\SFX\se_ch02.wav')
-s_ch0 = pygame.mixer.Sound('resources\Music\SFX\se_ch00.wav')
-s_cat1 = pygame.mixer.Sound('resources\Music\SFX\se_cat00.wav')
-s_enep1 = pygame.mixer.Sound('resources\Music\SFX\se_enep01.wav')
-s_enep2 = pygame.mixer.Sound('resources\Music\SFX\se_enep02.wav')
-s_slash = pygame.mixer.Sound('resources\Music\SFX\se_slash.wav')
-s_pldead = pygame.mixer.Sound('resources\Music\SFX\se_pldead00.wav')
-s_plst0 = pygame.mixer.Sound('resources\Music\SFX\se_plst00.wav')
-s_damage0 = pygame.mixer.Sound('resources\Music\SFX\se_damage00.wav')
-s_damage1 = pygame.mixer.Sound('resources\Music\SFX\se_damage01.wav')
-s_graze = pygame.mixer.Sound('resources\Music\SFX\se_graze.wav')
-s_kira0 = pygame.mixer.Sound('resources\Music\SFX\se_kira00.wav')
-s_kira1 = pygame.mixer.Sound('resources\Music\SFX\se_kira01.wav')
-s_boom = pygame.mixer.Sound('resources\Music\SFX\se_enep02.wav')
-s_item0 = pygame.mixer.Sound('resources\Music\SFX\se_item00.wav')
-s_enedead = pygame.mixer.Sound('resources\Music\SFX\se_enep00.wav')
-s_ok = pygame.mixer.Sound('resources\Music\SFX\se_select00.wav')
-s_select = pygame.mixer.Sound('resources\Music\SFX\se_ok00.wav')
-s_cancel = pygame.mixer.Sound('resources\Music\SFX\se_cancel00.wav')
-s_pause = pygame.mixer.Sound('resources\Music\SFX\se_pause.wav')
-FONT_1 = 'resources\Font\SEBANG Gothic Bold.ttf' 
-FONT_2 = 'resources\Font\SEBANG Gothic.ttf'
-FIELD_1 = 'resources\Music\BGM\\1Stage.wav'
-FIELD_2 = 'resources\Music\BGM\\2Stage.wav'
-FIELD_3 = 'resources\Music\BGM\\3Stage.wav'
-FIELD_4 = 'resources\Music\BGM\\4Stage.wav'
-FIELD_5 = 'resources\Music\BGM\\5Stage.wav'
-FIELD_6 = 'resources\Music\BGM\\6Stage.wav'
-BOSS_BGM1 = 'resources\Music\BGM\\1Boss.wav'
-BOSS_BGM2 = 'resources\Music\BGM\\2Boss.wav'
-BOSS_BGM3 = 'resources\Music\BGM\\3Boss.wav'
-BOSS_BGM4 = 'resources\Music\BGM\\4Boss.wav'
-BOSS_BGM5 = 'resources\Music\BGM\\5Boss.wav'
-BOSS_BGM6 = 'resources\Music\BGM\\6Boss.wav'
-TITLE = 'resources\Music\BGM\\title.wav'
+line = setting_lines[0].split('=', 1)
+full_on = not (len(line) > 1 and line[1] in ('False', '0'))
+if IS_WEB:
+    full_on = False
+line = setting_lines[1].split('=', 1)
+sfx_volume = int(line[1]) if len(line) > 1 and line[1].isdigit() else 0
+line = setting_lines[2].split('=', 1)
+music_volume = int(line[1]) if len(line) > 1 and line[1].isdigit() else 0
+
+s_lazer1 = load_sound('Music', 'SFX', 'se_lazer00.ogg')
+s_tan1 = load_sound('Music', 'SFX', 'se_tan00.ogg')
+s_tan2 = load_sound('Music', 'SFX', 'se_tan01.ogg')
+s_ch2 = load_sound('Music', 'SFX', 'se_ch02.ogg')
+s_ch0 = load_sound('Music', 'SFX', 'se_ch00.ogg')
+s_cat1 = load_sound('Music', 'SFX', 'se_cat00.ogg')
+s_enep1 = load_sound('Music', 'SFX', 'se_enep01.ogg')
+s_enep2 = load_sound('Music', 'SFX', 'se_enep02.ogg')
+s_slash = load_sound('Music', 'SFX', 'se_slash.ogg')
+s_pldead = load_sound('Music', 'SFX', 'se_pldead00.ogg')
+s_plst0 = load_sound('Music', 'SFX', 'se_plst00.ogg')
+s_damage0 = load_sound('Music', 'SFX', 'se_damage00.ogg')
+s_damage1 = load_sound('Music', 'SFX', 'se_damage01.ogg')
+s_graze = load_sound('Music', 'SFX', 'se_graze.ogg')
+s_kira0 = load_sound('Music', 'SFX', 'se_kira00.ogg')
+s_kira1 = load_sound('Music', 'SFX', 'se_kira01.ogg')
+s_boom = load_sound('Music', 'SFX', 'se_enep02.ogg')
+s_item0 = load_sound('Music', 'SFX', 'se_item00.ogg')
+s_enedead = load_sound('Music', 'SFX', 'se_enep00.ogg')
+s_ok = load_sound('Music', 'SFX', 'se_select00.ogg')
+s_select = load_sound('Music', 'SFX', 'se_ok00.ogg')
+s_cancel = load_sound('Music', 'SFX', 'se_cancel00.ogg')
+s_pause = load_sound('Music', 'SFX', 'se_pause.ogg')
+FONT_1 = resource_path('Font', 'SEBANG Gothic Bold.ttf')
+FONT_2 = resource_path('Font', 'SEBANG Gothic.ttf')
+FIELD_1 = resource_path('Music', 'BGM', '1Stage.ogg')
+FIELD_2 = resource_path('Music', 'BGM', '2Stage.ogg')
+FIELD_3 = resource_path('Music', 'BGM', '3Stage.ogg')
+FIELD_4 = resource_path('Music', 'BGM', '4Stage.ogg')
+FIELD_5 = resource_path('Music', 'BGM', '5Stage.ogg')
+FIELD_6 = resource_path('Music', 'BGM', '6Stage.ogg')
+BOSS_BGM1 = resource_path('Music', 'BGM', '1Boss.ogg')
+BOSS_BGM2 = resource_path('Music', 'BGM', '2Boss.ogg')
+BOSS_BGM3 = resource_path('Music', 'BGM', '3Boss.ogg')
+BOSS_BGM4 = resource_path('Music', 'BGM', '4Boss.ogg')
+BOSS_BGM5 = resource_path('Music', 'BGM', '5Boss.ogg')
+BOSS_BGM6 = resource_path('Music', 'BGM', '6Boss.ogg')
+TITLE = resource_path('Music', 'BGM', 'title.ogg')
 
 tan_channel = pygame.mixer.Channel(0)
 kira_channel = pygame.mixer.Channel(1)

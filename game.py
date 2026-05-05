@@ -14,6 +14,23 @@ from stage import stage_manager
 
 screen = pygame.display.set_mode((WIDTH*2,HEIGHT*2))
     # 플레이어
+
+
+def save_settings():
+    st.write_resource_lines(
+        ('setting.txt',),
+        [
+            'fullscreen=' + str(False if st.IS_WEB else bool(st.full_on)),
+            'sfx=' + str(st.sfx_volume),
+            'bgm=' + str(st.music_volume),
+        ],
+    )
+
+
+def save_score():
+    st.write_resource_lines(('st.score.txt',), st.score_scroll[:2])
+
+
 def music_and_sfx_volume(m,s):
     try:s = s/100
     except:s = 0
@@ -116,11 +133,11 @@ def play_game():
             # 키 이벤트
             for ev in pygame.event.get():
                 if ev.type == pygame.QUIT: # 게임끄기
-                    pygame.quit()
-                    exit()
+                    sv.play = False
+                    break
                 if ev.type == pygame.KEYDOWN:    
                     if not sv.pause:                
-                        if ev.key == pygame.K_f:
+                        if ev.key == pygame.K_f and not st.IS_WEB:
                             st.full_on = False if st.full_on == True else True
                         if ev.key == pygame.K_ESCAPE and not (sv.text.started and not sv.text.pause) and sv.frame_count >= 60:
                             s_pause.play()
@@ -270,7 +287,7 @@ def play_game():
                 if not sv.pause:
                     background_scroll()               
                     if sv.boss.fire_field_radius > 0:
-                        fire_layer = pygame.Surface((WIDTH,HEIGHT), SRCALPHA)
+                        fire_layer = pygame.Surface((WIDTH,HEIGHT), pygame.SRCALPHA)
                         pygame.draw.circle(fire_layer, (255,0,0,150), sv.boss.pos, sv.boss.fire_field_radius)
                         render_layer.blit(fire_layer,(0,0))
                     skill_surface.fill((0,0,0,0))
@@ -310,11 +327,11 @@ def play_game():
                     screen.blit(pygame.transform.scale2x(render_layer),(0,0))
                     sv.spr.draw(screen)
                     screen.blit(pygame.transform.scale2x(up_render_layer),(0,0))
-                    pause_menu = pygame.Surface((WIDTH,HEIGHT), SRCALPHA)  
+                    pause_menu = pygame.Surface((WIDTH,HEIGHT), pygame.SRCALPHA)  
                     pause_menu.fill((255, 0, 85,100))
                     pause_menu.blit(menu_img,(10,100),(160,48,160,32))
                     for i in range(0,3): # 메뉴 그리기
-                        menu = pygame.Surface((160,32), SRCALPHA)
+                        menu = pygame.Surface((160,32), pygame.SRCALPHA)
                         if sv.curser == i: menu.fill((0,0,0,200))
                         menu.blit(menu_img,(0,0),(160,80+32*i,160,32))
                         if i == 0 and sv.practicing and sv.boss.died_next_stage: 
@@ -336,7 +353,7 @@ def play_game():
                     sv.play = False
                 if ev.type == pygame.KEYDOWN: 
                     if not sv.game_clear:
-                        if ev.key == pygame.K_f:
+                        if ev.key == pygame.K_f and not st.IS_WEB:
                             sv.st.full_on = False if st.full_on == True else True  
                         if ev.key == pygame.K_UP:
                             sv.curser = curser_max if sv.curser == 0 else sv.curser - 1 # 커서위로
@@ -397,7 +414,7 @@ def play_game():
                             if sv.menu_mod[0] == 4:
                                 if ev.key == pygame.K_RIGHT:
                                     s_ok.play()
-                                    if sv.curser == 0:
+                                    if sv.curser == 0 and not st.IS_WEB:
                                         sv.st.full_on = 1 if sv.st.full_on == 0 else 0
                                     if sv.curser == 1:
                                         st.music_volume = st.music_volume + 5 if st.music_volume < 100 else 100
@@ -405,7 +422,7 @@ def play_game():
                                         st.sfx_volume = st.sfx_volume + 5 if st.sfx_volume < 100 else 100                                
                                 if ev.key == pygame.K_LEFT:
                                     s_ok.play()
-                                    if sv.curser == 0:
+                                    if sv.curser == 0 and not st.IS_WEB:
                                         st.full_on = 1 if st.full_on == 0 else 0
                                     if sv.curser == 1:
                                         st.music_volume = st.music_volume - 5 if st.music_volume > 0 else 0
@@ -414,10 +431,7 @@ def play_game():
                                 if ev.key == pygame.K_x or ev.key == pygame.K_ESCAPE:
                                     s_cancel.play()
                                     music_and_sfx_volume(st.music_volume,st.sfx_volume)
-                                    with open('resources\setting.txt','w',encoding="UTF-8") as f:
-                                        f.write("fullscreen"+"="+str(st.full_on)+"\n")
-                                        f.write("sfx"+"="+str(st.sfx_volume)+"\n")
-                                        f.write("bgm"+"="+str(st.music_volume)+"\n")
+                                    save_settings()
                                     sv.curser = 0
                                     sv.select_mod -= 1
                                     del sv.menu_mod[len(sv.menu_mod)-1]     
@@ -484,7 +498,7 @@ def play_game():
                     
                     
                     else:
-                        if ev.key == K_x or ev.key == K_ESCAPE or ev.key == K_z:
+                        if ev.key == pygame.K_x or ev.key == pygame.K_ESCAPE or ev.key == pygame.K_z:
                             old_score = 0
                             if sv.character == 0:
                                 old_score = int(st.score_scroll[0][2:])
@@ -496,9 +510,7 @@ def play_game():
                                 if old_score < st.score:
                                     st.score_scroll[1] = "F:"+str(st.score).zfill(10)
                                     st.score_scroll[1] = st.score_scroll[1]
-                            with open('resources\st.score.txt','w',encoding="UTF-8") as f:
-                                f.write(st.score_scroll[0]+"\n")
-                                f.write(st.score_scroll[1]+"\n")
+                            save_score()
                                 
                             st.game_restart = True
             if st.game_restart:
@@ -517,7 +529,7 @@ def play_game():
                     curser_max = 5
                     render_layer.blit(st.title_img,(0,0))# 타이틀
                     for i in range(0,6): # 메뉴 그리기
-                        menu = pygame.Surface((160,32), SRCALPHA)
+                        menu = pygame.Surface((160,32), pygame.SRCALPHA)
                         if sv.curser == i: menu.fill((0,0,255,200))
                         menu.blit(st.menu_img,(0,0),(0,48+32*i,320,48))
                         render_layer.blit(menu,(ui_x,ui_y+32*i))
@@ -529,14 +541,14 @@ def play_game():
                     if sv.menu_mod[0] == 0: # 시작>난이도 정하기
                         curser_max = 3
                         for i in range(0,4): # 메뉴 그리기
-                            menu = pygame.Surface((160,48), SRCALPHA)
+                            menu = pygame.Surface((160,48), pygame.SRCALPHA)
                             if sv.curser == i: menu.fill((0,0,0,200))
                             menu.blit(menu_img,(0,0),(320,0+48*i,160,48))
                             render_layer.blit(menu,(int(WIDTH/2-240),int(HEIGHT/2-30+64*i-64*sv.curser)))
                     if sv.menu_mod[0] == 1:
                         curser_max = 2
                         for i in range(0,3): # 메뉴 그리기
-                            menu = pygame.Surface((160,48), SRCALPHA)
+                            menu = pygame.Surface((160,48), pygame.SRCALPHA)
                             if sv.curser == i: menu.fill((0,0,0,200))
                             menu.blit(menu_img,(0,0),(320,0+48*i,160,48))
                             render_layer.blit(menu,(int(WIDTH/2-240),int(HEIGHT/2-30+64*i-64*sv.curser)))                        
@@ -567,12 +579,12 @@ def play_game():
                         curser_max = 1
                         render_layer.blit(menu_img,(0,0),(0,240,320,48))
                         for i in range(0,5): # 메뉴 그리기
-                            menu = pygame.Surface((160,48), SRCALPHA)
+                            menu = pygame.Surface((160,48), pygame.SRCALPHA)
                             if i == sv.menu_mod[1]: menu.fill((0,0,0,200))
                             menu.blit(menu_img,(0,0),(320,0+48*i,160,48))
                             render_layer.blit(menu,(int(WIDTH/2-240),int(HEIGHT/2-30+64*i-64*sv.menu_mod[1])))
                         for i in range(0,2): # 메뉴 그리기
-                            menu = pygame.Surface((208,32), SRCALPHA)
+                            menu = pygame.Surface((208,32), pygame.SRCALPHA)
                             if sv.curser == i: menu.fill((0,0,0,200))
                             menu.blit(menu_img,(0,0),(0,288+32*i,192,32))
                             render_layer.blit(menu,(int(WIDTH/2-70),int(HEIGHT/2-30+64*i-64*sv.curser)))
@@ -648,11 +660,16 @@ def play_game():
 
         # 전체화면
         if st.full_on != sv.cur_full_mod:
-            if st.full_on:
+            if st.IS_WEB:
+                st.full_on = False
+                sv.cur_full_mod = False
+            elif st.full_on:
                 screen = pygame.display.set_mode(monitor_size, pygame.FULLSCREEN|pygame.SCALED)
             else:
                 screen = pygame.display.set_mode((WIDTH*2, HEIGHT*2))
-            sv.cur_full_mod = st.full_on
+                sv.cur_full_mod = st.full_on
+            if not st.IS_WEB:
+                sv.cur_full_mod = st.full_on
     if st.game_restart:
         st.game_restart = False
         all_reset()
