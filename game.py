@@ -1,6 +1,10 @@
 import pygame, math
 from random import randint
-from pygame.locals import *
+
+try:
+    from pygame.locals import *
+except ImportError:
+    pass
 
 import time
 import start as st
@@ -116,6 +120,7 @@ def all_reset():
 
 def play_game():
     global screen
+    print("GAME_ENTRY play_game()")
     music_and_sfx_volume(st.music_volume,st.sfx_volume)    
     continued = 0
     start_fun = [0,0]

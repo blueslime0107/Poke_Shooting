@@ -1,6 +1,10 @@
 import pygame, math
 from random import randint
-from pygame.locals import *
+
+try:
+    from pygame.locals import *
+except ImportError:
+    pass
 import start as st
 from start import render_layer,bullets, WIDTH, HEIGHT, small_border, FONT_1, font1, bullet_border, pokemons, items,near_border, boss_movebox,screen_rect, up_render_layer,far_border
 from start import magic_circle_sprite, white_circle, died_white_circle,bullet_erase,boss_circle,bullet_size

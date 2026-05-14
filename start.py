@@ -3,7 +3,11 @@ import time
 from pathlib import Path
 
 import pygame
-from pygame.locals import *
+
+try:
+    from pygame.locals import *
+except ImportError:
+    pass
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -42,6 +46,7 @@ def load_sound(*parts):
 
 pygame.init()
 pygame.mixer.pre_init(44100,-16,2,512)
+print("START_INIT display bootstrap")
 
 # 해상도
 WIDTH = 540
@@ -54,6 +59,7 @@ try:
     monitor_size = [pygame.display.Info().current_w, pygame.display.Info().current_h]
 except pygame.error:
     monitor_size = [WIDTH * 2, HEIGHT * 2]
+print("START_INIT screen ready", screen.get_size())
 screen_rect = render_layer.get_rect()
 bgm_num = 0
 # 소리 초기설정, 불러오기
